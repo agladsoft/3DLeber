@@ -155,28 +155,6 @@ canvas.addEventListener("drop", event => {
     }
 });
 
-// --- Очистка всех элементов (кроме поверхности playground) ---
-document.getElementById("clearButton").addEventListener("click", () => {
-    totalPrice = 0;
-    document.getElementById("totalPrice").textContent = "0";
-    document.querySelector("#elementsTable tbody").innerHTML = "";
-
-    // При удалении объектов не трогаем playground и его дочерние меши
-    scene.meshes.forEach(mesh => {
-        if (ground && (mesh === ground || mesh.isDescendantOf(ground))) {
-            // пропускаем playground
-        } else {
-            mesh.dispose();
-        }
-    });
-
-    scene.transformNodes.forEach(node => {
-        if (node.name === "modelContainer") {
-            node.dispose();
-        }
-    });
-});
-
 // --- Отключаем стандартное контекстное меню (правый клик) ---
 canvas.addEventListener("contextmenu", event => event.preventDefault());
 
