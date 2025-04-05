@@ -46,27 +46,40 @@ BABYLON.SceneLoader.ImportMesh("", "models/", "playground.glb", scene, function 
 
 // --- Цены элементов ---
 const elementPrices = {
-    "swing.glb": 5000,
-    "lgk_314.glb": 10000,
-    "msk_201.glb": 15000,
-    "bench.glb": 3000,
-    "msk_105.glb": 4000,
-    "lgk_11.glb": 6000,
-    "lgp_112.glb": 7000,
+    "0001.glb": 8000,
+    "242.glb": 7500,
+    "0502.glb": 12000,
+    "0519.glb": 11000,
+    "3540.glb": 9500,
+    "4209.glb": 13000,
+    "Каркас качелей-балансира -Тайга-.stl": 14000,
     "lgd_3.glb": 11000,
+    "lgk_11.glb": 6000,
+    "lgk_314.glb": 10000,
+    "MG0001 2024-09 R2 Модель.glb": 25000,
+    "MG0001.stl": 20000,
+    "msk_105.glb": 4000,
+    "msk_201.glb": 15000,
 };
 
 let totalPrice = 0;
 
-// --- Словарь стандартных размеров для моделей ---
-// Максимальная размерность для каждой модели
 const modelSizes = {
+    "0001.glb": 2,
+    "242.glb": 2,
+    "0502.glb": 2,
+    "0519.glb": 2.5,
+    "3540.glb": 3,
+    "4209.glb": 4,
+    "Каркас качелей-балансира -Тайга-.stl": 2.5,
+    "lgd_3.glb": 2,
+    "lgk_11.glb": 0.1,
     "lgk_314.glb": 2,
-    "msk_201.glb": 3,
+    "MG0001 2024-09 R2 Модель.glb": 10,
+    "MG0001.stl": 10,
     "msk_105.glb": 3,
-    "lgk_11.glb": 1.2,
-    "lgp_112.glb": 2.5,
-    "lgd_3.glb": 3,
+    "msk_201.glb": 3,
+    "201.fbx":3,
 };
 
 // --- Обработчик начала перетаскивания для загрузки модели ---
@@ -101,13 +114,19 @@ canvas.addEventListener("drop", event => {
             });
 
             // При необходимости поворачиваем конкретные модели
-            if (modelName === "bench.glb") {
+            if (modelName === "MG0001 2024-09 R2 Модель.glb") {
                 container.rotation.x = Math.PI / 2;
+            }
+            if (modelName === "0519.glb") {
+                container.rotation.x = Math.PI / -2;
+            }
+            if (modelName === "0001.glb") {
+                container.rotation.x = Math.PI / -2;
             }
 
             // Устанавливаем контейнер в позицию броска (если pickResult не сработал, берем (0,0,0))
             container.position = pickResult.pickedPoint || new BABYLON.Vector3(0, 0, 0);
-
+                
             // Вычисляем bounding box
             let boundingVectors = container.getHierarchyBoundingVectors();
             let size = boundingVectors.max.subtract(boundingVectors.min);
