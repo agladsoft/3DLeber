@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Площадка</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h3>Выберите элемент</h3>
+        <div class="item" draggable="true" data-model="0001.glb">
+            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <p>MG0001 Качели-балансир двойной</p>
+        </div>
+        <!-- <div class="item" draggable="true" data-model="242.glb">
+            <img src="textures/ЛГГ-24-2 Горка h=950 (HPL).png" alt="ЛГГ-24-2 Горка h=950 (HPL)">
+            <p>ЛГГ-24-2 Горка h=950 (HPL)</p>
+        </div> -->
+        <div class="item" draggable="true" data-model="0502.glb">
+            <img src="textures/MG0502 Качели одинарные.png" alt="MG0502 Качели одинарные">
+            <p>MG0502 Качели одинарные</p>
+        </div>
+        <div class="item" draggable="true" data-model="0519.glb">
+            <img src="textures/Качели 0519.png" alt="Качели 0519">
+            <p>Качели 0519</p>
+        </div>
+        <div class="item" draggable="true" data-model="3540.glb">
+            <img src="textures/MG3540 Спортивное оборудование Лазательный комплекс.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
+            <p>MG3540 Спортивное оборудование Лазательный комплекс</p>
+        </div>
+        <div class="item" draggable="true" data-model="4209.glb">
+            <img src="textures/MG4209 Спортивный комплекс.png" alt="MG4209 Спортивный комплекс">
+            <p>MG4209 Спортивный комплекс</p>
+        </div>
+        <div class="item" draggable="true" data-model="Каркас качелей-балансира -Тайга-.stl">
+            <img src="textures/Каркас качелей-балансира -Тайга-.png" alt="Каркас качелей-балансира -Тайга-">
+            <p>Каркас качелей-балансира Тайга</p>
+        </div>
+        <div class="item" draggable="true" data-model="lgd_3.glb">
+            <img src="textures/lgd_3.png" alt="Модель lgd_3">
+            <p>Модель lgd_3</p>
+        </div>
+        <div class="item" draggable="true" data-model="lgk_11.glb">
+            <img src="textures/lgk_11.png" alt="Модель lgk_11">
+            <p>Модель lgk_11</p>
+        </div>
+        <div class="item" draggable="true" data-model="lgk_314.glb">
+            <img src="textures/lgk_314.png" alt="Модель lgk_314">
+            <p>Модель lgk_314</p>
+        </div>
+        <div class="item" draggable="true" data-model="MG0001 2024-09 R2 Модель.glb">
+            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <p>MG0001 Качели-балансир двойной</p>
+        </div>
+        <div class="item" draggable="true" data-model="MG0001.stl">
+            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <p>MG0001 Качели-балансир двойной</p>
+        </div>
+        <!-- <div class="item" draggable="true" data-model="msk_105.glb">
+            <img src="textures/msk_105.png" alt="Модель msk_105">
+            <p>Модель msk_105</p>
+        </div> -->
+        <div class="item" draggable="true" data-model="msk_201.glb">
+            <img src="textures/msk_201.png" alt="Модель msk_201">
+            <p>Модель msk_201</p>
+        </div>
+    </div>
+    <canvas id="renderCanvas"></canvas>
+    <div id="pricePanel">
+        <h3>Общая стоимость: <span id="totalPrice">0</span> ₽</h3>
+        <table id="elementsTable">
+            <thead>
+                <tr>
+                    <th>Элемент</th>
+                    <th>Цена (₽)</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
