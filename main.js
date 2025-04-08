@@ -63,18 +63,18 @@ const elementPrices = {
 let totalPrice = 0;
 
 const modelSizes = {
-    "0001.glb": 2,
-    "242.glb": 2,
-    "0502.glb": 2,
-    "0519.glb": 2.5,
-    "3540.glb": 3,
-    "4209.glb": 4,
-    "taiga.stl": 2.5,
-    "lgd_3.glb": 2,
-    "lgk_11.glb": 2,
-    "lgk_314.glb": 2,
-    "msk_105.glb": 3,
-    "msk_201.glb": 3
+    "0001.glb": 1,
+    "242.glb": 1,
+    "0502.glb": 1,
+    "0519.glb": 1,
+    "3540.glb": 1,
+    "4209.glb": 1,
+    "taiga.stl": 1,
+    "lgd_3.glb": 1,
+    "lgk_11.glb": 1,
+    "lgk_314.glb": 1,
+    "msk_105.glb": 1,
+    "msk_201.glb": 1
 };
 
 // --- Обработчик начала перетаскивания для загрузки модели ---
