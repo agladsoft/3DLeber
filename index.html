@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Площадка</title>
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <title>3D Площадка (Three.js)</title>
+    <!-- Three.js и необходимые расширения -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/DRACOLoader.js"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
         html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
@@ -16,7 +19,7 @@
     <div id="sidebar">
         <h3>Выберите элемент</h3>
         <div class="item" draggable="true" data-model="0001.glb">
-            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
             <p>MG0001 Качели-балансир двойной</p>
         </div>
         <div class="item" draggable="true" data-model="0502.glb">
@@ -28,15 +31,15 @@
             <p>Качели 0519</p>
         </div>
         <div class="item" draggable="true" data-model="3540.glb">
-            <img src="textures/MG3540 Спортивное оборудование Лазательный комплекс.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
+            <img src="textures/MG3540 Спортивное оборудование Лазательный комплекс.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
             <p>MG3540 Спортивное оборудование Лазательный комплекс</p>
         </div>
         <div class="item" draggable="true" data-model="4209.glb">
-            <img src="textures/MG4209 Спортивный комплекс.png" alt="MG4209 Спортивный комплекс">
+            <img src="textures/MG4209 Спортивный комплекс.png" alt="MG4209 Спортивный комплекс">
             <p>MG4209 Спортивный комплекс</p>
         </div>
         <div class="item" draggable="true" data-model="taiga.glb">
-            <img src="textures/Каркас качелей-балансира -Тайга-.png" alt="Каркас качелей-балансира -Тайга-">
+            <img src="textures/Каркас качелей-балансира -Тайга-.png" alt="Каркас качелей-балансира -Тайга-">
             <p>Каркас качелей-балансира Тайга</p>
         </div>
         <div class="item" draggable="true" data-model="lgd_3.glb">
@@ -66,6 +69,6 @@
             <tbody></tbody>
         </table>
     </div>
-    <script src="main.obfuscated.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
