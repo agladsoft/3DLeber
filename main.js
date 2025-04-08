@@ -54,7 +54,6 @@ const elementPrices = {
     "4209.glb": 13000,
     "taiga.glb": 14000,
     "lgd_3.glb": 11000,
-    "lgk_11.glb": 6000,
     "lgk_314.glb": 10000,
     "msk_105.glb": 4000,
     "msk_201.glb": 15000
@@ -71,7 +70,6 @@ const modelSizes = {
     "4209.glb": 1,
     "taiga.glb": 1.5,
     "lgd_3.glb": 1.6,
-    "lgk_11.glb": 1,
     "lgk_314.glb": 1,
     "msk_105.glb": 1,
     "msk_201.glb": 0.5
