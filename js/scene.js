@@ -9,6 +9,7 @@ import {
 } from './config.js';
 import { showNotification } from './utils.js';
 import * as THREE from '/node_modules/three/build/three.module.js';
+import { MOUSE } from '/node_modules/three/build/three.module.js';
 import { OrbitControls } from '/node_modules/three/examples/jsm/controls/OrbitControls.js';
 
 // Глобальные переменные сцены, доступные для экспорта
@@ -266,6 +267,9 @@ export function createGrid(width, length) {
     // Создаем сетку с делениями в 1 метр
     gridHelper = new THREE.GridHelper(gridSize, divisions, 0x444444, 0x888888);
     
+    // Устанавливаем позицию сетки в мировых координатах
+    gridHelper.position.set(0, 0, 0); // Фиксируем сетку в начале координат
+    
     // Делаем линии сетки более заметными
     if (gridHelper.material instanceof THREE.Material) {
         gridHelper.material.opacity = 0.8;
@@ -276,6 +280,23 @@ export function createGrid(width, length) {
             mat.transparent = true;
         });
     }
+    
+    // Важно: фиксируем сетку для предотвращения её движения вместе с камерой
+    gridHelper.matrixAutoUpdate = false; // Отключаем автоматическое обновление матрицы
+    gridHelper.updateMatrix(); // Обновляем матрицу один раз
+    
+    // Делаем сетку "невидимой" для событий взаимодействия, чтобы она не перехватывала клики
+    gridHelper.raycast = () => null; // Перезаписываем метод raycast, чтобы сетка не перехватывала raycaster
+    
+    // Если у GridHelper есть дочерние элементы (линии), делаем их тоже "невидимыми" для raycast
+    gridHelper.traverse((child) => {
+        if (child !== gridHelper) {
+            child.raycast = () => null;
+        }
+    });
+    
+    // Добавляем метку для идентификации
+    gridHelper.userData.isFixedGrid = true;
     
     // Добавляем сетку на сцену
     scene.add(gridHelper);
@@ -339,19 +360,55 @@ export function toggleTopView(width, length) {
             y: 0,
             z: 0
         }, () => {
-            // Полностью фиксируем камеру сверху
+            // Сохраняем оригинальные настройки камеры, если еще не сохранили
+            if (!controls._originalSettings) {
+                controls._originalSettings = {
+                    minPolarAngle: controls.minPolarAngle,
+                    maxPolarAngle: controls.maxPolarAngle,
+                    minDistance: controls.minDistance, 
+                    maxDistance: controls.maxDistance,
+                    enableRotate: controls.enableRotate,
+                    enablePan: controls.enablePan,
+                    enableZoom: controls.enableZoom,
+                    target: controls.target.clone(),
+                    mouseButtons: { ...controls.mouseButtons }, // Сохраняем оригинальные настройки mouseButtons
+                    panSpeed: controls.panSpeed, // Сохраняем оригинальную скорость панорамирования
+                    dampingFactor: controls.dampingFactor // Сохраняем оригинальный фактор демпфирования
+                };
+            }
+            
+            // Делаем глобальный флаг доступным для других модулей
+            window.app.isTopViewActive = true;
+            
+            // Настройки для вида сверху
+            // 1. Фиксируем угол обзора сверху
             controls.minPolarAngle = 0;
             controls.maxPolarAngle = 0.1; // Почти полностью ограничиваем наклон для вида строго сверху
             
-            // Увеличиваем максимальную дистанцию для камеры, чтобы пользователь мог отдалиться при необходимости
-            controls.maxDistance = targetHeight * 3;
-            controls.minDistance = 1; // Уменьшаем минимальное расстояние, чтобы можно было приблизиться
+            // 2. Настраиваем зум
+            controls.minDistance = 1; // Можно приближаться
+            controls.maxDistance = targetHeight * 3; // Можно отдаляться
             
-            // Отключаем вращение камеры
-            controls.enableRotate = false;
+            // 3. Включаем все основные элементы управления
+            controls.enableRotate = true;  // Включаем вращение (но ограничиваем его через minPolarAngle и maxPolarAngle)
+            controls.enablePan = true;     // Включаем панорамирование - перемещение камеры по горизонтали
+            controls.enableZoom = true;    // Включаем зум
             
-            // Показываем уведомление
-            showNotification("Вид сверху активирован. Используйте сетку для точного размещения объектов.", false);
+            // 4. Устанавливаем специальный режим для вида сверху
+            controls.mouseButtons = {
+                LEFT: MOUSE.PAN,     // Левая кнопка мыши для панорамирования
+                MIDDLE: MOUSE.DOLLY, // Средняя кнопка/колесо для зума
+                RIGHT: MOUSE.PAN     // Правая кнопка тоже для панорамирования
+            };
+            
+            // 5. Усиливаем скорость перемещения камеры для лучшего контроля
+            controls.panSpeed = 2.0; // Увеличиваем скорость панорамирования для удобства
+            
+            // 6. Дополнительно настраиваем панорамирование чтобы оно было мгновенным
+            controls.dampingFactor = 0.05; // Уменьшаем инерцию для более точного позиционирования
+            
+            // Показываем уведомление с информацией о режиме вида сверху (без упоминания Shift, так как он больше не требуется)
+            showNotification("Вид сверху активирован. Кликните по объекту, чтобы перемещать или вращать его.", false);
         });
         
         isTopViewActive = true;
@@ -363,7 +420,7 @@ export function toggleTopView(width, length) {
                 previousCameraState.position,
                 previousCameraState.target,
                 () => {
-                    // Восстанавливаем сохраненные ограничения камеры
+                    // Восстанавливаем сохраненные настройки камеры
                     if (previousCameraState) {
                         controls.minDistance = previousCameraState.minDistance;
                         controls.maxDistance = previousCameraState.maxDistance;
@@ -380,6 +437,26 @@ export function toggleTopView(width, length) {
                         controls.enableRotate = true;
                     }
                     
+                    // Восстанавливаем оригинальные настройки камеры, если они были сохранены
+                    if (controls._originalSettings) {
+                        // Восстанавливаем настройки для углов, расстояний и т.д.
+                        Object.assign(controls, controls._originalSettings);
+                        
+                        // Восстанавливаем оригинальные mouseButtons, если они были сохранены
+                        if (controls._originalSettings.mouseButtons) {
+                            controls.mouseButtons = { ...controls._originalSettings.mouseButtons };
+                        } else {
+                            // Восстанавливаем стандартное поведение кнопок мыши
+                            controls.mouseButtons = {
+                                LEFT: MOUSE.ROTATE,
+                                MIDDLE: MOUSE.DOLLY,
+                                RIGHT: MOUSE.PAN
+                            };
+                        }
+                        
+                        delete controls._originalSettings;
+                    }
+                    
                     // Удаляем сетку
                     if (gridHelper) {
                         scene.remove(gridHelper);
@@ -393,6 +470,11 @@ export function toggleTopView(width, length) {
         }
         
         isTopViewActive = false;
+        
+        // Обновляем глобальный флаг
+        if (window.app) {
+            window.app.isTopViewActive = false;
+        }
     }
     
     return isTopViewActive;

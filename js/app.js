@@ -43,8 +43,13 @@ try {
             // Удаляем все элементы с классом safety-zone
             removeAllSafetyZones();
             
-            // Экспортируем глобальные объекты в window для отладки
-            window.app = sceneComponents;
+            // Экспортируем глобальные объекты в window для отладки и доступа из других модулей
+            window.app = {
+                ...sceneComponents,
+                // Добавляем дополнительные экспортируемые переменные из scene.js
+                isTopViewActive: sceneComponents.isTopViewActive,
+                gridHelper: sceneComponents.gridHelper
+            };
             
             // Запускаем цикл рендеринга Three.js
             animate();
@@ -219,6 +224,17 @@ try {
                 if (camera.isPerspectiveCamera) {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
+                }
+                
+                // Проверяем, есть ли сетка в сцене и нужно ли её зафиксировать
+                if (window.app && window.app.scene) {
+                    window.app.scene.traverse((object) => {
+                        if (object.isObject3D && object.userData && object.userData.isFixedGrid) {
+                            // Повторно фиксируем сетку после изменения размера окна
+                            object.matrixAutoUpdate = false;
+                            object.updateMatrix();
+                        }
+                    });
                 }
             }
         });

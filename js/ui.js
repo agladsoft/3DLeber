@@ -12,7 +12,7 @@ import {
     checkAndHighlightObject, 
     checkAllObjectsPositions, 
     isWithinPlayground,
-    updateSizeInUI 
+    updateSizeInUI
 } from './objects.js';
 import { showNotification } from './utils.js';
 import * as THREE from 'three';
@@ -66,12 +66,20 @@ export function initUI() {
  * Инициализирует обработчики клавиатуры
  */
 function initKeyboardHandlers() {
+    // Обработчик нажатия клавиш
     document.addEventListener('keydown', (event) => {
         // Обработка нажатия клавиши Escape для возврата объекта на исходную позицию
         if (selectedObject && event.key === 'Escape') {
             resetToInitialPosition(selectedObject);
             event.preventDefault();
         }
+        
+        // Удалена обработка нажатия Shift, так как теперь она не требуется
+    });
+    
+    // Обработчик отпускания клавиш
+    document.addEventListener('keyup', (event) => {
+        // Удалена обработка отпускания Shift, так как теперь она не требуется
     });
 }
 
@@ -157,6 +165,20 @@ function initObjectManipulation() {
         // Если уже начато перетаскивание или вращение, игнорируем
         if (isDragging || isRotating) return;
         
+        // Проверяем, активен ли режим вида сверху
+        const isTopViewActive = window.app && window.app.isTopViewActive;
+        
+        // Проверяем, нажата ли клавиша Shift (для перемещения объектов в режиме вида сверху)
+        const isShiftPressed = event.shiftKey;
+        
+        // Комментируем прежнюю логику для вида сверху, чтобы можно было перемещать объекты без Shift
+        /* Прежняя логика:
+        if (isTopViewActive && !isShiftPressed && event.button === 0) {
+            if (controls) controls.enabled = true;
+            return;
+        }
+        */
+        
         // Вычисляем позицию курсора в нормализованных координатах (-1 до +1)
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -165,7 +187,14 @@ function initObjectManipulation() {
         raycaster.setFromCamera(mouse, camera);
         
         // Получаем все объекты, которые пересекаются с лучом
-        const intersects = raycaster.intersectObjects(scene.children, true);
+        // Фильтруем объекты, чтобы исключить сетку и грид
+        const objects = scene.children.filter(obj => {
+            // Исключаем объекты с пометкой isFixedGrid (сетка)
+            if (obj.userData && obj.userData.isFixedGrid) return false;
+            return true;
+        });
+        
+        const intersects = raycaster.intersectObjects(objects, true);
         
         // Если нашли пересечения
         if (intersects.length > 0) {
@@ -227,8 +256,20 @@ function initObjectManipulation() {
 
     // Обработчик движения мыши
     canvas.addEventListener("mousemove", (event) => {
+        // Проверяем, активен ли режим вида сверху
+        const isTopViewActive = window.app && window.app.isTopViewActive;
+        // Проверяем, нажата ли клавиша Shift
+        const isShiftPressed = event.shiftKey;
+        
         // Перемещение объекта
         if (isDragging && selectedObject) {
+            // Комментируем прежнюю логику для вида сверху
+            /* Прежняя логика:
+            if (isTopViewActive && !isShiftPressed && event.buttons === 1) {
+                return;
+            }
+            */
+            
             // Вычисляем позицию курсора в нормализованных координатах
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -253,6 +294,13 @@ function initObjectManipulation() {
         } 
         // Вращение объекта
         else if (isRotating && selectedObject) {
+            // Комментируем прежнюю логику для вида сверху
+            /* Прежняя логика:
+            if (isTopViewActive && !isShiftPressed && event.buttons === 2) {
+                return;
+            }
+            */
+            
             // Вычисляем изменение позиции мыши по X
             const deltaX = event.clientX - initialMousePosition.x;
             
@@ -266,6 +314,9 @@ function initObjectManipulation() {
 
     // Обработчик отпускания кнопки мыши
     canvas.addEventListener("mouseup", (event) => {
+        // Проверяем, активен ли режим вида сверху
+        const isTopViewActive = window.app && window.app.isTopViewActive;
+        
         // Завершаем перемещение/вращение
         if (isDragging || isRotating) {
             // Включаем управление камерой обратно
