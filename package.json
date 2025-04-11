@@ -1,17 +1,24 @@
 {
-  "name": "babylon-playground",
+  "name": "three-playground",
   "version": "1.0.0",
-  "description": "",
+  "description": "3D площадка на Three.js",
   "main": "main.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
+  "keywords": [
+    "three",
+    "3d",
+    "playground"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "vite": "^6.1.1"
+    "vite": "^4.5.12"
   },
   "dependencies": {
     "live-server": "^1.2.2",

@@ -1,0 +1,128 @@
+/**
+ * Конфигурационный файл проекта
+ * Содержит константы, размеры, цены и другие настройки
+ * Адаптирован для работы с Three.js
+ */
+
+// Размеры площадки
+export const PLAYGROUND = {
+    defaultWidth: 10,
+    defaultLength: 10,
+    minSize: 5,
+    maxSize: 50
+};
+
+// Настройки конвертации размеров
+export const SIZE_CONVERSION = {
+    // Пороговое значение для конвертации мм в м (если размер больше - считаем, что это мм)
+    thresholdForCmToM: 1000  
+};
+
+// Информация об элементах
+export const ELEMENT_INFO = {
+    "0001.glb": "Качели-балансир двойной",
+    "242.glb": "Горка h=950 (HPL)",
+    "0502.glb": "Качели одинарные",
+    "0519.glb": "Качели",
+    "3540.glb": "Лазательный комплекс",
+    "4209.glb": "Спортивный комплекс",
+    "lgd_3.glb": "Модель lgd_3",
+    "lgk_11.glb": "Модель lgk_11",
+    "lgk_314.glb": "Модель lgk_314",
+    "MG0001 2024-09 R2 Модель.glb": "Качели-балансир двойной",
+    "msk_105.glb": "Модель msk_105",
+    "msk_201.glb": "Модель msk_201",
+};
+
+// Стандартные размеры моделей
+export const MODEL_SIZES = {
+    "0001.glb": 2,
+    "242.glb": 2,
+    "0502.glb": 2,
+    "0519.glb": 2,
+    "3540.glb": 3,
+    "4209.glb": 4,
+    "lgd_3.glb": 2,
+    "lgk_11.glb": 0.1,
+    "lgk_314.glb": 2,
+    "MG0001 2024-09 R2 Модель.glb": 10,
+    "msk_105.glb": 3,
+    "msk_201.glb": 3,
+    "201.fbx": 3,
+};
+
+// Особые настройки поворота моделей
+// В Three.js повороты выполняются с помощью радиан, так же как и в Babylon.js
+export const MODEL_ROTATIONS = {
+    "MG0001 2024-09 R2 Модель.glb": {x: 0, y: 0, z: 0}, // Исправлено: Модель развернута вертикально
+    "0519.glb": {x: 0, y: 0, z: 0}, // Исправлено: Модель развернута вертикально
+    "0001.glb": {x: 0, y: 0, z: 0}  // Исправлено: Модель развернута вертикально
+};
+
+// Настройки камеры для Three.js
+export const CAMERA_SETTINGS = {
+    // Настройки для OrbitControls в Three.js
+    fov: 75,                // Угол обзора (в градусах)
+    initialPosition: {      // Начальная позиция камеры
+        x: 0,
+        y: 15,              // Высота камеры
+        z: 15               // Отдаление камеры
+    },
+    lookAt: {               // Точка, на которую смотрит камера
+        x: 0,
+        y: 0,
+        z: 0
+    },
+    minDistance: 2,         // Минимальное расстояние до центра
+    maxDistance: 50,        // Максимальное расстояние до центра
+    enableDamping: true,    // Плавное движение камеры
+    dampingFactor: 0.07,    // Коэффициент инерции (аналог inertia)
+    maxPolarAngle: Math.PI / 2 - 0.1, // Ограничение поворота камеры вниз (почти до горизонта)
+    minPolarAngle: 0.1,     // Ограничение поворота камеры вверх
+    zoomSpeed: 1.0          // Скорость зума (аналог wheelPrecision)
+};
+
+// Настройки рендерера Three.js
+export const RENDERER_SETTINGS = {
+    clearColor: 0x87ceeb,   // Цвет фона (голубое небо)
+    pixelRatio: window.devicePixelRatio,
+    antialias: true,        // Сглаживание
+    shadowMapEnabled: true  // Включить карты теней
+};
+
+// Настройки освещения для Three.js
+export const LIGHTING = {
+    ambientLight: {
+        color: 0xffffff,    // Белый цвет
+        intensity: 0.5      // Интенсивность
+    },
+    directionalLight: {
+        color: 0xffffff,    // Белый цвет
+        intensity: 0.8,     // Интенсивность
+        position: {         // Позиция источника света
+            x: 50,
+            y: 50,
+            z: 50
+        },
+        castShadow: true    // Отбрасывает тени
+    }
+};
+
+// Пути к моделям и текстурам
+export const PATHS = {
+    models: "models/",
+    textures: "textures/"
+};
+
+// Настройки анимации
+export const ANIMATION = {
+    duration: 1000,                   // Продолжительность анимации в мс
+    notificationDuration: 3000,       // Продолжительность показа уведомления в мс
+    easing: 'Power2.easeInOut'        // Функция плавности (для GSAP или аналогичной библиотеки)
+};
+
+// Настройки загрузчиков для Three.js
+export const LOADERS = {
+    dracoCompression: true,           // Включить Draco сжатие для glTF моделей
+    textureAnisotropy: 16             // Анизотропная фильтрация текстур
+};

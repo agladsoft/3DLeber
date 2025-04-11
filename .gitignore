@@ -1,3 +1,13 @@
 node_modules
 .idea
 .vscode
+# Игнорируем все файлы моделей
+/models/*.glb
+/models/*.stl
+/models/*.fbx
+/models/playgrounds/*.glb
+# Игнорируем Mac-файлы
+.DS_Store
+# Можно игнорировать все содержимое папки models, но сохранить саму папку
+# models/*
+# !models/.gitkeep
