@@ -419,6 +419,26 @@ th, td {
 /* Стили для режима вида сверху */
 #topView.active {
     background-color: #F44336 !important;
+    color: white !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+}
+
+#topView {
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Дополнительный индикатор активности */
+#topView.active::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #ffffff;
 }
 
 /* Стили для подсказок размеров сетки */
@@ -461,4 +481,33 @@ th, td {
     pointer-events: none;
     user-select: none;
     z-index: 900;
+}
+
+/* Стили для размеров удалены, так как все размеры теперь отображаются как часть 3D-сцены */
+
+/* Стили для кнопок в таблице элементов */
+.delete-button, .dimensions-button {
+    margin: 0 3px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.delete-button:hover, .dimensions-button:hover {
+    transform: scale(1.2);
+}
+
+.dimensions-button.active {
+    color: #4CAF50;
+}
+
+@keyframes pulse-label {
+    0% {
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 1);
+    }
 }

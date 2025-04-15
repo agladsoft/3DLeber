@@ -10,3 +10,12 @@ export { addObjectToUI, updateSizeInUI } from './modules/uiInteraction.js';
 export { getObjectBounds, isWithinPlayground, highlightPlaygroundBoundary, checkObjectsIntersection, highlightObjectCollision, checkAndHighlightObject, checkAllObjectsPositions } from './modules/collisionDetection.js';
 export { alignObjectToGround, saveInitialPosition, resetToInitialPosition } from './modules/positionHelpers.js';
 
+// Экспорт функций для работы с размерами моделей
+export { 
+    addDimensionsToModel,
+    showModelDimensions, 
+    hideModelDimensions, 
+    toggleModelDimensions,
+    updateModelDimensions
+} from './modules/dimensionDisplay/index.js';
+
