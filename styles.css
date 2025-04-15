@@ -377,7 +377,6 @@ th, td {
 }
 
 .action-button {
-.action-button {
     width: 100%;
     padding: 5px;
     margin-top: 5px;
@@ -406,7 +405,6 @@ th, td {
     transition: all 0.2s ease;
 }
 
-.action-button:hover {
 #applySettings {
     width: 100%;
     padding: 10px 15px;
@@ -1089,12 +1087,6 @@ th, td {
     border-radius: 3px;
     font-weight: bold;
     pointer-events: none;
-}
-
-#widthLabel, #lengthLabel {
-    display: none !important;
-#widthLabel, #lengthLabel {
-    display: none !important;
 }
 
 .model-collision {
