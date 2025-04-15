@@ -307,8 +307,16 @@ th, td {
     pointer-events: none;
 }
 
-#widthLabel, #lengthLabel {
-    display: none !important;
+#widthLabel {
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#lengthLabel {
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
 }
 
 .model-collision {

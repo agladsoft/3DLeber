@@ -9,7 +9,7 @@ import { getLoaderByExtension } from './loaders.js';
 import { alignObjectToGround, saveInitialPosition } from './positionHelpers.js';
 import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
-import { addObjectToUI } from './uiInteraction.js';
+import { showModelDimensions } from './dimensionDisplay/index.js'; 
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -31,10 +31,14 @@ export function generateObjectId() {
  * @param {Object} position - Позиция для размещения объекта
  */
 export function loadAndPlaceModel(modelName, position) {
+    console.log("loadAndPlaceModel вызван с:", modelName, position);
+    
     const modelPath = `models/${modelName}`;
+    console.log("Полный путь к модели:", modelPath);
     
     // Определяем формат файла
     const fileExtension = modelName.split('.').pop().toLowerCase();
+    console.log("Расширение файла:", fileExtension);
     
     // Создаем контейнер для модели (группа в Three.js)
     const container = new THREE.Group();
@@ -45,24 +49,33 @@ export function loadAndPlaceModel(modelName, position) {
     
     // Устанавливаем позицию контейнера
     if (position) {
+        console.log("Устанавливаем позицию из параметра:", position);
         container.position.set(position.x, position.y, position.z);
     } else {
+        console.log("Позиция не указана, размещаем в центре (0,0,0)");
         container.position.set(0, 0, 0);
         showNotification("Объект помещен в центр площадки", false);
     }
     
     try {
         // Выбираем загрузчик в зависимости от формата файла
+        console.log("Получаем загрузчик для формата:", fileExtension);
         const { loader, method } = getLoaderByExtension(fileExtension);
+        console.log("Выбран загрузчик:", method);
         
         // Загружаем модель с использованием соответствующего загрузчика
+        console.log("Начинаем загрузку модели:", modelPath);
         loader.load(
             modelPath,
             (result) => {
+                console.log("Модель успешно загружена:", modelPath);
+                console.log("Тип результата:", typeof result);
+                
                 let modelObject;
                 
                 // Обработка результата загрузки в зависимости от формата
                 if (method === 'gltf') {
+                    console.log("Обрабатываем GLTF/GLB модель");
                     modelObject = result.scene;
                     
                     // Для GLTF включаем отбрасывание теней для всех дочерних объектов
@@ -79,8 +92,10 @@ export function loadAndPlaceModel(modelName, position) {
                     });
                     
                     container.add(modelObject);
+                    console.log("GLTF модель добавлена в контейнер");
                 } 
                 else if (method === 'stl') {
+                    console.log("Обрабатываем STL модель");
                     // Для STL создаем новый меш с загруженной геометрией
                     const material = new THREE.MeshStandardMaterial({ 
                         color: 0x7F7F7F,
@@ -91,8 +106,10 @@ export function loadAndPlaceModel(modelName, position) {
                     mesh.castShadow = true;
                     mesh.receiveShadow = true;
                     container.add(mesh);
+                    console.log("STL модель добавлена в контейнер");
                 }
                 else if (method === 'fbx') {
+                    console.log("Обрабатываем FBX модель");
                     // Для FBX добавляем загруженный объект напрямую
                     result.traverse((child) => {
                         if (child.isMesh) {
@@ -101,10 +118,20 @@ export function loadAndPlaceModel(modelName, position) {
                         }
                     });
                     container.add(result);
+                    console.log("FBX модель добавлена в контейнер");
+                }
+                
+                // Проверяем, есть ли в контейнере хотя бы один дочерний объект
+                if (container.children.length === 0) {
+                    console.error("Ошибка: контейнер пуст, нет дочерних объектов");
+                    showNotification(`Ошибка загрузки модели ${modelName}: контейнер пуст`, true);
+                    return;
                 }
                 
                 // Добавляем контейнер в сцену
                 scene.add(container);
+                console.log("Контейнер добавлен в сцену, scene.children.length:", scene.children.length);
+                console.log("Дочерних объектов в контейнере:", container.children.length);
                 
                 // Применяем особые повороты для определенных моделей
                 if (MODEL_ROTATIONS[modelName]) {
@@ -159,8 +186,8 @@ export function loadAndPlaceModel(modelName, position) {
                     showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
                 }
                 
-                // Обновляем общую стоимость и интерфейс
-                addObjectToUI(container, modelName);
+                // Автоматически показываем размеры модели при добавлении на площадку
+                showModelDimensions(container);
             },
             // Обработчик загрузки (прогресс)
             (xhr) => {
@@ -186,15 +213,48 @@ export function loadAndPlaceModel(modelName, position) {
 export function removeObject(container) {
     if (!container) return;
     
-    // Удаляем объект из сцены
-    scene.remove(container);
+    // Импортируем функцию удаления размеров динамически
+    import('./dimensionDisplay/index.js').then(module => {
+        // Удаляем размеры модели перед удалением самой модели
+        if (typeof module.removeModelDimensions === 'function') {
+            console.log('Удаляем размеры модели:', container.name || container.uuid);
+            module.removeModelDimensions(container);
+        }
+        
+        // Удаляем объект из сцены
+        scene.remove(container);
+        
+        // Удаляем объект из массива размещенных объектов
+        const index = placedObjects.indexOf(container);
+        if (index > -1) {
+            placedObjects.splice(index, 1);
+        }
+        
+        // Перепроверяем все объекты
+        checkAllObjectsPositions();
+    }).catch(error => {
+        console.error('Ошибка при удалении размеров модели:', error);
+        
+        // Все равно удаляем объект и обновляем сцену
+        scene.remove(container);
+        
+        const index = placedObjects.indexOf(container);
+        if (index > -1) {
+            placedObjects.splice(index, 1);
+        }
+        
+        checkAllObjectsPositions();
+    });
     
-    // Удаляем объект из массива размещенных объектов
-    const index = placedObjects.indexOf(container);
-    if (index > -1) {
-        placedObjects.splice(index, 1);
+    // Дополнительно ищем и удаляем объекты размеров напрямую из сцены
+    // Это резервный механизм, если динамический импорт не сработает
+    if (container.uuid) {
+        const dimensionsName = 'dimensions_' + container.uuid;
+        scene.children.forEach(child => {
+            if (child.name === dimensionsName) {
+                console.log('Удаляем объект размеров напрямую из сцены:', child.name);
+                scene.remove(child);
+            }
+        });
     }
-    
-    // Перепроверяем все объекты
-    checkAllObjectsPositions();
 }
