@@ -18,6 +18,18 @@ body, html {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
+#sidebar h3 {
+    text-align: center;
+    color: #000000;
+    margin-bottom: 18px;
+    margin-top: 8px;
+    font-size: 1.25rem; /* Увеличенный размер шрифта */
+    font-weight: 700; /* Более жирный шрифт */
+    letter-spacing: 0.3px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee; /* Добавляем разделительную линию снизу */
+}
+
 .item {
     margin: 10px 0;
     padding: 5px;
@@ -29,6 +41,29 @@ body, html {
     width: 100%;
     height: auto;
     border-radius: 5px;
+    display: none; /* Скрываем старые изображения */
+}
+
+/* Стили для model-viewer элементов */
+model-viewer {
+    width: 100%;
+    height: 120px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --poster-color: transparent;
+}
+
+.item {
+    cursor: grab;
+}
+
+.item p {
+    margin-top: 5px;
+    margin-bottom: 15px;
+    font-size: 0.85em;
+    color: #333;
 }
 
 #controlPanel {
@@ -36,23 +71,48 @@ body, html {
     top: 10px;
     right: 10px;
     background: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    padding: 6px;
+    border-radius: 4px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.13);
     max-height: 80vh;
+    width: 300px; /* Фиксированная ширина вместо max-width */
+    font-size: 0.93em;
     overflow-y: auto;
+    display: flex; /* Восстанавливаем display: flex */
+    flex-direction: column;
+    align-items: center;
+}
+#controlPanel button {
+    margin: 6px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#controlPanel .control-panel,
+#elementsTable {
+    width: 100%; /* Одинаковая фиксированная ширина для таблицы и панели */
+    box-sizing: border-box; 
+    table-layout: fixed; /* Предотвращает расширение таблицы при загрузке моделей */
+}
+
+#controlPanel div:not(.control-group):not(.control-panel) {
+    width: 90%;
+    box-sizing: border-box;
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
+    width: 100%; /* Ширина таблицы 100% от её контейнера */
     margin-top: 10px;
+    /* border-collapse: collapse; Восстанавливаем border-collapse */
 }
 
 th, td {
     border: 1px solid #ddd;
     padding: 5px;
     text-align: left;
+    word-break: break-word; /* Разрешает перенос длинных слов */
+    min-width: 60px; /* Минимальная ширина для компактности */
+    max-width: 150px; /* Максимальная ширина для баланса */
 }
 
 .control-panel {
@@ -67,16 +127,74 @@ th, td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 5px 0;
+    margin: 10px 0;
+    position: relative;
 }
 
 .control-group label {
     flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555;
+    transition: color 0.3s ease;
+    letter-spacing: 0.3px;
+}
+
+.control-group:hover label {
+    color: #2196F3;
 }
 
 .control-group input {
-    width: 60px;
-    padding: 3px;
+    width: 70px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.control-group input:hover {
+    border-color: #2196F3;
+    background-color: #fff;
+}
+
+.control-group input:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.15);
+    background-color: #fff;
+}
+
+/* Стили для select */
+.control-group select {
+    width: 100%;
+    padding: 6px 24px 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    font-size: 0.9rem;
+    color: #333;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.control-group select:hover {
+    border-color: #2196F3;
+    background-color: #fff;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.15);
+    background-color: #fff;
 }
 
 .tooltip {
@@ -132,7 +250,7 @@ th, td {
     opacity: 1;
 }
 
-#applySettings, .action-button {
+.action-button {
     width: 100%;
     padding: 5px;
     margin-top: 5px;
@@ -143,8 +261,32 @@ th, td {
     border-radius: 3px;
 }
 
-#applySettings:hover, .action-button:hover {
+#applySettings {
+    width: 100%;
+    padding: 10px 15px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
     background: #45a049;
+}
+
+#applySettings:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 #saveScreenshot {
@@ -165,20 +307,46 @@ th, td {
     pointer-events: none;
 }
 
-#widthLabel {
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-#lengthLabel {
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
+#widthLabel, #lengthLabel {
+    display: none !important;
 }
 
 .model-collision {
     outline: 2px solid red;
+}
+
+/* Современные стили для кнопок */
+button, .modern-button {
+    background: linear-gradient(90deg, #4f8cff 0%, #2355d6 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 1rem;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.15);
+    transition: background 0.3s, box-shadow 0.2s, transform 0.1s;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+}
+button:hover, .modern-button:hover {
+    background: linear-gradient(90deg, #2355d6 0%, #4f8cff 100%);
+    box-shadow: 0 4px 16px rgba(79, 140, 255, 0.25);
+    transform: translateY(-2px) scale(1.03);
+}
+button:active, .modern-button:active {
+    background: linear-gradient(90deg, #1e3a8a 0%, #2355d6 100%);
+    box-shadow: 0 1px 4px rgba(35, 85, 214, 0.18);
+    transform: translateY(1px) scale(0.98);
+}
+button:disabled, .modern-button:disabled {
+    background: #b0b0b0;
+    color: #f0f0f0;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Скрываем все возможные "безопасные зоны" */

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Площадка</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
         html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
@@ -19,60 +20,59 @@
     <!-- Модальное окно -->
     <div id="appModal" class="modal">
         <div class="modal-content">
-            <span class="modal-close">&times;</span>
             <button id="closeAppButton">Закрыть приложение</button>
     <div id="sidebar">
         <h3>Выберите элемент</h3>
         <div class="item" draggable="true" data-model="0001.glb">
-            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <model-viewer src="models/0001.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0001 Качели-балансир двойной"></model-viewer>
             <p>MG0001 Качели-балансир двойной</p>
         </div>
         <div class="item" draggable="true" data-model="242.glb">
-            <img src="textures/ЛГГ-24-2 Горка h=950 (HPL).png" alt="ЛГГ-24-2 Горка h=950 (HPL)">
+            <model-viewer src="models/242.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="ЛГГ-24-2 Горка h=950 (HPL)"></model-viewer>
             <p>ЛГГ-24-2 Горка h=950 (HPL)</p>
         </div>
         <div class="item" draggable="true" data-model="0502.glb">
-            <img src="textures/MG0502 Качели одинарные.png" alt="MG0502 Качели одинарные">
+            <model-viewer src="models/0502.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0502 Качели одинарные"></model-viewer>
             <p>MG0502 Качели одинарные</p>
         </div>
         <div class="item" draggable="true" data-model="0519.glb">
-            <img src="textures/Качели 0519.png" alt="Качели 0519">
+            <model-viewer src="models/0519.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Качели 0519"></model-viewer>
             <p>Качели 0519</p>
         </div>
         <div class="item" draggable="true" data-model="3540.glb">
-            <img src="textures/MG3540 Спортивное оборудование Лазательный комплекс.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
+            <model-viewer src="models/3540.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG3540 Спортивное оборудование Лазательный комплекс"></model-viewer>
             <p>MG3540 Спортивное оборудование Лазательный комплекс</p>
         </div>
         <div class="item" draggable="true" data-model="4209.glb">
-            <img src="textures/MG4209 Спортивный комплекс.png" alt="MG4209 Спортивный комплекс">
+            <model-viewer src="models/4209.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG4209 Спортивный комплекс"></model-viewer>
             <p>MG4209 Спортивный комплекс</p>
         </div>
         <div class="item" draggable="true" data-model="Taiga_v1.glb">
-            <img src="textures/Каркас качелей-балансира -Тайга-.png" alt="Каркас качелей-балансира -Тайга-">
+            <model-viewer src="models/Taiga_v1.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Каркас качелей-балансира -Тайга-"></model-viewer>
             <p>Каркас качелей-балансира Тайга</p>
         </div>
         <div class="item" draggable="true" data-model="lgd_3.glb">
-            <img src="textures/lgd_3.png" alt="Модель lgd_3">
+            <model-viewer src="models/lgd_3.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgd_3"></model-viewer>
             <p>Модель lgd_3</p>
         </div>
         <div class="item" draggable="true" data-model="lgk_11.glb">
-            <img src="textures/lgk_11.png" alt="Модель lgk_11">
+            <model-viewer src="models/lgk_11.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgk_11"></model-viewer>
             <p>Модель lgk_11</p>
         </div>
         <div class="item" draggable="true" data-model="миссури.glb">
-            <img src="textures/lgk_314.png" alt="Модель lgk_314">
+            <model-viewer src="models/миссури.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgk_314"></model-viewer>
             <p>Модель lgk_314</p>
         </div>
         <div class="item" draggable="true" data-model="MG0001 2024-09 R2 Модель.glb">
-            <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
+            <model-viewer src="models/MG0001 2024-09 R2 Модель.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0001 Качели-балансир двойной"></model-viewer>
             <p>MG0001 Качели-балансир двойной</p>
         </div>
         <div class="item" draggable="true" data-model="дуга.glb">
-            <img src="textures/msk_105.png" alt="Модель msk_105">
+            <model-viewer src="models/дуга.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель msk_105"></model-viewer>
             <p>Модель msk_105</p>
         </div>
         <div class="item" draggable="true" data-model="msk_201.glb">
-            <img src="textures/msk_201.png" alt="Модель msk_201">
+            <model-viewer src="models/msk_201.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель msk_201"></model-viewer>
             <p>Модель msk_201</p>
         </div>
     </div>
@@ -81,7 +81,7 @@
         <div class="control-panel">
             <h4>Настройки площадки</h4>
             <div class="control-group">
-                <label for="playgroundType">Тип площадки:</label>
+                <label for="playgroundType">Площадка:</label>
                 <select id="playgroundType">
                     <option value="playground.glb" selected>Стандартная</option>
                     <option value="projeto_piloto-puc_minas-rota_3.glb">PUC Minas Rota 3</option>
