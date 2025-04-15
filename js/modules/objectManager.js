@@ -9,7 +9,6 @@ import { getLoaderByExtension } from './loaders.js';
 import { alignObjectToGround, saveInitialPosition } from './positionHelpers.js';
 import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
-import { addObjectToUI } from './uiInteraction.js';
 import { showModelDimensions } from './dimensionDisplay/index.js'; 
 
 // Массив для хранения размещенных объектов
@@ -189,9 +188,6 @@ export function loadAndPlaceModel(modelName, position) {
                 
                 // Автоматически показываем размеры модели при добавлении на площадку
                 showModelDimensions(container);
-                
-                // Обновляем общую стоимость и интерфейс
-                addObjectToUI(container, modelName);
             },
             // Обработчик загрузки (прогресс)
             (xhr) => {

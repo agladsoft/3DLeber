@@ -3,7 +3,7 @@
  */
 import { canvas, scene, camera } from '../scene.js';
 import { ground } from '../playground.js';
-import { loadAndPlaceModel } from '../objects.js';
+import { loadAndPlaceModel, placedObjects, removeObject } from '../objects.js';
 import { showNotification } from '../utils.js';
 import { 
     mouse, 
@@ -34,6 +34,12 @@ export function initDragAndDrop() {
 
     // Обработка события drop для загрузки модели
     canvas.addEventListener("drop", handleDrop);
+    
+    // Добавляю обновление крестиков при инициализации
+    updateSidebarDeleteButtons();
+    
+    // Также обновляю крестики каждые 500 мс (на случай изменений вне dnd)
+    setInterval(updateSidebarDeleteButtons, 500);
     
     console.log("Обработчики drag and drop установлены");
 }
@@ -234,4 +240,26 @@ function determineDropPosition() {
             return new THREE.Vector3(0, 0, 0);
         }
     }
+}
+
+function updateSidebarDeleteButtons() {
+    document.querySelectorAll('.item').forEach(item => {
+        const modelName = item.getAttribute('data-model');
+        const deleteBtn = item.querySelector('.sidebar-delete');
+        if (!deleteBtn) return;
+        // Проверяем, есть ли хотя бы один объект этой модели на площадке
+        const exists = placedObjects.some(obj => obj.userData.modelName === modelName);
+        deleteBtn.style.display = exists ? '' : 'none';
+        // Снимаем старые обработчики
+        const newDeleteBtn = deleteBtn.cloneNode(true);
+        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+        if (exists) {
+            newDeleteBtn.addEventListener('click', () => {
+                // Удаляем все объекты этой модели с площадки
+                placedObjects.filter(obj => obj.userData.modelName === modelName).forEach(obj => removeObject(obj));
+                // После удаления обновляем кнопки
+                setTimeout(updateSidebarDeleteButtons, 100);
+            });
+        }
+    });
 }
