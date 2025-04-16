@@ -4,7 +4,7 @@
 import { ensureSingleInit, updateRendererSize } from './appCore.js';
 import { removeAllSafetyZones } from './safetyManager.js';
 import { handleAppError } from './errorHandler.js';
-import { hideAllDimensions, showAllDimensions } from '../objects.js';
+import { hideAllDimensions, showAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 
 /**
  * Устанавливает обработчики событий DOM
@@ -134,7 +134,10 @@ function setupToggleDimensionsButton() {
             if (isCurrentlyHidden) {
                 dimensionLabels.style.display = '';
                 toggleButton.textContent = '📏 Скрыть размеры';
-                showAllDimensions();
+                // Показываем размеры для всех объектов, даже если они не были созданы
+                if (Array.isArray(placedObjects)) {
+                    placedObjects.forEach(obj => showModelDimensions(obj));
+                }
             } else {
                 dimensionLabels.style.display = 'none';
                 toggleButton.textContent = '📏 Показать размеры';

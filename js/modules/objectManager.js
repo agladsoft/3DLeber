@@ -186,8 +186,10 @@ export function loadAndPlaceModel(modelName, position) {
                     showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
                 }
                 
-                // Автоматически показываем размеры модели при добавлении на площадку
-                showModelDimensions(container);
+                // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
+                if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+                    showModelDimensions(container);
+                }
             },
             // Обработчик загрузки (прогресс)
             (xhr) => {
