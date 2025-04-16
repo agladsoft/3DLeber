@@ -26,7 +26,7 @@ export function createGrid(width, length) {
     const divisions = Math.ceil(gridSize);
     
     // Создаем сетку с делениями в 1 метр
-    gridHelper = new THREE.GridHelper(gridSize, divisions, 0x444444, 0x888888);
+    gridHelper = new THREE.GridHelper(gridSize, divisions, 0xffffff, 0xffffff);
     
     // Фиксируем сетку в центре сцены
     gridHelper.position.set(0, 0.01, 0); // Слегка приподнимаем над землей
