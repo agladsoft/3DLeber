@@ -196,8 +196,10 @@ function prepareObjectForManipulation(object, event) {
     // Устанавливаем выбранный объект
     setSelectedObject(object);
     
-    // Показываем размеры выбранного объекта
-    showModelDimensions(object);
+    // Показываем размеры выбранного объекта ТОЛЬКО если не скрыты глобально
+    if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+        showModelDimensions(object);
+    }
     
     // Сохраняем первоначальную позицию объекта
     saveInitialPosition(object);
