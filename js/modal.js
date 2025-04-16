@@ -4,6 +4,60 @@
  */
 import { startSceneChecks } from './sceneCheck.js';
 
+// Экспортируем функцию для показа модального окна выбора площадки
+export function showPlatformSelectModal() {
+    const platformSelectModal = document.getElementById('platformSelectModal');
+    const appModal = document.getElementById('appModal');
+    
+    if (platformSelectModal) {
+        // Восстанавливаем значения из текущей площадки
+        updateModalValuesFromCurrent();
+        
+        // Если открыто основное приложение, скрываем его временно
+        if (appModal && appModal.style.display === 'block') {
+            // Сохраняем информацию о том, что нужно вернуться к приложению
+            window.returnToApp = true;
+            // Скрываем основное приложение
+            appModal.style.display = 'none';
+        } else {
+            window.returnToApp = false;
+        }
+        
+        // Показываем модальное окно
+        platformSelectModal.style.display = 'block';
+        
+        console.log('Открыто модальное окно выбора площадки');
+    } else {
+        console.error('Не найдено модальное окно выбора площадки');
+    }
+}
+
+// Функция для обновления значений в модальном окне из текущей площадки
+function updateModalValuesFromCurrent() {
+    // Получаем текущие параметры площадки
+    const currentType = window.selectedPlaygroundType || 'playground.glb';
+    const currentWidth = window.selectedPlaygroundWidth || 10;
+    const currentLength = window.selectedPlaygroundLength || 10;
+    
+    // Обновляем значения в модальном окне
+    const modalPlaygroundType = document.getElementById('modalPlaygroundType');
+    const modalPlaygroundWidth = document.getElementById('modalPlaygroundWidth');
+    const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
+    
+    if (modalPlaygroundType) modalPlaygroundType.value = currentType;
+    if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
+    if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
+    
+    // Обновляем предпросмотр модели
+    updatePlaygroundPreview(currentType);
+    
+    console.log('Обновлены значения в модальном окне из текущей площадки:', {
+        тип: currentType,
+        ширина: currentWidth,
+        длина: currentLength
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Получаем элементы DOM
     const launchContainer = document.getElementById('launchContainer');
@@ -28,7 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
     cancelAppButton.addEventListener('click', () => {
         platformSelectModal.style.display = 'none';
-        launchContainer.style.display = 'flex';
+        
+        // Проверяем, нужно ли вернуться к приложению
+        if (window.returnToApp) {
+            // Возвращаемся к приложению
+            appModal.style.display = 'block';
+        } else {
+            // Возвращаемся к начальному экрану
+            launchContainer.style.display = 'flex';
+        }
     });
     
     // Обработчик смены типа площадки
@@ -40,44 +102,90 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
     startAppButton.addEventListener('click', () => {
+        // Показываем индикатор загрузки на кнопке
+        startAppButton.innerHTML = 'Загрузка...';
+        startAppButton.disabled = true;
+        
         // Получаем выбранные значения
         const selectedType = document.getElementById('modalPlaygroundType').value;
         const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
         const selectedLength = document.getElementById('modalPlaygroundLength').value;
         
-        // Передаем выбранные значения в основное приложение
-        const playgroundType = document.getElementById('playgroundType');
-        const playgroundWidth = document.getElementById('playgroundWidth');
-        const playgroundLength = document.getElementById('playgroundLength');
+        // Сохраняем выбранные значения в глобальных переменных для использования в приложении
+        window.selectedPlaygroundType = selectedType;
+        window.selectedPlaygroundWidth = parseFloat(selectedWidth);
+        window.selectedPlaygroundLength = parseFloat(selectedLength);
         
-        // Устанавливаем значения в контрольной панели
-        if (playgroundType) playgroundType.value = selectedType;
-        if (playgroundWidth) playgroundWidth.value = selectedWidth;
-        if (playgroundLength) playgroundLength.value = selectedLength;
+        // Выводим информацию в консоль для отладки
+        console.log('Настройки площадки из модального окна:', {
+            тип: selectedType,
+            ширина: selectedWidth,
+            длина: selectedLength
+        });
         
-        // Скрываем модальное окно выбора площадки и показываем основное приложение
+        // Скрываем модальное окно выбора площадки
         platformSelectModal.style.display = 'none';
-        appModal.style.display = 'block';
         
-        // Вызываем функцию инициализации приложения
-        if (window.initApp) {
-            window.initApp();
+        // Проверяем, возвращаемся ли мы к приложению или запускаем новое
+        if (window.returnToApp) {
+            // Показываем приложение после смены площадки
+            appModal.style.display = 'block';
             
-            // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
-            setTimeout(initializeTopViewButtonWithDelay, 1000);
-            
-            // Применяем установленные настройки площадки
-            const applyButton = document.getElementById('applySettings');
-            if (applyButton) {
-                setTimeout(() => {
-                    applyButton.click();
-                }, 1500);
+            // Показываем индикатор загрузки
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                window.isLoading = true;
             }
             
-            // Запускаем проверку сцены после открытия модального окна
+            try {
+                // Импортируем модуль загрузки площадки
+                import('./playground.js').then(module => {
+                    // Загружаем новую площадку
+                    module.loadPlayground(selectedType).then(() => {
+                        console.log('Площадка успешно изменена');
+                        
+                        // Восстанавливаем состояние кнопки
+                        startAppButton.innerHTML = 'Запустить';
+                        startAppButton.disabled = false;
+                    });
+                });
+            } catch (error) {
+                console.error('Ошибка при загрузке новой площадки:', error);
+                
+                // Восстанавливаем состояние кнопки в случае ошибки
+                startAppButton.innerHTML = 'Запустить';
+                startAppButton.disabled = false;
+            }
+        } else {
+            // Показываем основное приложение для первого запуска
+            appModal.style.display = 'block';
+            
+            // Показываем индикатор загрузки
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                window.isLoading = true;
+            }
+            
+            // Вызываем функцию инициализации приложения
+            if (window.initApp) {
+                window.initApp();
+                
+                // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
+                setTimeout(initializeTopViewButtonWithDelay, 1000);
+                
+                // Запускаем проверку сцены после открытия модального окна
+                setTimeout(() => {
+                    console.log("Запуск проверки сцены после открытия модального окна");
+                    startSceneChecks();
+                }, 3000);
+            }
+            
+            // Восстанавливаем состояние кнопки после задержки
             setTimeout(() => {
-                console.log("Запуск проверки сцены после открытия модального окна");
-                startSceneChecks();
+                startAppButton.innerHTML = 'Запустить';
+                startAppButton.disabled = false;
             }, 2000);
         }
     });

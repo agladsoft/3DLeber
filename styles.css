@@ -386,56 +386,8 @@ th, td {
     border-radius: 8px;
 }
 
-#applySettings {
-    width: 100%;
-    padding: 10px 15px;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: all 0.2s ease;
-}
-
-#applySettings {
-    width: 100%;
-    padding: 10px 15px;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: all 0.2s ease;
-}
-
 .action-button:hover {
     background: #45a049;
-}
-
-#applySettings:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-#applySettings:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 #saveScreenshot {
@@ -860,4 +812,51 @@ button:disabled, .modern-button:disabled {
 
 #cancelAppButton:hover {
     background-color: #9d1e1e;
+}
+
+/* Стили для индикатора загрузки */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.fade-out {
+    opacity: 0;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #4CAF50;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

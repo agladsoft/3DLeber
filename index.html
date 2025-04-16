@@ -124,31 +124,12 @@
     <canvas id="renderCanvas"></canvas>
     <div id="controlPanel">
         <div class="control-panel">
-            <h4>Настройки площадки</h4>
-            <div class="control-group">
-                <label for="playgroundType">Площадка:</label>
-                <select id="playgroundType">
-                    <option value="playground.glb" selected>Площадка 1</option>
-                    <option value="playground2.glb">Площадка 2</option>
-                    <option value="basketball_court.glb">Площадка 3</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="playgroundWidth">Ширина (м):</label>
-                <input type="number" id="playgroundWidth" min="5" max="50" value="10" step="1">
-            </div>
-            <div class="control-group">
-                <label for="playgroundLength">Длина (м):</label>
-                <input type="number" id="playgroundLength" min="5" max="50" value="10" step="1">
-            </div>
-
-            <button id="applySettings">Применить</button>
             <button id="changePlayground">Сменить площадку</button>
             <button id="resetView" style="margin-top: 10px; background-color: #2196F3;">Сбросить вид</button>
             <button id="topView" style="margin-top: 10px; background-color: #4CAF50;">Вид сверху</button>
             <button id="saveScreenshot" style="margin-top: 10px; background-color: #673AB7;">Сделать скриншот</button>
             <div id="playgroundStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
-                Установите размеры площадки и нажмите "Применить"
+                Информация о размерах площадки
             </div>
         </div>
     </div>
@@ -162,6 +143,11 @@
             <span class="notification-message">Объект не может быть размещен в этой позиции!</span>
             <span class="notification-close" onclick="document.getElementById('notification').classList.add('hidden')">&times;</span>
         </div>
+    </div>
+    <!-- Добавляем оверлей с индикатором загрузки -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Загрузка площадки...</div>
     </div>
             <!-- Подключаем модули JavaScript с указанием type="module" -->
             <script type="module" src="js/app.js"></script>

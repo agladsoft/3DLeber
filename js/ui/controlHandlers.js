@@ -36,7 +36,6 @@ function setupControlHandlers() {
     // Устанавливаем обработчики для различных элементов управления
     setupScreenshotButton();
     setupPlaygroundSizeInputs();
-    setupApplyButton();
     setupChangePlaygroundButton();
     setupResetViewButton();
     setupTopViewButton();
@@ -104,41 +103,6 @@ function addSizePreviewHandlers(widthInput, lengthInput) {
 }
 
 /**
- * Настраивает кнопку "Применить"
- */
-function setupApplyButton() {
-    const applyButton = document.getElementById("applySettings");
-    if (applyButton) {
-        applyButton.addEventListener("click", () => {
-            // Получаем значения из полей ввода
-            const newWidth = parseFloat(document.getElementById("playgroundWidth").value);
-            const newLength = parseFloat(document.getElementById("playgroundLength").value);
-            
-            // Проверяем, что размеры в допустимом диапазоне
-            if (isValidSize(newWidth) && isValidSize(newLength)) {
-                // Изменяем размеры площадки с анимацией
-                resizePlaygroundWithAnimation(newWidth, newLength);
-                
-                // Обновляем информацию о размерах площадки
-                updatePlaygroundStatusText();
-            } else {
-                // Показываем предупреждение, если размеры некорректны
-                showNotification("Размеры должны быть в диапазоне от 5 до 50 метров", true);
-            }
-        });
-    }
-}
-
-/**
- * Проверяет, что размер в допустимом диапазоне
- * @param {Number} size - Размер для проверки
- * @returns {Boolean} true, если размер допустим
- */
-function isValidSize(size) {
-    return size >= PLAYGROUND.minSize && size <= PLAYGROUND.maxSize;
-}
-
-/**
  * Настраивает кнопку "Сменить площадку"
  */
 function setupChangePlaygroundButton() {
@@ -146,42 +110,25 @@ function setupChangePlaygroundButton() {
     if (changePlaygroundButton) {
         changePlaygroundButton.addEventListener("click", async () => {
             try {
-                // Получаем значение выбранной площадки из dropdown
-                const selectedModel = document.getElementById("playgroundType").value;
-                
-                // Загружаем выбранную модель площадки
-                await loadPlayground(selectedModel);
-                
-                // Обновляем UI
-                updateUIAfterPlaygroundChange(selectedModel);
-                
-                // Обновляем позиции всех объектов после смены площадки
-                checkAllObjectsPositions();
+                // Импортируем функцию показа модального окна из модуля modal.js
+                import('../modal.js').then(modalModule => {
+                    if (typeof modalModule.showPlatformSelectModal === 'function') {
+                        // Вызываем функцию показа модального окна
+                        modalModule.showPlatformSelectModal();
+                    } else {
+                        console.error("Функция showPlatformSelectModal не найдена в модуле");
+                        showNotification("Ошибка при открытии окна выбора площадки", true);
+                    }
+                }).catch(error => {
+                    console.error("Ошибка при импорте модуля modal.js:", error);
+                    showNotification("Ошибка при открытии окна выбора площадки", true);
+                });
             } catch (error) {
-                console.error("Ошибка при смене площадки:", error);
-                showNotification("Не удалось загрузить площадку", true);
+                console.error("Ошибка при открытии модального окна:", error);
+                showNotification("Не удалось открыть окно выбора площадки", true);
             }
         });
     }
-}
-
-/**
- * Обновляет UI после смены площадки
- * @param {String} modelName - Имя модели площадки
- */
-function updateUIAfterPlaygroundChange(modelName) {
-    // Обновляем значения в полях ввода
-    const widthInput = document.getElementById("playgroundWidth");
-    const lengthInput = document.getElementById("playgroundLength");
-    
-    if (widthInput) widthInput.value = playgroundWidth.toFixed(2);
-    if (lengthInput) lengthInput.value = playgroundLength.toFixed(2);
-    
-    // Обновляем информацию о размерах площадки
-    updatePlaygroundStatusText();
-    
-    // Показываем уведомление об успешной смене площадки
-    showNotification(`Площадка успешно изменена на ${modelName}. Реальные размеры: ${playgroundWidth.toFixed(2)}м × ${playgroundLength.toFixed(2)}м`, false);
 }
 
 /**
@@ -316,4 +263,13 @@ function updateTopViewButtonStyle(button, isActive) {
     }
     
     console.log("Стиль кнопки обновлен:", button.style.backgroundColor);
+}
+
+/**
+ * Проверяет, что размер в допустимом диапазоне
+ * @param {Number} size - Размер для проверки
+ * @returns {Boolean} true, если размер допустим
+ */
+function isValidSize(size) {
+    return size >= PLAYGROUND.minSize && size <= PLAYGROUND.maxSize;
 }

@@ -26,6 +26,9 @@ try {
     };
 }
 
+// Храним последнее значение прогресса для плавного обновления
+let lastProgressValue = 0;
+
 /**
  * Загрузка модели площадки
  * @param {String} modelName - Имя файла модели площадки (по умолчанию 'playground.glb')
@@ -35,9 +38,40 @@ export function loadPlayground(modelName = 'playground.glb') {
     console.log('Начинаем загрузку площадки:', modelName);
     console.log('Текущее состояние ground:', ground);
     
+    // Сбрасываем прогресс загрузки
+    lastProgressValue = 0;
+    
+    // Показываем индикатор загрузки
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('hidden');
+        window.isLoading = true;
+        
+        // Установим начальный текст загрузки
+        const loadingText = document.querySelector('.loading-text');
+        if (loadingText) {
+            loadingText.textContent = 'Подготовка к загрузке...';
+        }
+        
+        // Искусственно отображаем начальный этап загрузки
+        setTimeout(() => {
+            if (loadingText && lastProgressValue === 0) {
+                loadingText.textContent = 'Загрузка площадки: 5%';
+                lastProgressValue = 5;
+            }
+        }, 300);
+    }
+    
     // Проверка на корректность scene
     if (!scene) {
         console.error('Scene is undefined, cannot load playground');
+        
+        // Скрываем индикатор загрузки в случае ошибки
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            window.isLoading = false;
+        }
+        
         return Promise.resolve(null);
     }
     
@@ -65,6 +99,16 @@ export function loadPlayground(modelName = 'playground.glb') {
                 // Создаем простую площадку вместо загрузки модели
                 console.log('Создаем простую площадку из-за отсутствия загрузчика');
                 const simplePlane = createSimplePlayground();
+                
+                // Не скрываем индикатор загрузки здесь - это будет сделано после рендеринга простой площадки
+                setTimeout(() => {
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                        window.isLoading = false;
+                    }
+                }, 1000);
+                
                 resolve(simplePlane);
                 return;
             }
@@ -77,6 +121,8 @@ export function loadPlayground(modelName = 'playground.glb') {
                     try {
                         console.log('Модель площадки успешно загружена через GLTFLoader:', modelName);
                         processLoadedModel(gltf, modelName, resolve);
+                        // Не скрываем индикатор загрузки здесь - 
+                        // это будет сделано в processLoadedModel после завершения обработки
                     } catch (error) {
                         console.error('Ошибка при обработке загруженной модели:', error);
                         handleLoadError(error, modelName, resolve);
@@ -85,9 +131,52 @@ export function loadPlayground(modelName = 'playground.glb') {
                 // Обработчик прогресса загрузки
                 (xhr) => {
                     if (xhr && xhr.total) {
-                        console.log(`Загрузка площадки ${modelName}: ${Math.round(xhr.loaded / xhr.total * 100)}%`);
+                        const actualProgress = Math.round(xhr.loaded / xhr.total * 100);
+                        
+                        // Ограничиваем скорость обновления процентов для более плавного отображения
+                        if (actualProgress > lastProgressValue + 5 || actualProgress >= 100) {
+                            // Обновляем значение на промежуточное между текущим и реальным
+                            // для более плавного увеличения
+                            const newProgress = Math.min(
+                                lastProgressValue + Math.max(5, Math.round((actualProgress - lastProgressValue) / 2)),
+                                actualProgress
+                            );
+                            
+                            lastProgressValue = newProgress;
+                            console.log(`Загрузка площадки ${modelName}: ${newProgress}%`);
+                            
+                            // Обновляем текст индикатора загрузки
+                            const loadingText = document.querySelector('.loading-text');
+                            if (loadingText) {
+                                // Если загрузка близка к завершению, показываем соответствующий текст
+                                if (newProgress >= 90) {
+                                    loadingText.textContent = `Обработка модели...`;
+                                } else {
+                                    loadingText.textContent = `Загрузка площадки: ${newProgress}%`;
+                                }
+                            }
+                            
+                            // Если близки к завершению, запускаем таймер для отображения финальных этапов
+                            if (newProgress >= 95 && newProgress < 100) {
+                                setTimeout(() => {
+                                    const loadingText = document.querySelector('.loading-text');
+                                    if (loadingText) {
+                                        loadingText.textContent = 'Подготовка сцены...';
+                                    }
+                                }, 500);
+                            }
+                        }
                     } else {
                         console.log(`Загрузка площадки ${modelName}: progress event без total`);
+                        
+                        // Увеличиваем прогресс даже без информации о total
+                        const newProgress = Math.min(lastProgressValue + 5, 95);
+                        lastProgressValue = newProgress;
+                        
+                        const loadingText = document.querySelector('.loading-text');
+                        if (loadingText) {
+                            loadingText.textContent = `Загрузка площадки: ${newProgress}%`;
+                        }
                     }
                 },
                 // Обработчик ошибок
@@ -190,16 +279,28 @@ function processLoadedModel(gltf, modelName, resolve) {
     playgroundModel.userData.originalHeight = size.y;
     playgroundModel.userData.originalDepth = size.z;
     
-    // Проверяем, есть ли пользовательские размеры в полях ввода
-    const widthInput = document.getElementById("playgroundWidth");
-    const lengthInput = document.getElementById("playgroundLength");
+    // Определяем размеры площадки, приоритет: 
+    // 1. Размеры из модального окна
+    // 2. Размеры из полей ввода
+    // 3. Значения по умолчанию
     let userWidth = 10;
     let userLength = 10;
     
-    if (widthInput && lengthInput) {
-        userWidth = parseFloat(widthInput.value) || 10;
-        userLength = parseFloat(lengthInput.value) || 10;
-        console.log("Используем пользовательские размеры:", userWidth, userLength);
+    // Проверяем наличие размеров из модального окна
+    if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
+        userWidth = window.selectedPlaygroundWidth;
+        userLength = window.selectedPlaygroundLength;
+        console.log("Используем размеры из модального окна:", userWidth, userLength);
+    } else {
+        // Проверяем наличие пользовательских размеров в полях ввода
+        const widthInput = document.getElementById("playgroundWidth");
+        const lengthInput = document.getElementById("playgroundLength");
+        
+        if (widthInput && lengthInput) {
+            userWidth = parseFloat(widthInput.value) || 10;
+            userLength = parseFloat(lengthInput.value) || 10;
+            console.log("Используем пользовательские размеры из полей ввода:", userWidth, userLength);
+        }
     }
     
     // Обновляем размеры площадки с учетом пользовательских настроек
@@ -234,6 +335,28 @@ function processLoadedModel(gltf, modelName, resolve) {
     
     // Показываем уведомление о смене площадки
     showNotification(`Площадка загружена: ${modelName} (${userWidth}м × ${userLength}м)`, false);
+    
+    // Задержка перед скрытием индикатора загрузки - уменьшаем до 1 секунды
+    setTimeout(() => {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            // Обновляем текст перед скрытием
+            const loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+                loadingText.textContent = 'Площадка готова!';
+            }
+            
+            // Добавляем класс для анимации скрытия
+            loadingOverlay.classList.add('fade-out');
+            
+            // Через 500ms полностью скрываем элемент
+            setTimeout(() => {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('fade-out');
+                window.isLoading = false;
+            }, 500);
+        }
+    }, 1000);
     
     console.log('Завершение processLoadedModel, возвращаем ground:', ground);
     resolve(ground);
@@ -288,12 +411,56 @@ function handleLoadError(error, modelName, resolve) {
         // Показываем уведомление пользователю
         showNotification(`Не удалось загрузить модель площадки. Создана простая площадка.`, true);
         
+        // Скрываем индикатор загрузки с задержкой и анимацией
+        setTimeout(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                // Обновляем текст перед скрытием
+                const loadingText = document.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = 'Загружена базовая площадка';
+                }
+                
+                // Добавляем класс для анимации скрытия
+                loadingOverlay.classList.add('fade-out');
+                
+                // Через 500ms полностью скрываем элемент
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('fade-out');
+                    window.isLoading = false;
+                }, 500);
+            }
+        }, 1000);
+        
         // Разрешаем промис с новой площадкой
         console.log('Возвращаем simplePlane в resolve:', simplePlane);
         resolve(simplePlane);
     } catch (e) {
         console.error('Ошибка при создании простой площадки:', e);
         showNotification(`Критическая ошибка при создании площадки`, true);
+        
+        // Скрываем индикатор загрузки в случае критической ошибки с анимацией
+        setTimeout(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                // Обновляем текст перед скрытием
+                const loadingText = document.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = 'Произошла ошибка загрузки';
+                }
+                
+                // Добавляем класс для анимации скрытия
+                loadingOverlay.classList.add('fade-out');
+                
+                // Через 500ms полностью скрываем элемент
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('fade-out');
+                    window.isLoading = false;
+                }, 500);
+            }
+        }, 1000);
         
         // Разрешаем промис с null в случае ошибки
         console.log('Возвращаем null в resolve из-за критической ошибки');

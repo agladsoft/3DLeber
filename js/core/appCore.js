@@ -9,12 +9,33 @@ import { checkAllObjectsPositions } from '../objects.js';
 import { initDimensionUpdates } from '../modules/dimensionDisplay/index.js';
 
 /**
+ * Функция для безопасного скрытия индикатора загрузки с проверками
+ * @param {Number} timeout - Задержка перед скрытием в миллисекундах
+ */
+function ensureLoadingOverlayHidden(timeout = 5000) {
+    console.log('Запуск таймера для принудительного скрытия индикатора загрузки через', timeout, 'мс');
+    
+    // Устанавливаем таймер для принудительного скрытия индикатора загрузки
+    setTimeout(() => {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
+            console.log('Принудительное скрытие индикатора загрузки по таймауту');
+            loadingOverlay.classList.add('hidden');
+            window.isLoading = false;
+        }
+    }, timeout);
+}
+
+/**
  * Инициализация приложения
  * @returns {Promise<void>}
  */
 export async function initializeApp() {
     try {
         console.log('Инициализация приложения...');
+        
+        // Устанавливаем таймер для принудительного скрытия индикатора загрузки через 6 секунд
+        ensureLoadingOverlayHidden(6000);
         
         // Инициализируем Three.js сцену, камеру и освещение
         const sceneComponents = initScene();
@@ -42,22 +63,48 @@ export async function initializeApp() {
         };
         console.log('Window.app инициализирован:', window.app);
         
-        // Получаем тип площадки из выпадающего списка (если он уже создан)
+        // Получаем тип площадки из глобальных переменных, установленных в модальном окне
         let playgroundType = 'playground.glb'; // По умолчанию
-        const playgroundTypeSelect = document.getElementById('playgroundType');
-        if (playgroundTypeSelect) {
-            playgroundType = playgroundTypeSelect.value;
-            console.log('Выбран тип площадки из select:', playgroundType);
-        } else {
-            console.log('Select playgroundType не найден, используем тип по умолчанию');
+        let userWidth = 10; // По умолчанию
+        let userLength = 10; // По умолчанию
+        
+        // Если есть выбранный тип площадки из модального окна, используем его
+        if (window.selectedPlaygroundType) {
+            playgroundType = window.selectedPlaygroundType;
+            console.log('Используем тип площадки из модального окна:', playgroundType);
         }
         
+        // Если есть выбранные размеры площадки из модального окна, используем их
+        if (window.selectedPlaygroundWidth) {
+            userWidth = window.selectedPlaygroundWidth;
+            console.log('Используем ширину площадки из модального окна:', userWidth);
+        }
+        
+        if (window.selectedPlaygroundLength) {
+            userLength = window.selectedPlaygroundLength;
+            console.log('Используем длину площадки из модального окна:', userLength);
+        }
+        
+        // Устанавливаем значения в контрольной панели, если она существует
+        const playgroundTypeSelect = document.getElementById('playgroundType');
+        const playgroundWidthInput = document.getElementById('playgroundWidth');
+        const playgroundLengthInput = document.getElementById('playgroundLength');
+        
+        if (playgroundTypeSelect) playgroundTypeSelect.value = playgroundType;
+        if (playgroundWidthInput) playgroundWidthInput.value = userWidth;
+        if (playgroundLengthInput) playgroundLengthInput.value = userLength;
+        
         try {
-            // Попытка загрузить площадку (ждем, пока она загрузится)
-            console.log('Начинаем загрузку площадки:', playgroundType);
+            // Попытка загрузить площадку с указанными размерами
+            console.log('Начинаем загрузку площадки:', playgroundType, 'с размерами:', userWidth, 'x', userLength);
             const result = await loadPlayground(playgroundType);
             console.log('Площадка загружена, результат:', result);
-            console.log('После загрузки площадки ground =', ground);
+            
+            // Обновляем информационную панель со статусом площадки
+            const playgroundStatus = document.getElementById('playgroundStatus');
+            if (playgroundStatus) {
+                playgroundStatus.textContent = `Площадка: ${playgroundType} (${userWidth}м × ${userLength}m)`;
+            }
         } catch (playgroundError) {
             console.error('Ошибка при загрузке площадки:', playgroundError);
             // Если не удалось загрузить площадку - продолжаем без неё
@@ -102,9 +149,19 @@ export async function initializeApp() {
         console.log('Запуск цикла рендеринга');
         startRenderLoop();
         
+        // Не скрываем индикатор загрузки здесь - это будет сделано после загрузки и рендеринга модели
+        
         console.log('Приложение успешно инициализировано');
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
+        
+        // Скрываем индикатор загрузки только в случае критической ошибки
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            window.isLoading = false;
+        }
+        
         throw error;
     }
 }
