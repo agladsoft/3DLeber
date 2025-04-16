@@ -15,6 +15,8 @@ export {
     showModelDimensions, 
     hideModelDimensions, 
     toggleModelDimensions,
-    updateModelDimensions
+    updateModelDimensions,
+    hideAllDimensions,
+    showAllDimensions
 } from './modules/dimensionDisplay/index.js';
 

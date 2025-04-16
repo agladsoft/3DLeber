@@ -4,6 +4,7 @@
 import { ensureSingleInit, updateRendererSize } from './appCore.js';
 import { removeAllSafetyZones } from './safetyManager.js';
 import { handleAppError } from './errorHandler.js';
+import { hideAllDimensions, showAllDimensions } from '../objects.js';
 
 /**
  * Устанавливает обработчики событий DOM
@@ -30,6 +31,9 @@ function handleDOMContentLoaded() {
     
     // Инициализация кнопки переключения сайдбара
     setupToggleSidebarButton();
+    
+    // Инициализация кнопки скрытия размеров
+    setupToggleDimensionsButton();
 }
 
 /**
@@ -108,6 +112,36 @@ function setupToggleSidebarButton() {
         });
     } else {
         console.log('Кнопка переключения сайдбара или сам сайдбар не найден');
+    }
+}
+
+/**
+ * Настраивает кнопку скрытия/показа размеров модели
+ */
+function setupToggleDimensionsButton() {
+    const toggleButton = document.getElementById('toggleDimensions');
+    const dimensionLabels = document.getElementById('dimensionLabels');
+    if (toggleButton && dimensionLabels) {
+        // Восстанавливаем состояние из localStorage (если есть)
+        const isHidden = localStorage.getItem('dimensionLabelsHidden') === 'true';
+        if (isHidden) {
+            dimensionLabels.style.display = 'none';
+            toggleButton.textContent = '📏 Показать размеры';
+            hideAllDimensions();
+        }
+        toggleButton.addEventListener('click', function() {
+            const isCurrentlyHidden = dimensionLabels.style.display === 'none';
+            if (isCurrentlyHidden) {
+                dimensionLabels.style.display = '';
+                toggleButton.textContent = '📏 Скрыть размеры';
+                showAllDimensions();
+            } else {
+                dimensionLabels.style.display = 'none';
+                toggleButton.textContent = '📏 Показать размеры';
+                hideAllDimensions();
+            }
+            localStorage.setItem('dimensionLabelsHidden', !isCurrentlyHidden);
+        });
     }
 }
 
