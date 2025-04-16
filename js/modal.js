@@ -246,7 +246,7 @@ function initializeTopViewButtonWithDelay() {
             transition: background-color 0.3s ease !important;
         `;
         
-        topViewButton.textContent = "Вид сверху (сетка 1×1м)";
+        topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
         topViewButton.classList.remove("active");
         
         console.log("Базовый стиль кнопки установлен:", topViewButton.style.backgroundColor);
@@ -296,7 +296,7 @@ function cleanupResources() {
             background-color: #4CAF50 !important;
             color: white !important;
         `;
-        topViewButton.textContent = "Вид сверху (сетка 1×1м)";
+        topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
         topViewButton.classList.remove("active");
     }
 }
