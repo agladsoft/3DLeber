@@ -39,6 +39,18 @@ function setupControlHandlers() {
     setupChangePlaygroundButton();
     setupResetViewButton();
     setupTopViewButton();
+
+    // Обработчик для кнопки удаления всех моделей
+    const deleteAllBtn = document.getElementById('deleteAllModels');
+    if (deleteAllBtn) {
+        deleteAllBtn.onclick = async function() {
+            // Динамически импортируем placedObjects и removeObject
+            const module = await import('../objects.js');
+            // Копируем массив, чтобы не было проблем при изменении во время итерации
+            const objectsToDelete = [...module.placedObjects];
+            objectsToDelete.forEach(obj => module.removeObject(obj));
+        };
+    }
 }
 
 /**

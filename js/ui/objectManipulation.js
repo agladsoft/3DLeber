@@ -45,6 +45,9 @@ export function initObjectManipulation() {
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseup", handleMouseUp);
     canvas.addEventListener("mouseleave", handleMouseLeave);
+
+    // Добавляем обработчик двойного клика для показа кнопки удаления
+    canvas.addEventListener("dblclick", handleDoubleClickOnCanvas);
 }
 
 /**
@@ -353,4 +356,71 @@ function finishObjectManipulation() {
     setRotatingState(false);
     
     // Не скрываем размеры при завершении манипуляций
+}
+
+// Вспомогательная функция для преобразования 3D координат в 2D экранные
+function toScreenPosition(obj, camera) {
+    const vector = new THREE.Vector3();
+    obj.updateMatrixWorld();
+    vector.setFromMatrixPosition(obj.matrixWorld);
+    vector.project(camera);
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (1 - (vector.y * 0.5 + 0.5)) * window.innerHeight;
+    return { x, y };
+}
+
+// Удаляем старую кнопку, если она есть
+function removeDeleteButton() {
+    const oldBtn = document.getElementById('modelDeleteButton');
+    if (oldBtn) oldBtn.remove();
+}
+
+// Обработчик двойного клика по canvas
+function handleDoubleClickOnCanvas(event) {
+    // Обновляем позицию мыши и raycaster
+    updateMousePosition(event);
+    updateRaycaster();
+    // Получаем объект под курсором
+    const intersectedObject = getIntersectedObject();
+    removeDeleteButton();
+    if (intersectedObject) {
+        // Показываем кнопку удаления над моделью
+        showDeleteButtonForObject(intersectedObject, event);
+    }
+}
+
+function showDeleteButtonForObject(object, event) {
+    // Получаем 2D позицию центра объекта
+    const { x, y } = toScreenPosition(object, camera);
+    // Создаем кнопку
+    const btn = document.createElement('button');
+    btn.id = 'modelDeleteButton';
+    btn.className = 'delete-button';
+    btn.innerHTML = '✖';
+    btn.style.position = 'fixed';
+    // Смещаем кнопку чуть выше и правее центра модели
+    btn.style.left = `${x + 30}px`;
+    btn.style.top = `${y - 50}px`;
+    btn.style.zIndex = 2000;
+    btn.title = 'Удалить объект';
+    // Делаем кнопку ярко-красной
+    btn.style.background = "red";
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    btn.onclick = function(e) {
+        e.stopPropagation();
+        import('../objects.js').then(module => {
+            module.removeObject(object);
+            removeDeleteButton();
+        });
+    };
+    // Удаляем кнопку при клике вне её
+    setTimeout(() => {
+        document.addEventListener('mousedown', onOutsideClick, { once: true });
+    }, 0);
+    function onOutsideClick(e) {
+        if (!btn.contains(e.target)) removeDeleteButton();
+    }
+    document.body.appendChild(btn);
 }

@@ -508,20 +508,20 @@ button:disabled, .modern-button:disabled {
 }
 
 /* Стили для кнопки closeAppButton переопределены для расположения в панели */
-#closeAppButton {
+#closeAppButton, #deleteAllModels {
     background: linear-gradient(90deg, #cf372c 0%, #b32727 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(207, 55, 44, 0.2);
     transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
 }
 
-#closeAppButton:hover {
+#closeAppButton:hover, #deleteAllModels:hover {
     background: linear-gradient(90deg, #b32727 0%, #cf372c 100%);
     transform: translateY(-2px) scale(1.03);
     box-shadow: 0 4px 12px rgba(207, 55, 44, 0.3);
 }
 
-#closeAppButton:active {
+#closeAppButton:active, #deleteAllModels:active {
     transform: translateY(1px) scale(0.98);
     box-shadow: 0 1px 4px rgba(207, 55, 44, 0.15);
 }
