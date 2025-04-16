@@ -22,39 +22,20 @@ export function setupDOMEventListeners() {
 function handleDOMContentLoaded() {
     console.log('DOM загружен, ожидаем нажатия кнопки запуска');
     
-    // Настраиваем кнопку запуска приложения
-    setupLaunchButton();
+    // Обработчик кнопки "Запустить" в модальном окне выбора площадки
+    setupStartButton();
 }
 
 /**
- * Настраивает кнопку запуска приложения
+ * Настраивает кнопку запуска приложения из модального окна
  */
-function setupLaunchButton() {
-    const launchButton = document.getElementById('launchApp');
-    if (launchButton) {
-        console.log('Кнопка запуска найдена, добавляем обработчик');
-        // Добавляем только один обработчик для кнопки запуска
-        launchButton.addEventListener('click', handleLaunchButtonClick);
+function setupStartButton() {
+    const startButton = document.getElementById('startAppButton');
+    if (startButton) {
+        console.log('Кнопка запуска в модальном окне найдена');
+        // Обработчик будет добавлен в modal.js для лучшей организации кода
     } else {
-        console.log('Кнопка запуска не найдена!');
-    }
-}
-
-/**
- * Обработчик клика по кнопке запуска
- */
-function handleLaunchButtonClick() {
-    console.log('Кнопка запуска нажата');
-    const modal = document.getElementById('appModal');
-    console.log('Модальное окно найдено:', modal !== null);
-    if (modal) {
-        console.log('Отображаем модальное окно');
-        modal.style.display = 'block';
-        document.getElementById('launchContainer').style.display = 'none';
-        console.log('Запускаем инициализацию приложения');
-        ensureSingleInit();
-    } else {
-        console.error('Модальное окно не найдено!');
+        console.log('Кнопка запуска в модальном окне не найдена!');
     }
 }
 

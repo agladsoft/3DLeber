@@ -174,7 +174,7 @@ function processLoadedModel(gltf, modelName, resolve) {
     scene.add(playgroundModel);
     console.log('Модель площадки добавлена в сцену, scene.children.length:', scene.children.length);
     
-    // Вычисляем и сохраняем размеры модели
+    // Вычисляем и сохраняем оригинальные размеры модели
     const boundingBox = new THREE.Box3().setFromObject(playgroundModel);
     const size = new THREE.Vector3();
     boundingBox.getSize(size);
@@ -190,8 +190,29 @@ function processLoadedModel(gltf, modelName, resolve) {
     playgroundModel.userData.originalHeight = size.y;
     playgroundModel.userData.originalDepth = size.z;
     
-    // Обновляем размеры площадки через функцию обновления
-    updatePlaygroundDimensions(size.x, size.z); // В THREE.js глубина (z) соответствует длине
+    // Проверяем, есть ли пользовательские размеры в полях ввода
+    const widthInput = document.getElementById("playgroundWidth");
+    const lengthInput = document.getElementById("playgroundLength");
+    let userWidth = 10;
+    let userLength = 10;
+    
+    if (widthInput && lengthInput) {
+        userWidth = parseFloat(widthInput.value) || 10;
+        userLength = parseFloat(lengthInput.value) || 10;
+        console.log("Используем пользовательские размеры:", userWidth, userLength);
+    }
+    
+    // Обновляем размеры площадки с учетом пользовательских настроек
+    updatePlaygroundDimensions(userWidth, userLength);
+    
+    // Масштабируем модель до заданных пользователем размеров
+    if (size.x > 0 && size.z > 0) {
+        const scaleX = userWidth / size.x;
+        const scaleZ = userLength / size.z;
+        playgroundModel.scale.set(scaleX, 1, scaleZ);
+        console.log(`Масштабирование модели: scaleX=${scaleX}, scaleZ=${scaleZ}`);
+    }
+    
     console.log('После updatePlaygroundDimensions:', playgroundWidth, playgroundLength);
     
     // Настраиваем тени и получаем ссылку на первый найденный меш
@@ -206,13 +227,13 @@ function processLoadedModel(gltf, modelName, resolve) {
     playgroundModel.userData.modelName = modelName;
 
     // Обновляем UI
-    updatePlaygroundLabels(playgroundWidth, playgroundLength);
+    updatePlaygroundLabels(userWidth, userLength);
     
     // Удаляем все элементы безопасной зоны
     removeAllYellowElements();
     
     // Показываем уведомление о смене площадки
-    showNotification(`Площадка заменена на ${modelName}`, false);
+    showNotification(`Площадка загружена: ${modelName} (${userWidth}м × ${userLength}м)`, false);
     
     console.log('Завершение processLoadedModel, возвращаем ground:', ground);
     resolve(ground);

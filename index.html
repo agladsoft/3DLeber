@@ -17,7 +17,52 @@
         <button id="launchApp">Запустить приложение</button>
     </div>
     
-    <!-- Модальное окно -->
+    <!-- Модальное окно выбора площадки -->
+    <div id="platformSelectModal" class="modal">
+        <div class="modal-content platform-select-content">
+            <h3>Выберите параметры площадки</h3>
+            
+            <!-- Добавляем превью площадки -->
+            <div class="playground-preview">
+                <model-viewer id="playgroundPreview" 
+                    src="models/playgrounds/playground.glb" 
+                    auto-rotate 
+                    camera-controls 
+                    disable-zoom 
+                    ar-status="not-presenting" 
+                    rotation-per-second="30deg" 
+                    camera-orbit="0deg 75deg 4m"
+                    field-of-view="20deg"
+                    alt="Предпросмотр площадки">
+                </model-viewer>
+            </div>
+            
+            <div class="platform-settings">
+                <div class="control-group">
+                    <label for="modalPlaygroundType">Площадка:</label>
+                    <select id="modalPlaygroundType">
+                        <option value="playground.glb" selected>Площадка 1</option>
+                        <option value="playground2.glb">Площадка 2</option>
+                        <option value="basketball_court.glb">Площадка 3</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="modalPlaygroundWidth">Ширина (м):</label>
+                    <input type="number" id="modalPlaygroundWidth" min="5" max="50" value="37.82" step="1">
+                </div>
+                <div class="control-group">
+                    <label for="modalPlaygroundLength">Длина (м):</label>
+                    <input type="number" id="modalPlaygroundLength" min="5" max="50" value="30.03" step="1">
+                </div>
+            </div>
+            <div class="platform-buttons">
+                <button id="startAppButton" class="action-button">Запустить</button>
+                <button id="cancelAppButton" class="action-button">Отмена</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно приложения -->
     <div id="appModal" class="modal">
         <div class="modal-content">
             <button id="closeAppButton">Закрыть приложение</button>
@@ -83,8 +128,9 @@
             <div class="control-group">
                 <label for="playgroundType">Площадка:</label>
                 <select id="playgroundType">
-                    <option value="playground.glb" selected>Стандартная</option>
-                    <option value="projeto_piloto-puc_minas-rota_3.glb">PUC Minas Rota 3</option>
+                    <option value="playground.glb" selected>Площадка 1</option>
+                    <option value="playground2.glb">Площадка 2</option>
+                    <option value="basketball_court.glb">Площадка 3</option>
                 </select>
             </div>
             <div class="control-group">
@@ -105,16 +151,6 @@
                 Установите размеры площадки и нажмите "Применить"
             </div>
         </div>
-        <table id="elementsTable">
-            <thead>
-                <tr>
-                    <th>Элемент</th>
-                    <th>Размер</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
     </div>
     <div id="dimensionLabels">
         <div id="widthLabel" class="dimension-label">10м</div>

@@ -82,11 +82,23 @@ function removeExistingHandlers() {
  * Добавляет обработчики начала перетаскивания для элементов каталога
  */
 function addDragStartHandlers() {
+    // Создаем невидимый элемент для использования в качестве изображения при перетаскивании
+    const invisibleDragImage = document.createElement('div');
+    invisibleDragImage.style.width = '1px';
+    invisibleDragImage.style.height = '1px';
+    invisibleDragImage.style.position = 'absolute';
+    invisibleDragImage.style.top = '-1000px';
+    invisibleDragImage.style.opacity = '0';
+    document.body.appendChild(invisibleDragImage);
+    
     document.querySelectorAll(".item").forEach(item => {
         item.addEventListener("dragstart", event => {
             const model = event.target.closest(".item").getAttribute("data-model");
             console.log("Drag started:", model);
             event.dataTransfer.setData("model", model);
+            
+            // Устанавливаем невидимое изображение для отображения при перетаскивании
+            event.dataTransfer.setDragImage(invisibleDragImage, 0, 0);
         });
     });
 }

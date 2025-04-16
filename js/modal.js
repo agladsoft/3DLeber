@@ -8,49 +8,114 @@ document.addEventListener('DOMContentLoaded', () => {
     // Получаем элементы DOM
     const launchContainer = document.getElementById('launchContainer');
     const launchButton = document.getElementById('launchApp');
-    const modal = document.getElementById('appModal');
-    const closeButton = document.querySelector('.modal-close');
+    const platformSelectModal = document.getElementById('platformSelectModal');
+    const appModal = document.getElementById('appModal');
+    const startAppButton = document.getElementById('startAppButton');
+    const cancelAppButton = document.getElementById('cancelAppButton');
+    const closeAppButton = document.getElementById('closeAppButton');
+    const playgroundPreview = document.getElementById('playgroundPreview');
+    const modalPlaygroundType = document.getElementById('modalPlaygroundType');
     
-    // Отключаем собственный обработчик кнопки запуска, так как он перенесен в app.js
-    // для обеспечения одноразовой инициализации
+    // Инициализация превью площадки
+    initializePlaygroundPreview();
     
-    // Обработчик для кнопки запуска (для повторной инициализации)
+    // Запуск модального окна выбора площадки
     launchButton.addEventListener('click', () => {
-        // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
-        setTimeout(initializeTopViewButtonWithDelay, 1000);
-        
-        // Запускаем проверку сцены после открытия модального окна
-        setTimeout(() => {
-            // Если площадка не отображается, запускаем проверку
-            console.log("Запуск проверки сцены после открытия модального окна");
-            startSceneChecks();
-        }, 2000);
+        launchContainer.style.display = 'none';
+        platformSelectModal.style.display = 'block';
     });
     
-    // Обработчик нажатия на крестик закрытия
-    closeButton.addEventListener('click', () => {
-        // Скрываем модальное окно
-        modal.style.display = 'none';
-        
-        // Показываем контейнер с кнопкой запуска
+    // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
+    cancelAppButton.addEventListener('click', () => {
+        platformSelectModal.style.display = 'none';
         launchContainer.style.display = 'flex';
     });
     
-    // Обработчик нажатия на кнопку закрытия приложения
-    const closeAppButton = document.getElementById('closeAppButton');
-    if (closeAppButton) {
-        closeAppButton.addEventListener('click', () => {
-            // Скрываем модальное окно
-            modal.style.display = 'none';
-            
-            // Показываем контейнер с кнопкой запуска
-            launchContainer.style.display = 'flex';
-            
-            // Очищаем сетку и ресурсы при закрытии
-            cleanupResources();
+    // Обработчик смены типа площадки
+    if (modalPlaygroundType) {
+        modalPlaygroundType.addEventListener('change', (e) => {
+            updatePlaygroundPreview(e.target.value);
         });
     }
+    
+    // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
+    startAppButton.addEventListener('click', () => {
+        // Получаем выбранные значения
+        const selectedType = document.getElementById('modalPlaygroundType').value;
+        const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
+        const selectedLength = document.getElementById('modalPlaygroundLength').value;
+        
+        // Передаем выбранные значения в основное приложение
+        const playgroundType = document.getElementById('playgroundType');
+        const playgroundWidth = document.getElementById('playgroundWidth');
+        const playgroundLength = document.getElementById('playgroundLength');
+        
+        // Устанавливаем значения в контрольной панели
+        if (playgroundType) playgroundType.value = selectedType;
+        if (playgroundWidth) playgroundWidth.value = selectedWidth;
+        if (playgroundLength) playgroundLength.value = selectedLength;
+        
+        // Скрываем модальное окно выбора площадки и показываем основное приложение
+        platformSelectModal.style.display = 'none';
+        appModal.style.display = 'block';
+        
+        // Вызываем функцию инициализации приложения
+        if (window.initApp) {
+            window.initApp();
+            
+            // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
+            setTimeout(initializeTopViewButtonWithDelay, 1000);
+            
+            // Применяем установленные настройки площадки
+            const applyButton = document.getElementById('applySettings');
+            if (applyButton) {
+                setTimeout(() => {
+                    applyButton.click();
+                }, 1500);
+            }
+            
+            // Запускаем проверку сцены после открытия модального окна
+            setTimeout(() => {
+                console.log("Запуск проверки сцены после открытия модального окна");
+                startSceneChecks();
+            }, 2000);
+        }
+    });
+    
+    // Обработчик нажатия на кнопку закрытия приложения
+    closeAppButton.addEventListener('click', () => {
+        // Скрываем модальное окно
+        appModal.style.display = 'none';
+        
+        // Показываем контейнер с кнопкой запуска
+        launchContainer.style.display = 'flex';
+        
+        // Очищаем сетку и ресурсы при закрытии
+        cleanupResources();
+    });
 });
+
+/**
+ * Инициализирует превью площадки
+ */
+function initializePlaygroundPreview() {
+    const playgroundPreview = document.getElementById('playgroundPreview');
+    if (playgroundPreview) {
+        // Устанавливаем начальную модель
+        updatePlaygroundPreview('playground.glb');
+    }
+}
+
+/**
+ * Обновляет превью площадки при смене типа
+ * @param {string} modelName - Имя файла модели
+ */
+function updatePlaygroundPreview(modelName) {
+    const playgroundPreview = document.getElementById('playgroundPreview');
+    if (playgroundPreview) {
+        playgroundPreview.src = `models/playgrounds/${modelName}`;
+    }
+}
 
 /**
  * Инициализирует кнопку "Вид сверху" с задержкой после открытия модального окна
