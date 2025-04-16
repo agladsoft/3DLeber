@@ -235,17 +235,6 @@ function initializeTopViewButtonWithDelay() {
     if (topViewButton) {
         console.log("Кнопка вида сверху найдена, устанавливаем базовый стиль");
         
-        // Устанавливаем базовые стили напрямую
-        topViewButton.style.cssText = `
-            background-color: #4CAF50 !important;
-            color: white !important;
-            padding: 10px !important;
-            border: none !important;
-            border-radius: 5px !important;
-            cursor: pointer !important;
-            transition: background-color 0.3s ease !important;
-        `;
-        
         topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
         topViewButton.classList.remove("active");
         
@@ -292,10 +281,6 @@ function cleanupResources() {
     // Сбрасываем стиль кнопки на неактивный
     const topViewButton = document.getElementById("topView");
     if (topViewButton) {
-        topViewButton.style.cssText = `
-            background-color: #4CAF50 !important;
-            color: white !important;
-        `;
         topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
         topViewButton.classList.remove("active");
     }

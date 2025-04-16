@@ -176,18 +176,6 @@ function initializeTopViewButton(button) {
     // Принудительно сбрасываем все стили и классы
     button.className = ""; // Сбрасываем все классы
     
-    // Устанавливаем базовые стили через атрибут
-    const baseStyles = `
-        background-color: #4CAF50 !important;
-        color: white !important;
-        padding: 10px !important;
-        border: none !important;
-        border-radius: 5px !important;
-        cursor: pointer !important;
-        transition: background-color 0.3s ease !important;
-    `;
-    
-    button.setAttribute("style", baseStyles);
     button.textContent = "🔝 Вид сверху (сетка 1×1м)";
     
     // Создаем новый обработчик клика и удаляем старые, если они были
@@ -228,36 +216,12 @@ function updateTopViewButtonStyle(button, isActive) {
         // Устанавливаем красный стиль для активного режима
         console.log("Устанавливаем красный стиль кнопки");
         button.textContent = "Выйти из вида сверху";
-        
-        const activeStyles = `
-            background-color: #F44336 !important;
-            color: white !important;
-            padding: 10px !important;
-            border: none !important;
-            border-radius: 5px !important;
-            cursor: pointer !important;
-            transition: background-color 0.3s ease !important;
-            font-weight: bold !important;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
-        `;
-        
         button.setAttribute("style", activeStyles);
         button.classList.add("active");
     } else {
         // Устанавливаем зеленый стиль для неактивного режима
         console.log("Устанавливаем зеленый стиль кнопки");
         button.textContent = "🔝 Вид сверху (сетка 1×1м)";
-        
-        const inactiveStyles = `
-            background-color: #4CAF50 !important;
-            color: white !important;
-            padding: 10px !important;
-            border: none !important;
-            border-radius: 5px !important;
-            cursor: pointer !important;
-            transition: background-color 0.3s ease !important;
-        `;
-        
         button.setAttribute("style", inactiveStyles);
         button.classList.remove("active");
     }

@@ -237,13 +237,9 @@ function updateTopViewButtonStyle(isActive) {
             if (topViewButton) {
                 if (isActive) {
                     topViewButton.textContent = "Выйти из вида сверху";
-                    // Применяем стили напрямую с !important
-                    topViewButton.setAttribute("style", "background-color: #F44336 !important; color: white !important;");
                     topViewButton.classList.add("active");
                 } else {
                     topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
-                    // Применяем стили напрямую с !important
-                    topViewButton.setAttribute("style", "background-color: #4CAF50 !important; color: white !important;");
                     topViewButton.classList.remove("active");
                 }
             } else {

@@ -246,7 +246,6 @@ th, td {
 
 /* Стили для select */
 .control-group select {
-    width: 100%;
     padding: 6px 24px 6px 8px;
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -327,28 +326,51 @@ th, td {
     opacity: 1;
 }
 
-.action-button {
-    width: 100%;
-    padding: 5px;
-    margin-top: 5px;
-    cursor: pointer;
-    background: #4CAF50;
-    color: white;
+.action-button,
+#startAppButton,
+#launchApp {
+    background: linear-gradient(90deg, #4CAF50 0%, #219c3e 100%) !important;
+    color: #fff;
     border: none;
     border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+    transition: background 0.3s, box-shadow 0.2s, transform 0.1s;
+}
+.action-button:hover,
+#startAppButton:hover,
+#launchApp:hover {
+    background: linear-gradient(90deg, #219c3e 0%, #4CAF50 100%) !important;
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.25);
+    transform: translateY(-2px) scale(1.03);
+}
+.action-button:active,
+#startAppButton:active,
+#launchApp:active {
+    background: linear-gradient(90deg, #176d2c 0%, #219c3e 100%) !important;
+    box-shadow: 0 1px 4px rgba(33, 156, 62, 0.18);
+    transform: translateY(1px) scale(0.98);
 }
 
-.action-button:hover {
-    background: #45a049;
+/* Градиентные красные кнопки */
+#closeAppButton,
+#cancelAppButton {
+    background: linear-gradient(90deg, #cf372c 0%, #b32727 100%) !important;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(207, 55, 44, 0.15);
+    transition: background 0.3s, box-shadow 0.2s, transform 0.1s;
 }
-
-#saveScreenshot {
-    background: #2196F3;
-    margin-top: 15px;
+#closeAppButton:hover,
+#cancelAppButton:hover {
+    background: linear-gradient(90deg, #b32727 0%, #cf372c 100%) !important;
+    box-shadow: 0 4px 16px rgba(207, 55, 44, 0.25);
+    transform: translateY(-2px) scale(1.03);
 }
-
-#saveScreenshot:hover {
-    background: #0b7dda;
+#closeAppButton:active,
+#cancelAppButton:active {
+    background: linear-gradient(90deg, #7a1812 0%, #b32727 100%) !important;
+    box-shadow: 0 1px 4px rgba(207, 55, 44, 0.18);
+    transform: translateY(1px) scale(0.98);
 }
 
 .dimension-label {
@@ -631,11 +653,6 @@ button:disabled, .modern-button:disabled {
     background-color: #ff3333;
 }
 
-/* Стили для режима вида сверху */
-#topView.active {
-    background-color: #F44336 !important;
-}
-
 /* Стили для подсказок размеров сетки */
 .grid-label {
     position: absolute;
@@ -695,7 +712,7 @@ button:disabled, .modern-button:disabled {
 
 /* Фиксированная ширина для select в модальном окне */
 .platform-settings .control-group select {
-    width: 100%;
+    width: 50%;
     box-sizing: border-box;
     min-width: 150px;
 }
