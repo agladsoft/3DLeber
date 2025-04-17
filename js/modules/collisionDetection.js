@@ -45,6 +45,12 @@ export function isWithinPlayground(object) {
     const halfWidth = playgroundWidth / 2;
     const halfLength = playgroundLength / 2;
     
+    // Смещения для коррекции позиционирования
+    // Используем пропорциональное смещение, которое будет работать при любых размерах площадки
+    // Коэффициент указывает, какую долю от ширины площадки использовать для смещения
+    const offsetCoefficient = -0.15; // 15% от ширины площадки
+    const boundaryOffset = playgroundWidth * offsetCoefficient;  // Смещение пропорционально ширине площадки
+    
     // Получаем ограничивающий бокс объекта
     const box = new THREE.Box3().setFromObject(object);
     const size = new THREE.Vector3();
@@ -58,10 +64,14 @@ export function isWithinPlayground(object) {
     // Учитываем размер объекта (радиус)
     const radius = Math.max(size.x, size.z) / 2;
     
+    // Отладка - вывод информации в консоль
+    // console.log(`Объект: центр X=${center.x.toFixed(2)}, радиус=${radius.toFixed(2)}, границы площадки: левая=${(-halfWidth + leftBoundaryOffset).toFixed(2)}, правая=${(halfWidth + rightBoundaryOffset).toFixed(2)}`);
+    
     // Объект внутри площадки, если его крайние точки находятся внутри границы
+    // Применяем различные смещения для левой и правой границ
     return (
-        center.x - radius >= -halfWidth &&
-        center.x + radius <= halfWidth &&
+        center.x - radius >= -halfWidth + boundaryOffset && // Сдвигаем левую границу вправо
+        center.x + radius <= halfWidth + boundaryOffset &&  // Сдвигаем правую границу вправо
         center.z - radius >= -halfLength &&
         center.z + radius <= halfLength
     );
