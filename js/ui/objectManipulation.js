@@ -304,8 +304,10 @@ function handleObjectDragging(event) {
         // Проверяем на коллизии с другими объектами
         checkAndHighlightObject(selectedObject);
         
-        // Обновляем положение размеров
-        updateModelDimensions(selectedObject);
+        // Обновляем положение размеров ТОЛЬКО если не скрыты
+        if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+            updateModelDimensions(selectedObject);
+        }
     }
 
     // --- Показываем крестик (кнопку удаления) над объектом во время перетаскивания ---
@@ -329,8 +331,10 @@ function handleObjectRotation(event) {
     // Проверяем на коллизии после вращения
     checkAndHighlightObject(selectedObject);
     
-    // Обновляем положение размеров при вращении
-    updateModelDimensions(selectedObject);
+    // Обновляем положение размеров при вращении ТОЛЬКО если не скрыты
+    if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+        updateModelDimensions(selectedObject);
+    }
 }
 
 /**
