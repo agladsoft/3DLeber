@@ -47,7 +47,7 @@ export function initObjectManipulation() {
     canvas.addEventListener("mouseleave", handleMouseLeave);
 
     // Добавляем обработчик двойного клика для показа кнопки удаления
-    canvas.addEventListener("dblclick", handleDoubleClickOnCanvas);
+    canvas.addEventListener("click", handleDoubleClickOnCanvas);
 }
 
 /**
@@ -307,6 +307,12 @@ function handleObjectDragging(event) {
         // Обновляем положение размеров
         updateModelDimensions(selectedObject);
     }
+
+    // --- Показываем крестик (кнопку удаления) над объектом во время перетаскивания ---
+    if (selectedObject) {
+        // Крестик должен следовать за объектом
+        showDeleteButtonForObject(selectedObject, event);
+    }
 }
 
 /**
@@ -356,6 +362,8 @@ function finishObjectManipulation() {
     setRotatingState(false);
     
     // Не скрываем размеры при завершении манипуляций
+    // --- Убираем крестик при завершении манипуляции ---
+    removeDeleteButton();
 }
 
 // Вспомогательная функция для преобразования 3D координат в 2D экранные
@@ -390,6 +398,8 @@ function handleDoubleClickOnCanvas(event) {
 }
 
 function showDeleteButtonForObject(object, event) {
+    // Перед созданием новой кнопки всегда удаляем старую
+    removeDeleteButton();
     // Получаем 2D позицию центра объекта
     const { x, y } = toScreenPosition(object, camera);
     // Создаем кнопку
