@@ -3,6 +3,7 @@
  */
 import * as THREE from 'three';
 import { placedObjects } from './objectManager.js';
+import { PLAYGROUND_GROUND_PREFIX } from '../config.js';
 
 /**
  * Получает границы объекта для проверки позиционирования
@@ -164,23 +165,60 @@ export function checkAllObjectsPositions() {
     for (let object of placedObjects) {
         highlightObjectCollision(object, false);
     }
-    
+
+    // Сброс подсветки для деревьев и скамеек playground
+    if (window.playgroundSpecialObjects) {
+        for (let obj of window.playgroundSpecialObjects) {
+            highlightObjectCollision(obj, false);
+        }
+    }
+
     // Затем проверяем каждый объект на коллизии с другими объектами
     for (let i = 0; i < placedObjects.length; i++) {
         let object = placedObjects[i];
         let hasCollision = false;
-        
+
         // Проверяем коллизии с другими объектами
         for (let j = 0; j < placedObjects.length; j++) {
             if (i === j) continue; // Пропускаем проверку с самим собой
-            
             if (checkObjectsIntersection(object, placedObjects[j])) {
                 hasCollision = true;
                 break;
             }
         }
-        
+
+        // === ИЗМЕНЕНО: Проверка пересечений с деревьями и скамейками playground ===
+        if (!hasCollision && window.playgroundSpecialObjects) {
+            for (let specialObj of window.playgroundSpecialObjects) {
+                if (checkObjectsIntersection(object, specialObj)) {
+                    hasCollision = true;
+                    break;
+                }
+            }
+        }
+        // === КОНЕЦ ИЗМЕНЕНИЯ ===
+
         // Подсвечиваем объект красным, если есть коллизия
         highlightObjectCollision(object, hasCollision);
     }
+
+    // === ИЗМЕНЕНО: Проверка пересечений с деревьями и скамейками playground ===
+    if (window.playgroundSpecialObjects) {
+        for (let specialObj of window.playgroundSpecialObjects) {
+            let hasCollision = false;
+            for (let placed of placedObjects) {
+                // Исключаем объекты, у которых имя начинается с PLAYGROUND_GROUND_PREFIX
+                if (placed.name && placed.name.toLowerCase().startsWith(PLAYGROUND_GROUND_PREFIX)) continue;
+                // Исключаем другие specialObjects (деревья/скамейки)
+                if (placed.userData && placed.userData.isPlaygroundTreeOrBench) continue;
+                if (checkObjectsIntersection(specialObj, placed)) {
+                    hasCollision = true;
+                    break;
+                }
+            }
+            highlightObjectCollision(specialObj, hasCollision);
+        }
+    }
+    // === КОНЕЦ ИЗМЕНЕНИЯ ===
 }
+
