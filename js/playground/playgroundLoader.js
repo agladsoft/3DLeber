@@ -280,41 +280,17 @@ function processLoadedModel(gltf, modelName, resolve) {
     playgroundModel.userData.originalHeight = size.y;
     playgroundModel.userData.originalDepth = size.z;
     
-    // Определяем размеры площадки, приоритет: 
-    // 1. Размеры из модального окна
-    // 2. Размеры из полей ввода
-    // 3. Значения по умолчанию
-    let userWidth = 10;
-    let userLength = 10;
-    
-    // Проверяем наличие размеров из модального окна
-    if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
-        userWidth = window.selectedPlaygroundWidth;
-        userLength = window.selectedPlaygroundLength;
-        console.log("Используем размеры из модального окна:", userWidth, userLength);
-    } else {
-        // Проверяем наличие пользовательских размеров в полях ввода
-        const widthInput = document.getElementById("playgroundWidth");
-        const lengthInput = document.getElementById("playgroundLength");
-        
-        if (widthInput && lengthInput) {
-            userWidth = parseFloat(widthInput.value) || 10;
-            userLength = parseFloat(lengthInput.value) || 10;
-            console.log("Используем пользовательские размеры из полей ввода:", userWidth, userLength);
-        }
-    }
-    
-    // Обновляем размеры площадки с учетом пользовательских настроек
-    updatePlaygroundDimensions(userWidth, userLength);
-    
-    // Масштабируем модель до заданных пользователем размеров
-    if (size.x > 0 && size.z > 0) {
-        const scaleX = userWidth / size.x;
-        const scaleZ = userLength / size.z;
-        playgroundModel.scale.set(scaleX, 1, scaleZ);
-        console.log(`Масштабирование модели: scaleX=${scaleX}, scaleZ=${scaleZ}`);
-    }
-    
+    // Используем размеры из модели
+    const modelWidth = size.x;
+    const modelLength = size.z;
+    console.log("Используем размеры из модели:", modelWidth, modelLength);
+
+    // Обновляем размеры площадки на основе модели
+    updatePlaygroundDimensions(modelWidth, modelLength);
+
+    // Не масштабируем модель, чтобы сохранить реальные размеры
+    // playgroundModel.scale.set(1, 1, 1);
+
     console.log('После updatePlaygroundDimensions:', playgroundWidth, playgroundLength);
     
     // Настраиваем тени и получаем ссылку на первый найденный меш
@@ -345,13 +321,13 @@ function processLoadedModel(gltf, modelName, resolve) {
     // === КОНЕЦ ДОБАВЛЕНИЯ ===
 
     // Обновляем UI
-    updatePlaygroundLabels(userWidth, userLength);
+    updatePlaygroundLabels(modelWidth, modelLength);
     
     // Удаляем все элементы безопасной зоны
     removeAllYellowElements();
     
     // Показываем уведомление о смене площадки
-    showNotification(`Площадка загружена: ${modelName} (${userWidth}м × ${userLength}м)`, false);
+    showNotification(`Площадка загружена: ${modelName} (${modelWidth.toFixed(2)}м × ${modelLength.toFixed(2)}м)`, false);
     
     // Задержка перед скрытием индикатора загрузки - уменьшаем до 1 секунды
     setTimeout(() => {

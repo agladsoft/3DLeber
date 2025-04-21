@@ -36,25 +36,17 @@ export function showPlatformSelectModal() {
 function updateModalValuesFromCurrent() {
     // Получаем текущие параметры площадки
     const currentType = window.selectedPlaygroundType || 'playground.glb';
-    const currentWidth = window.selectedPlaygroundWidth || 10;
-    const currentLength = window.selectedPlaygroundLength || 10;
     
     // Обновляем значения в модальном окне
     const modalPlaygroundType = document.getElementById('modalPlaygroundType');
-    const modalPlaygroundWidth = document.getElementById('modalPlaygroundWidth');
-    const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
     
     if (modalPlaygroundType) modalPlaygroundType.value = currentType;
-    if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
-    if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
     
     // Обновляем предпросмотр модели
     updatePlaygroundPreview(currentType);
     
     console.log('Обновлены значения в модальном окне из текущей площадки:', {
-        тип: currentType,
-        ширина: currentWidth,
-        длина: currentLength
+        тип: currentType
     });
 }
 
@@ -108,19 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Получаем выбранные значения
         const selectedType = document.getElementById('modalPlaygroundType').value;
-        const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
-        const selectedLength = document.getElementById('modalPlaygroundLength').value;
         
         // Сохраняем выбранные значения в глобальных переменных для использования в приложении
         window.selectedPlaygroundType = selectedType;
-        window.selectedPlaygroundWidth = parseFloat(selectedWidth);
-        window.selectedPlaygroundLength = parseFloat(selectedLength);
         
         // Выводим информацию в консоль для отладки
         console.log('Настройки площадки из модального окна:', {
-            тип: selectedType,
-            ширина: selectedWidth,
-            длина: selectedLength
+            тип: selectedType
         });
         
         // Скрываем модальное окно выбора площадки
