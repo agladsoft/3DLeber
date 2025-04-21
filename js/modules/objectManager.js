@@ -213,6 +213,29 @@ export function loadAndPlaceModel(modelName, position) {
 }
 
 /**
+ * Рекурсивно освобождает ресурсы объекта Three.js (geometry, material, texture)
+ * @param {THREE.Object3D} obj
+ */
+function disposeObject3D(obj) {
+    if (!obj) return;
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+        if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+            });
+        } else {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+        }
+    }
+    if (obj.children) {
+        obj.children.forEach(child => disposeObject3D(child));
+    }
+}
+
+/**
  * Удаляет объект из сцены и обновляет UI
  * @param {Object} container - Контейнер модели для удаления
  */
@@ -226,7 +249,9 @@ export function removeObject(container) {
             console.log('Удаляем размеры модели:', container.name || container.uuid);
             module.removeModelDimensions(container);
         }
-        
+
+        // Очищаем ресурсы модели
+        disposeObject3D(container);
         // Удаляем объект из сцены
         scene.remove(container);
         
@@ -240,7 +265,8 @@ export function removeObject(container) {
         checkAllObjectsPositions();
     }).catch(error => {
         console.error('Ошибка при удалении размеров модели:', error);
-        
+        // Очищаем ресурсы модели
+        disposeObject3D(container);
         // Все равно удаляем объект и обновляем сцену
         scene.remove(container);
         

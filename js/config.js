@@ -119,3 +119,6 @@ export const TOP_VIEW_SETTINGS = {
     maxZoom: 3.0,                   // Максимальный уровень масштабирования
     heightMultiplier: 1.1           // Множитель высоты камеры относительно диагонали площадки
 };
+
+// Префикс имени поверхности площадки (для фильтрации объектов внутри playground)
+export const PLAYGROUND_GROUND_PREFIX = 'plane';
