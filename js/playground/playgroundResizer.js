@@ -15,6 +15,11 @@ import { updateLabelsDuringAnimation } from './playgroundUI.js';
  * @param {Number} newLength - Новая длина площадки в метрах
  */
 export function resizePlaygroundWithAnimation(newWidth, newLength) {
+    // Если площадка — не simple_playground, запрещаем изменение размеров
+    if (ground && ground.userData.modelName !== 'simple_playground') {
+        showNotification("Изменение размеров доступно только для стандартной (плоской) площадки", true);
+        return;
+    }
     // Проверяем, что размеры в допустимых пределах
     if (!areValidDimensions(newWidth, newLength)) {
         showNotification("Размеры должны быть в диапазоне от 5 до 50 метров", true);

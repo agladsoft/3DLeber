@@ -286,7 +286,13 @@ function handleObjectDragging(event) {
         
         // Стандартный метод для обычного режима
         const planeIntersect = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+        let intersects = [];
+        if (ground) {
+            intersects = raycaster.intersectObject(ground, true);
+        }
+        if (intersects.length > 0) {
+            intersectionPoint = intersects[0].point;
+        } else if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
             intersectionPoint = planeIntersect;
         }
     }
@@ -300,6 +306,9 @@ function handleObjectDragging(event) {
         // Выравниваем нижнюю грань объекта по Y=0
         const box = new THREE.Box3().setFromObject(selectedObject);
         selectedObject.position.y -= box.min.y;
+        
+        // Корректируем по высоте площадки
+        selectedObject.position.y += intersectionPoint.y;
         
         // Проверяем на коллизии с другими объектами
         checkAndHighlightObject(selectedObject);
