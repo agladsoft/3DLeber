@@ -121,4 +121,4 @@ export const TOP_VIEW_SETTINGS = {
 };
 
 // Префикс имени поверхности площадки (для фильтрации объектов внутри playground)
-export const PLAYGROUND_GROUND_PREFIX = 'plane';
+export const PLAYGROUND_GROUND_PREFIXES = ['Plane', 'Grass'];

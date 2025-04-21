@@ -9,7 +9,7 @@ import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { PLAYGROUND_GROUND_PREFIX } from '../config.js';
+import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
 
 // Создаем загрузчик GLTF для загрузки модели площадки
 let gltfLoader;
@@ -309,8 +309,8 @@ function processLoadedModel(gltf, modelName, resolve) {
     const playgroundSpecialObjects = [];
     playgroundModel.traverse((child) => {
         if (child.isMesh && child.name) {
-            const lowerName = child.name.toLowerCase();
-            if (!lowerName.startsWith(PLAYGROUND_GROUND_PREFIX)) {
+            console.log(child.name)
+            if (!PLAYGROUND_GROUND_PREFIXES.some(prefix => child.name.startsWith(prefix))) {
                 child.userData.isPlaygroundTreeOrBench = true;
                 playgroundSpecialObjects.push(child);
             }

@@ -3,7 +3,7 @@
  */
 import * as THREE from 'three';
 import { placedObjects } from './objectManager.js';
-import { PLAYGROUND_GROUND_PREFIX } from '../config.js';
+import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
 
 /**
  * Получает границы объекта для проверки позиционирования
@@ -281,8 +281,8 @@ export function checkAllObjectsPositions() {
         for (let specialObj of window.playgroundSpecialObjects) {
             let hasCollision = false;
             for (let placed of placedObjects) {
-                // Исключаем объекты, у которых имя начинается с PLAYGROUND_GROUND_PREFIX
-                if (placed.name && placed.name.toLowerCase().startsWith(PLAYGROUND_GROUND_PREFIX)) continue;
+                // Исключаем объекты, у которых имя начинается с одним из PLAYGROUND_GROUND_PREFIXES
+                if (placed.name && PLAYGROUND_GROUND_PREFIXES.some(prefix => placed.name.startsWith(prefix))) continue;
                 // Исключаем другие specialObjects (деревья/скамейки)
                 if (placed.userData && placed.userData.isPlaygroundTreeOrBench) continue;
                 if (checkObjectsIntersection(specialObj, placed)) {
