@@ -39,8 +39,9 @@ export function createPlayground(width, length) {
     // Обновляем текстовый статус и метки размеров
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
     
-    // Если есть ground, масштабируем его с учетом оригинальных размеров
-    if (ground && ground.userData.originalWidth && ground.userData.originalDepth) {
+    // Не масштабируем ground, если это не простая площадка
+    // (масштабирование теперь только для аварийной/простой площадки)
+    if (ground && ground.userData.modelName === 'simple_playground' && ground.userData.originalWidth && ground.userData.originalDepth) {
         const scaleX = width / ground.userData.originalWidth;
         const scaleZ = length / ground.userData.originalDepth;
         ground.scale.set(scaleX, 1, scaleZ);
