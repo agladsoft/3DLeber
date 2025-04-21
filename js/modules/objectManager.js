@@ -171,6 +171,10 @@ export function loadAndPlaceModel(modelName, position) {
                 
                 // Выравниваем нижнюю грань по Y=0
                 alignObjectToGround(container);
+                // Корректируем позицию по Y, чтобы модель стояла на площадке
+                if (position && typeof position.y === 'number') {
+                    container.position.y += position.y;
+                }
                 
                 // Сохраняем исходную позицию и поворот (для возможного использования клавиши Esc)
                 saveInitialPosition(container);
