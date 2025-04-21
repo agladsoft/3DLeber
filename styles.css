@@ -111,8 +111,6 @@ body, html {
 
 model-viewer {
     width: 100%;
-    min-height: 120px;
-    max-height: 140px;
     background-color: #f5f8ff;
     border-radius: 8px;
     margin-bottom: 8px;
