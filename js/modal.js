@@ -221,7 +221,9 @@ function initializePlaygroundPreview() {
 function updatePlaygroundPreview(modelName) {
     const playgroundPreview = document.getElementById('playgroundPreview');
     if (playgroundPreview) {
-        playgroundPreview.src = `models/playgrounds/${modelName}`;
+        // Заменяем расширение .glb на .png
+        const imageName = modelName.replace('.glb', '.png');
+        playgroundPreview.src = `textures/${imageName}`;
     }
 }
 

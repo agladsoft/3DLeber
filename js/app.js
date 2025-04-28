@@ -8,20 +8,14 @@ import { startSceneChecks } from './sceneCheck.js';
 
 // Оборачиваем выполнение кода в try-catch для отлова критических ошибок
 try {
-    console.log('Загрузка модулей...');
-    
     // Определяем глобальную функцию инициализации приложения
     window.initApp = async function() {
-        console.log('Вызвана функция window.initApp');
         try {
-            console.log('Начинаем инициализацию приложения через initializeApp()');
             await initializeApp();
-            console.log('Инициализация успешно завершена');
             
             // Применяем дополнительные исправления после основной инициализации только один раз
             if (!window.fixesApplied) {
                 setTimeout(() => {
-                    console.log('Применение дополнительных исправлений...');
                     applyAllFixes();
                     
                     // Запускаем периодическую проверку сцены
@@ -31,20 +25,16 @@ try {
                     window.fixesApplied = true;
                 }, 1000); // Задержка для завершения основной инициализации
             } else {
-                console.log('Исправления уже были применены ранее.');
-                
                 // Все равно запускаем периодическую проверку сцены (на всякий случай)
                 startSceneChecks();
             }
             
         } catch (error) {
-            console.error('Ошибка при инициализации:', error);
             handleAppError(error);
             
             // Пытаемся восстановить приложение, применив исправления даже в случае ошибки
             if (!window.fixesApplied) {
                 setTimeout(() => {
-                    console.log('Аварийное применение исправлений после ошибки...');
                     applyAllFixes();
                     
                     // Устанавливаем флаг, что исправления применены

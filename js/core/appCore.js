@@ -103,7 +103,7 @@ export async function initializeApp() {
             // Обновляем информационную панель со статусом площадки
             const playgroundStatus = document.getElementById('playgroundStatus');
             if (playgroundStatus) {
-                playgroundStatus.textContent = `Площадка: ${playgroundType} (${userWidth}м × ${userLength}m)`;
+                // playgroundStatus.textContent = `Площадка: ${playgroundType} (${userWidth}м × ${userLength}м)`;
             }
         } catch (playgroundError) {
             console.error('Ошибка при загрузке площадки:', playgroundError);

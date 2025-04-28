@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Площадка</title>
     <link rel="stylesheet" href="styles.css">
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
         html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
@@ -24,17 +23,9 @@
             
             <!-- Добавляем превью площадки -->
             <div class="playground-preview">
-                <model-viewer id="playgroundPreview" 
-                    src="models/playgrounds/playground.glb" 
-                    auto-rotate 
-                    camera-controls 
-                    disable-zoom 
-                    ar-status="not-presenting" 
-                    rotation-per-second="30deg" 
-                    camera-orbit="0deg 75deg 4m"
-                    field-of-view="20deg"
+                <img id="playgroundPreview" 
+                    src="textures/playground.png" 
                     alt="Предпросмотр площадки">
-                </model-viewer>
             </div>
             
             <div class="platform-settings">
@@ -71,55 +62,55 @@
             <div id="sidebar">
                 <h3>Выберите элемент</h3>
                 <div class="item" draggable="true" data-model="0001.glb">
-                    <model-viewer src="models/0001.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0001 Качели-балансир двойной"></model-viewer>
+                    <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
                     <p>MG0001 Качели-балансир двойной</p>
                 </div>
                 <div class="item" draggable="true" data-model="242.glb">
-                    <model-viewer src="models/242.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="ЛГГ-24-2 Горка h=950 (HPL)"></model-viewer>
+                    <img src="textures/ЛГГ-24-2 Горка h=950 (HPL).png" alt="ЛГГ-24-2 Горка h=950 (HPL)">
                     <p>ЛГГ-24-2 Горка h=950 (HPL)</p>
                 </div>
                 <div class="item" draggable="true" data-model="0502.glb">
-                    <model-viewer src="models/0502.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0502 Качели одинарные"></model-viewer>
+                    <img src="textures/MG0502 Качели одинарные.png" alt="MG0502 Качели одинарные">
                     <p>MG0502 Качели одинарные</p>
                 </div>
                 <div class="item" draggable="true" data-model="0519.glb">
-                    <model-viewer src="models/0519.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Качели 0519"></model-viewer>
+                    <img src="textures/Качели 0519.png" alt="Качели 0519">
                     <p>Качели 0519</p>
                 </div>
                 <div class="item" draggable="true" data-model="3540.glb">
-                    <model-viewer src="models/3540.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG3540 Спортивное оборудование Лазательный комплекс"></model-viewer>
+                    <img src="textures/MG3540 Спортивное оборудование Лазательный комплекс.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
                     <p>MG3540 Спортивное оборудование Лазательный комплекс</p>
                 </div>
                 <div class="item" draggable="true" data-model="4209.glb">
-                    <model-viewer src="models/4209.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG4209 Спортивный комплекс"></model-viewer>
+                    <img src="textures/MG4209 Спортивный комплекс.png" alt="MG4209 Спортивный комплекс">
                     <p>MG4209 Спортивный комплекс</p>
                 </div>
                 <div class="item" draggable="true" data-model="Taiga_v1.glb">
-                    <model-viewer src="models/Taiga_v1.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Каркас качелей-балансира -Тайга-"></model-viewer>
+                    <img src="textures/Каркас качелей-балансира -Тайга-.png" alt="Каркас качелей-балансира -Тайга-">
                     <p>Каркас качелей-балансира Тайга</p>
                 </div>
                 <div class="item" draggable="true" data-model="lgd_3.glb">
-                    <model-viewer src="models/lgd_3.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgd_3"></model-viewer>
+                    <img src="textures/lgd_3.png" alt="Модель lgd_3">
                     <p>Модель lgd_3</p>
                 </div>
                 <div class="item" draggable="true" data-model="lgk_11.glb">
-                    <model-viewer src="models/lgk_11.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgk_11"></model-viewer>
+                    <img src="textures/lgk_11.png" alt="Модель lgk_11">
                     <p>Модель lgk_11</p>
                 </div>
                 <div class="item" draggable="true" data-model="миссури.glb">
-                    <model-viewer src="models/миссури.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель lgk_314"></model-viewer>
+                    <img src="textures/lgk_314.png" alt="Модель lgk_314">
                     <p>Модель lgk_314</p>
                 </div>
                 <div class="item" draggable="true" data-model="MG0001 2024-09 R2 Модель.glb">
-                    <model-viewer src="models/MG0001 2024-09 R2 Модель.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="MG0001 Качели-балансир двойной"></model-viewer>
+                    <img src="textures/MG0001 Качели-балансир двойной.png" alt="MG0001 Качели-балансир двойной">
                     <p>MG0001 Качели-балансир двойной</p>
                 </div>
                 <div class="item" draggable="true" data-model="дуга.glb">
-                    <model-viewer src="models/дуга.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель msk_105"></model-viewer>
+                    <img src="textures/msk_105.png" alt="Модель msk_105">
                     <p>Модель msk_105</p>
                 </div>
                 <div class="item" draggable="true" data-model="msk_201.glb">
-                    <model-viewer src="models/msk_201.glb" auto-rotate camera-controls disable-zoom ar-status="not-presenting" rotation-per-second="30deg" alt="Модель msk_201"></model-viewer>
+                    <img src="textures/msk_201.png" alt="Модель msk_201">
                     <p>Модель msk_201</p>
                 </div>
             </div>
@@ -129,21 +120,11 @@
             </button>
             <div id="controlPanel">
                 <div class="control-panel">
-                    <button id="changePlayground">🔁 Сменить площадку</button>
                     <button id="resetView">👁️‍🗨️ Сбросить вид</button>
-                    <button id="topView">🔝 Вид сверху (сетка 1×1м)</button>
-                    <button id="toggleDimensions">📏 Скрыть размеры</button>
                     <button id="saveScreenshot">📸 Сделать скриншот</button>
                     <button id="deleteAllModels">🗑️ Удалить все модели</button>
                     <button id="closeAppButton">❌ Закрыть приложение</button>
-                    <div id="playgroundStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
-                        Информация о размерах площадки
-                    </div>
                 </div>
-            </div>
-            <div id="dimensionLabels">
-                <div id="widthLabel" class="dimension-label">10м</div>
-                <div id="lengthLabel" class="dimension-label">10м</div>
             </div>
             <!-- Удаляем элемент позиционного статуса -->
             <div id="notification" class="notification hidden">
