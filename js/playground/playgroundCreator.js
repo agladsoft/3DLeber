@@ -51,8 +51,19 @@ export function createSimplePlayground() {
  * @returns {THREE.Material} Материал для площадки
  */
 function createGroundMaterial() {
+    // Загружаем текстуру покрытия площадки
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load('textures/Rubber001_2K-JPG_Color.jpg');
+    // Настраиваем повторение текстуры по размеру площадки
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    // Размеры площадки для корректного повторения
+    const width = playgroundWidth || PLAYGROUND.defaultWidth;
+    const length = playgroundLength || PLAYGROUND.defaultLength;
+    texture.repeat.set(width, length);
+
     return new THREE.MeshStandardMaterial({
-        color: 0x4CAF50,
+        map: texture,
         roughness: 0.8,
         metalness: 0.2,
         side: THREE.DoubleSide
