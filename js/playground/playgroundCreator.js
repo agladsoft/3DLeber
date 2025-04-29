@@ -10,39 +10,28 @@ import * as THREE from 'three';
 /**
  * Создает простую площадку в виде плоскости, если не удалось загрузить модель
  */
-export function createSimplePlayground() {
+export function createSimplePlayground(width, length) {
     console.log('Запущена функция createSimplePlayground');
     console.log('Текущие значения: ground =', ground, 'groundMesh =', groundMesh);
-    
-    // Используем значения по умолчанию, если размеры не установлены
-    const width = playgroundWidth || PLAYGROUND.defaultWidth;
-    const length = playgroundLength || PLAYGROUND.defaultLength;
-    
     console.log('Создаем простую площадку с размерами:', width, 'x', length);
-    
     try {
         // Создаем геометрию плоскости с установленными размерами
         const planeGeometry = new THREE.PlaneGeometry(width, length);
         console.log('Создана геометрия плоскости');
-        
-        // Создаем материал для плоскости (зеленый для имитации травы)
-        const planeMaterial = createGroundMaterial();
+        // Создаем материал для плоскости (с текстурой)
+        const planeMaterial = createGroundMaterial(width, length);
         console.log('Создан материал для плоскости');
-        
         // Создаем меш плоскости
         const plane = new THREE.Mesh(planeGeometry, planeMaterial);
         console.log('Создан меш плоскости:', plane);
-        
         // Настраиваем плоскость
         setupSimplePlayground(plane, width, length);
-        
         console.log('Простая площадка успешно создана и добавлена в сцену');
         console.log('После создания: ground =', ground, 'groundMesh =', groundMesh);
-        
         return plane;
     } catch (error) {
         console.error('Ошибка при создании простой площадки:', error);
-        throw error; // Пробрасываем ошибку дальше для обработки
+        throw error;
     }
 }
 
@@ -50,18 +39,12 @@ export function createSimplePlayground() {
  * Создает материал для простой площадки
  * @returns {THREE.Material} Материал для площадки
  */
-function createGroundMaterial() {
-    // Загружаем текстуру покрытия площадки
+function createGroundMaterial(width, length) {
     const textureLoader = new THREE.TextureLoader();
     const texture = textureLoader.load('textures/Rubber001_2K-JPG_Color.jpg');
-    // Настраиваем повторение текстуры по размеру площадки
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    // Размеры площадки для корректного повторения
-    const width = playgroundWidth || PLAYGROUND.defaultWidth;
-    const length = playgroundLength || PLAYGROUND.defaultLength;
     texture.repeat.set(width, length);
-
     return new THREE.MeshStandardMaterial({
         map: texture,
         roughness: 0.8,
