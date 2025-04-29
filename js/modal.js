@@ -35,24 +35,17 @@ export function showPlatformSelectModal() {
 // Функция для обновления значений в модальном окне из текущей площадки
 function updateModalValuesFromCurrent() {
     // Получаем текущие параметры площадки
-    const currentType = window.selectedPlaygroundType || 'playground.glb';
     const currentWidth = window.selectedPlaygroundWidth || 10;
     const currentLength = window.selectedPlaygroundLength || 10;
     
     // Обновляем значения в модальном окне
-    const modalPlaygroundType = document.getElementById('modalPlaygroundType');
     const modalPlaygroundWidth = document.getElementById('modalPlaygroundWidth');
     const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
     
-    if (modalPlaygroundType) modalPlaygroundType.value = currentType;
     if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
     if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
     
-    // Обновляем предпросмотр модели
-    updatePlaygroundPreview(currentType);
-    
     console.log('Обновлены значения в модальном окне из текущей площадки:', {
-        тип: currentType,
         ширина: currentWidth,
         длина: currentLength
     });
@@ -93,13 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Обработчик смены типа площадки
-    if (modalPlaygroundType) {
-        modalPlaygroundType.addEventListener('change', (e) => {
-            updatePlaygroundPreview(e.target.value);
-        });
-    }
-    
     // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
     startAppButton.addEventListener('click', () => {
         // Показываем индикатор загрузки на кнопке
@@ -107,18 +93,17 @@ document.addEventListener('DOMContentLoaded', () => {
         startAppButton.disabled = true;
         
         // Получаем выбранные значения
-        const selectedType = document.getElementById('modalPlaygroundType').value;
         const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
         const selectedLength = document.getElementById('modalPlaygroundLength').value;
         
         // Сохраняем выбранные значения в глобальных переменных для использования в приложении
-        window.selectedPlaygroundType = selectedType;
+        window.selectedPlaygroundType = 'basketball_court.glb'; // всегда площадка 3
         window.selectedPlaygroundWidth = parseFloat(selectedWidth);
         window.selectedPlaygroundLength = parseFloat(selectedLength);
         
         // Выводим информацию в консоль для отладки
         console.log('Настройки площадки из модального окна:', {
-            тип: selectedType,
+            тип: 'basketball_court.glb',
             ширина: selectedWidth,
             длина: selectedLength
         });
@@ -142,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Импортируем модуль загрузки площадки
                 import('./playground.js').then(module => {
                     // Загружаем новую площадку
-                    module.loadPlayground(selectedType).then(() => {
+                    module.loadPlayground('basketball_court.glb').then(() => {
                         console.log('Площадка успешно изменена');
                         
                         // Восстанавливаем состояние кнопки
