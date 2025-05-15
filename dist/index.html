@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Площадка</title>
+    
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+    </style>
+  <script type="module" crossorigin src="/assets/main-96543086.js"></script>
+  <link rel="stylesheet" href="/assets/index-f597e69a.css">
+</head>
+<body>
+    <!-- Кнопка запуска приложения -->
+    <div id="launchContainer">
+        <button id="launchApp">🚀 Запустить приложение</button>
+    </div>
+    
+    <!-- Модальное окно выбора площадки -->
+    <div id="platformSelectModal" class="modal">
+        <div class="modal-content platform-select-content">
+            <h3>Выберите параметры площадки</h3>
+            
+            <div class="platform-settings">
+                <div class="control-group">
+                    <label for="modalPlaygroundWidth">Ширина (м):</label>
+                    <input type="number" id="modalPlaygroundWidth" min="5" max="50" value="10" step="1">
+                </div>
+                <div class="control-group">
+                    <label for="modalPlaygroundLength">Длина (м):</label>
+                    <input type="number" id="modalPlaygroundLength" min="5" max="50" value="10" step="1">
+                </div>
+            </div>
+            <div class="platform-buttons">
+                <button id="startAppButton" class="action-button">🚀 Запустить</button>
+                <button id="cancelAppButton" class="action-button">❌ Отмена</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно приложения -->
+    <div id="appModal" class="modal">
+        <div class="modal-content">
+            <button id="toggleSidebar" class="toggle-sidebar-button">
+                <span class="toggle-icon">🎮</span>
+            </button>
+            <div id="sidebar">
+                <h3>Выберите элемент</h3>
+                <div class="item" draggable="true" data-model="0001.glb">
+                    <img src="/assets/MG0001 Качели-балансир двойной-debdae4f.png" alt="MG0001 Качели-балансир двойной">
+                    <p>MG0001 Качели-балансир двойной</p>
+                </div>
+                <div class="item" draggable="true" data-model="242.glb">
+                    <img src="/assets/ЛГГ-24-2 Горка h_950 (HPL)-fbe67ba5.png" alt="ЛГГ-24-2 Горка h=950 (HPL)">
+                    <p>ЛГГ-24-2 Горка h=950 (HPL)</p>
+                </div>
+                <div class="item" draggable="true" data-model="0502.glb">
+                    <img src="/assets/MG0502 Качели одинарные-30406f8b.png" alt="MG0502 Качели одинарные">
+                    <p>MG0502 Качели одинарные</p>
+                </div>
+                <div class="item" draggable="true" data-model="3540.glb">
+                    <img src="/assets/MG3540 Спортивное оборудование Лазательный комплекс-d8846164.png" alt="MG3540 Спортивное оборудование Лазательный комплекс">
+                    <p>MG3540 Спортивное оборудование Лазательный комплекс</p>
+                </div>
+                <div class="item" draggable="true" data-model="4209.glb">
+                    <img src="/assets/MG4209 Спортивный комплекс-9e375521.png" alt="MG4209 Спортивный комплекс">
+                    <p>MG4209 Спортивный комплекс</p>
+                </div>
+
+                <div class="item" draggable="true" data-model="lgd_3.glb">
+                    <img src="/assets/lgd_3-13a227e8.png" alt="Модель lgd_3">
+                    <p>Модель lgd_3</p>
+                </div>
+
+                <div class="item" draggable="true" data-model="миссури.glb">
+                    <img src="/assets/lgk_314-c939f9a3.png" alt="Модель lgk_314">
+                    <p>Модель lgk_314</p>
+                </div>
+
+                <div class="item" draggable="true" data-model="msk_201.glb">
+                    <img src="/assets/msk_201-585b51b8.png" alt="Модель msk_201">
+                    <p>Модель msk_201</p>
+                </div>
+            </div>
+            <canvas id="renderCanvas"></canvas>
+            <button id="toggleControlPanel" class="toggle-panel-button">
+                <span class="toggle-icon">⚙️</span>
+            </button>
+            <div id="controlPanel">
+                <div class="control-panel">
+                    <button id="resetView">👁️‍🗨️ Сбросить вид</button>
+                    <button id="saveScreenshot">📸 Сделать скриншот</button>
+                    <button id="deleteAllModels">🗑️ Удалить все модели</button>
+                    <button id="closeAppButton">❌ Закрыть приложение</button>
+                </div>
+            </div>
+            <!-- Удаляем элемент позиционного статуса -->
+            <div id="notification" class="notification hidden">
+                <div class="notification-content">
+                    <span class="notification-message">Объект не может быть размещен в этой позиции!</span>
+                    <span class="notification-close" onclick="document.getElementById('notification').classList.add('hidden')">&times;</span>
+                </div>
+            </div>
+            <!-- Добавляем оверлей с индикатором загрузки -->
+            <div id="loadingOverlay" class="loading-overlay hidden">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Загрузка площадки...</div>
+            </div>
+            <!-- Подключаем модули JavaScript с указанием type="module" -->
+            
+        </div>
+    </div>
+    
+    <!-- Подключаем модуль для управления модальным окном -->
+    
+</body>
+</html>

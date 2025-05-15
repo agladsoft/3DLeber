@@ -56,6 +56,8 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
     try { removeExistingPlaygrounds(); } catch (error) {}
     updateGroundReferences(null, null);
     const simplePlane = createSimplePlayground(userWidth, userLength);
+    // Устанавливаем позицию площадки на Y=0
+    if (simplePlane && simplePlane.position) simplePlane.position.y = 0;
     updatePlaygroundDimensions(userWidth, userLength);
     setTimeout(() => {
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -126,7 +128,7 @@ function processLoadedModel(gltf, modelName, resolve, width = null, length = nul
     console.log('Получена GLTF сцена:', playgroundModel);
     
     // Настройка модели площадки
-    playgroundModel.position.set(0, 0, 0);
+    playgroundModel.position.set(0, 0, 0); // всегда Y=0
     playgroundModel.rotation.set(0, 0, 0);
     playgroundModel.scale.set(1, 1, 1);
     

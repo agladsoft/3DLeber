@@ -9,6 +9,7 @@ import { initTopViewController, cleanupEventListeners } from './topViewControlle
 import * as THREE from 'three';
 import { MOUSE } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ground } from '../playground/playgroundCore.js';
 
 // Экспортируем переменные для доступа из других модулей
 export let camera;
@@ -66,8 +67,8 @@ export function setupCamera(rendererInstance) {
     controls.dampingFactor = CAMERA_SETTINGS.dampingFactor;
     
     // Настройки зуммирования
-    controls.minDistance = CAMERA_SETTINGS.minDistance;
-    controls.maxDistance = CAMERA_SETTINGS.maxDistance;
+    // controls.minDistance = CAMERA_SETTINGS.minDistance;
+    // controls.maxDistance = CAMERA_SETTINGS.maxDistance;
     controls.zoomSpeed = CAMERA_SETTINGS.zoomSpeed;
     
     // Настройки углов обзора
@@ -87,6 +88,17 @@ export function setupCamera(rendererInstance) {
         MIDDLE: MOUSE.DOLLY,   // Средняя кнопка - зум
         RIGHT: MOUSE.PAN       // Правая кнопка - перемещение
     };
+    
+    // Ограничение: не позволяем камере опускаться ниже верхней поверхности площадки
+    controls.addEventListener('update', () => {
+        let minY = 0.1;
+        if (ground && ground.position && ground.userData && typeof ground.userData.originalHeight === 'number') {
+            minY = ground.position.y + (ground.userData.originalHeight * ground.scale.y) + 0.05;
+        }
+        if (camera.position.y < minY) {
+            camera.position.y = minY;
+        }
+    });
     
     return { camera, controls };
 }

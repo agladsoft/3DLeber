@@ -18,6 +18,9 @@ export function alignObjectToGround(container) {
     // Смещаем объект так, чтобы его нижняя грань была на уровне Y=0
     const offsetY = box.min.y;
     container.position.y -= offsetY;
+    
+    // Если объект после выравнивания оказался ниже площадки, поднимаем его на Y=0
+    if (container.position.y < 0) container.position.y = 0;
 }
 
 /**

@@ -40,13 +40,14 @@ export function createSimplePlayground(width, length) {
  * @returns {THREE.Material} Материал для площадки
  */
 function createGroundMaterial(width, length) {
-    const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load('textures/Rubber001_2K-JPG_Color.jpg');
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(width, length);
+    // Если хотите использовать только цвет, закомментируйте строки с текстурой:
+    // const textureLoader = new THREE.TextureLoader();
+    // const texture = textureLoader.load('textures/Rubber001_2K-JPG_Color.jpg');
+    // texture.wrapS = THREE.RepeatWrapping;
+    // texture.wrapT = THREE.RepeatWrapping;
+    // texture.repeat.set(width, length);
     return new THREE.MeshStandardMaterial({
-        map: texture,
+        color: 0xe0e0e0, // светло-серый
         roughness: 0.8,
         metalness: 0.2,
         side: THREE.DoubleSide
@@ -64,7 +65,8 @@ function setupSimplePlayground(plane, width, length) {
     
     // Поворачиваем плоскость так, чтобы она была горизонтальной
     plane.rotation.x = -Math.PI / 2;
-    
+    // Устанавливаем позицию площадки на Y=0
+    plane.position.y = 0;
     // Разрешаем плоскости принимать тени
     plane.receiveShadow = true;
     
