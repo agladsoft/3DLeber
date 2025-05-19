@@ -153,13 +153,18 @@ export async function initializeApp() {
         
         // Не скрываем индикатор загрузки здесь - это будет сделано после загрузки и рендеринга модели
         
+        // Инициализируем обновления размеров моделей
+        initDimensionUpdates();
+        console.log('Инициализация обновлений размеров моделей - OK');
+        
         console.log('Приложение успешно инициализировано');
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
         
-        // Скрываем индикатор загрузки только в случае критической ошибки
+        // Скрываем индикатор загрузки, если он есть
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {
+            console.log('Скрываем индикатор загрузки');
             loadingOverlay.classList.add('hidden');
             window.isLoading = false;
         }

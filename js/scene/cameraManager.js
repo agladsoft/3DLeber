@@ -82,12 +82,92 @@ export function setupCamera(rendererInstance) {
         CAMERA_SETTINGS.lookAt.z
     );
     
-    // Стандартные настройки кнопок мыши (уточняем для ясности)
+    // Отключаем стандартные элементы управления OrbitControls для правой кнопки
     controls.mouseButtons = {
-        LEFT: MOUSE.ROTATE,    // Левая кнопка - вращение
-        MIDDLE: MOUSE.DOLLY,   // Средняя кнопка - зум
-        RIGHT: MOUSE.PAN       // Правая кнопка - перемещение
+        LEFT: MOUSE.ROTATE,     // Левая кнопка - вращение камеры вокруг цели
+        MIDDLE: MOUSE.DOLLY,    // Средняя кнопка - зум
+        RIGHT: MOUSE.ROTATE     // Устанавливаем любое значение, чтобы OrbitControls не конфликтовал
     };
+    
+    // Отключаем панорамирование (движение сцены)
+    controls.enablePan = false;
+    controls.keyPanSpeed = 0;
+    
+    // Добавляем кастомное управление камерой с помощью правой кнопки мыши
+    // Скорость движения камеры
+    const cameraMoveSpeed = 0.05;
+    
+    // Переменные для отслеживания правой кнопки мыши
+    let rightMouseDown = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+    
+    // Добавляем обработчики событий мыши на холсте
+    renderer.domElement.addEventListener('contextmenu', (event) => {
+        // Предотвращаем появление контекстного меню
+        event.preventDefault();
+    });
+    
+    renderer.domElement.addEventListener('mousedown', (event) => {
+        // Проверяем, что это правая кнопка мыши (2)
+        if (event.button === 2) {
+            rightMouseDown = true;
+            prevMouseX = event.clientX;
+            prevMouseY = event.clientY;
+        }
+    });
+    
+    renderer.domElement.addEventListener('mouseup', (event) => {
+        if (event.button === 2) {
+            rightMouseDown = false;
+        }
+    });
+    
+    renderer.domElement.addEventListener('mousemove', (event) => {
+        if (rightMouseDown) {
+            // Вычисляем разницу в позиции мыши
+            const deltaX = event.clientX - prevMouseX;
+            const deltaY = event.clientY - prevMouseY;
+            
+            // Получаем текущее направление камеры
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            
+            // Вычисляем вектор вправо относительно камеры (перпендикулярно к направлению взгляда)
+            const right = new THREE.Vector3();
+            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+            
+            // Вектор вверх (для вертикального движения используем мировую ось Y)
+            const up = new THREE.Vector3(0, 1, 0);
+            
+            // Создаем копии векторов для перемещения
+            const rightMove = right.clone().multiplyScalar(-deltaX * cameraMoveSpeed);
+            const upMove = up.clone().multiplyScalar(deltaY * cameraMoveSpeed);
+            
+            // Перемещаем камеру горизонтально относительно ее направления
+            camera.position.add(rightMove);
+            
+            // Перемещаем камеру вертикально по мировой оси Y
+            camera.position.add(upMove);
+            
+            // Перемещаем точку фокуса камеры на то же расстояние
+            // создание новых копий векторов для перемещения
+            controls.target.add(right.clone().multiplyScalar(-deltaX * cameraMoveSpeed));
+            controls.target.add(up.clone().multiplyScalar(deltaY * cameraMoveSpeed));
+            
+            // Обновляем предыдущие координаты мыши
+            prevMouseX = event.clientX;
+            prevMouseY = event.clientY;
+            
+            // Обновляем контролы
+            controls.update();
+        }
+    });
+    
+    // Обработчик для прекращения перемещения, если мышь покидает окно
+    renderer.domElement.addEventListener('mouseout', () => {
+        rightMouseDown = false;
+    });
     
     // Ограничение: не позволяем камере опускаться ниже верхней поверхности площадки
     controls.addEventListener('update', () => {
@@ -385,6 +465,8 @@ function disableTopView() {
         console.log("Предыдущее состояние камеры не найдено");
     }
 }
+
+
 
 /**
  * Очищает сетку и связанные с ней ресурсы

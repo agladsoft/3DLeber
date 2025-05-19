@@ -44,13 +44,10 @@ class ModelDimensions {
         this.depthArrow = null;  // Z - глубина
 
         // Устанавливаем начальную видимость
-        this.visible = false; // Изначально скрыто
+        this.visible = true;
 
         // Добавляем группу в сцену
         scene.add(this.dimensionGroup);
-        
-        // Скрываем группу
-        this.dimensionGroup.visible = false;
 
         // Инициализируем размеры
         this.update();
@@ -441,11 +438,10 @@ export function showModelDimensions(model) {
         dimensions = addDimensionsToModel(model);
     }
 
-    // Создаем размеры, но не показываем их (они скрыты по умолчанию)
+    // Показываем размеры
     if (dimensions) {
         dimensions.update();
-        // Скрываем размеры вместо показа
-        dimensions.hide();
+        dimensions.show();
     }
 }
 

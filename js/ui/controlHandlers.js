@@ -15,6 +15,8 @@ import {
 } from '../playground.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
+import { showAllDimensions, hideAllDimensions, addDimensionsToModel } from '../modules/dimensionDisplay/index.js';
+import { placedObjects } from '../objects.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -35,9 +37,11 @@ export function initControlHandlers() {
 function setupControlHandlers() {
     // Устанавливаем обработчики для различных элементов управления
     setupScreenshotButton();
+    setupPlaygroundSizeInputs();
+    setupChangePlaygroundButton();
     setupResetViewButton();
-    setupDimensionsButton();
     setupTopViewButton();
+    setupDimensionsButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
@@ -52,44 +56,6 @@ function setupControlHandlers() {
     }
 }
 
-// Обработчик для кнопки 'Размеры'
-import { showAllDimensions, hideAllDimensions, addDimensionsToModel } from '../modules/dimensionDisplay/index.js';
-import { placedObjects } from '../objects.js';
-
-function setupDimensionsButton() {
-    const dimensionsButton = document.getElementById('toggleDimensions');
-    if (!dimensionsButton) return;
-    // Устанавливаем начальное состояние
-    if (typeof window.dimensionsVisible === 'undefined') {
-        window.dimensionsVisible = false;
-    }
-    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-    dimensionsButton.onclick = function() {
-        window.dimensionsVisible = !window.dimensionsVisible;
-        if (window.dimensionsVisible) {
-            // Для всех объектов на сцене добавляем размеры, если их нет
-            if (Array.isArray(placedObjects)) {
-                placedObjects.forEach(obj => addDimensionsToModel(obj));
-            }
-            showAllDimensions();
-        } else {
-            hideAllDimensions();
-        }
-        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-    };
-}
-
-function updateDimensionsButtonStyle(button, isActive) {
-    if (isActive) {
-        button.classList.add('active');
-        button.textContent = '📏 Размеры ON';
-    } else {
-        button.classList.remove('active');
-        button.textContent = '📏 Размеры';
-    }
-}
-
-
 /**
  * Настраивает кнопку создания скриншота
  */
@@ -97,6 +63,86 @@ function setupScreenshotButton() {
     const screenshotButton = document.getElementById("saveScreenshot");
     if (screenshotButton) {
         screenshotButton.addEventListener("click", takeScreenshot);
+    }
+}
+
+/**
+ * Настраивает поля ввода размеров площадки
+ */
+function setupPlaygroundSizeInputs() {
+    // Устанавливаем начальные значения в поля формы
+    const widthInput = document.getElementById("playgroundWidth");
+    const lengthInput = document.getElementById("playgroundLength");
+    
+    if (widthInput) widthInput.value = playgroundWidth.toFixed(2);
+    if (lengthInput) lengthInput.value = playgroundLength.toFixed(2);
+    
+    // Обновляем статус с текущими размерами площадки
+    updatePlaygroundStatusText();
+    
+    // Добавляем обработчики для предпросмотра размеров
+    addSizePreviewHandlers(widthInput, lengthInput);
+}
+
+/**
+ * Обновляет текст статуса площадки
+ */
+function updatePlaygroundStatusText() {
+    const statusElement = document.getElementById("playgroundStatus");
+    if (statusElement) {
+        statusElement.textContent = `Площадка: ${playgroundWidth.toFixed(2)}м × ${playgroundLength.toFixed(2)}м`;
+    }
+}
+
+/**
+ * Добавляет обработчики для предпросмотра размеров
+ * @param {HTMLInputElement} widthInput - Поле ввода ширины
+ * @param {HTMLInputElement} lengthInput - Поле ввода длины
+ */
+function addSizePreviewHandlers(widthInput, lengthInput) {
+    if (widthInput) {
+        widthInput.addEventListener("input", (e) => {
+            const value = parseFloat(e.target.value) || playgroundWidth;
+            const widthLabel = document.getElementById("widthLabel");
+            if (widthLabel) widthLabel.textContent = `${value}м`;
+        });
+    }
+    
+    if (lengthInput) {
+        lengthInput.addEventListener("input", (e) => {
+            const value = parseFloat(e.target.value) || playgroundLength;
+            const lengthLabel = document.getElementById("lengthLabel");
+            if (lengthLabel) lengthLabel.textContent = `${value}м`;
+        });
+    }
+}
+
+/**
+ * Настраивает кнопку "Сменить площадку"
+ */
+function setupChangePlaygroundButton() {
+    const changePlaygroundButton = document.getElementById("changePlayground");
+    if (changePlaygroundButton) {
+        changePlaygroundButton.addEventListener("click", async () => {
+            try {
+                // Импортируем функцию показа модального окна из модуля modal.js
+                import('../modal.js').then(modalModule => {
+                    if (typeof modalModule.showPlatformSelectModal === 'function') {
+                        // Вызываем функцию показа модального окна
+                        modalModule.showPlatformSelectModal();
+                    } else {
+                        console.error("Функция showPlatformSelectModal не найдена в модуле");
+                        showNotification("Ошибка при открытии окна выбора площадки", true);
+                    }
+                }).catch(error => {
+                    console.error("Ошибка при импорте модуля modal.js:", error);
+                    showNotification("Ошибка при открытии окна выбора площадки", true);
+                });
+            } catch (error) {
+                console.error("Ошибка при открытии модального окна:", error);
+                showNotification("Не удалось открыть окно выбора площадки", true);
+            }
+        });
     }
 }
 
@@ -206,3 +252,49 @@ function updateTopViewButtonStyle(button, isActive) {
 function isValidSize(size) {
     return size >= PLAYGROUND.minSize && size <= PLAYGROUND.maxSize;
 }
+
+/**
+ * Настраивает кнопку "Размеры"
+ */
+function setupDimensionsButton() {
+    const dimensionsButton = document.getElementById('toggleDimensions');
+    if (!dimensionsButton) return;
+
+    // Устанавливаем начальное состояние
+    if (typeof window.dimensionsVisible === 'undefined') {
+        window.dimensionsVisible = false;
+    }
+
+    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+
+    dimensionsButton.onclick = function() {
+        window.dimensionsVisible = !window.dimensionsVisible;
+        if (window.dimensionsVisible) {
+            // Для всех объектов на сцене добавляем размеры, если их нет
+            if (Array.isArray(placedObjects)) {
+                placedObjects.forEach(obj => addDimensionsToModel(obj));
+            }
+            showAllDimensions();
+        } else {
+            hideAllDimensions();
+        }
+        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+    };
+}
+
+/**
+ * Обновляет стиль кнопки "Размеры"
+ * @param {HTMLElement} button - Кнопка
+ * @param {Boolean} isActive - Активен ли режим отображения размеров
+ */
+function updateDimensionsButtonStyle(button, isActive) {
+    if (isActive) {
+        button.classList.add('active');
+        button.textContent = '📏 Размеры ON';
+    } else {
+        button.classList.remove('active');
+        button.textContent = '📏 Скрыть размеры';
+    }
+}
+
+
