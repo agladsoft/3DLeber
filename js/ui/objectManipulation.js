@@ -303,13 +303,6 @@ function handleObjectDragging(event) {
         selectedObject.position.x = intersectionPoint.x;
         selectedObject.position.z = intersectionPoint.z;
         
-        // Выравниваем нижнюю грань объекта по Y=0
-        const box = new THREE.Box3().setFromObject(selectedObject);
-        selectedObject.position.y -= box.min.y;
-        
-        // Корректируем по высоте площадки
-        selectedObject.position.y += intersectionPoint.y;
-        
         // Проверяем на коллизии с другими объектами
         checkAndHighlightObject(selectedObject);
         
