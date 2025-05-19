@@ -37,6 +37,7 @@ function setupControlHandlers() {
     setupScreenshotButton();
     setupResetViewButton();
     setupDimensionsButton();
+    setupTopViewButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
