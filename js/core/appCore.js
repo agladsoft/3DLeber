@@ -132,7 +132,9 @@ export async function initializeApp() {
             // Инициализируем модуль отображения размеров объектов
             console.log('Инициализация модуля отображения размеров');
             initDimensionUpdates();
-            console.log('Модуль отображения размеров инициализирован');
+            // Устанавливаем флаг, что размеры должны быть скрыты
+            localStorage.setItem('dimensionLabelsHidden', 'true');
+            console.log('Модуль отображения размеров инициализирован (скрыт)');
         } catch (dimensionError) {
             console.error('Ошибка при инициализации модуля отображения размеров:', dimensionError);
         }

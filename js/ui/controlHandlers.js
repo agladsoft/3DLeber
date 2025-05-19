@@ -36,6 +36,7 @@ function setupControlHandlers() {
     // Устанавливаем обработчики для различных элементов управления
     setupScreenshotButton();
     setupResetViewButton();
+    setupDimensionsButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
@@ -49,6 +50,44 @@ function setupControlHandlers() {
         };
     }
 }
+
+// Обработчик для кнопки 'Размеры'
+import { showAllDimensions, hideAllDimensions, addDimensionsToModel } from '../modules/dimensionDisplay/index.js';
+import { placedObjects } from '../objects.js';
+
+function setupDimensionsButton() {
+    const dimensionsButton = document.getElementById('toggleDimensions');
+    if (!dimensionsButton) return;
+    // Устанавливаем начальное состояние
+    if (typeof window.dimensionsVisible === 'undefined') {
+        window.dimensionsVisible = false;
+    }
+    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+    dimensionsButton.onclick = function() {
+        window.dimensionsVisible = !window.dimensionsVisible;
+        if (window.dimensionsVisible) {
+            // Для всех объектов на сцене добавляем размеры, если их нет
+            if (Array.isArray(placedObjects)) {
+                placedObjects.forEach(obj => addDimensionsToModel(obj));
+            }
+            showAllDimensions();
+        } else {
+            hideAllDimensions();
+        }
+        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+    };
+}
+
+function updateDimensionsButtonStyle(button, isActive) {
+    if (isActive) {
+        button.classList.add('active');
+        button.textContent = '📏 Размеры ON';
+    } else {
+        button.classList.remove('active');
+        button.textContent = '📏 Размеры';
+    }
+}
+
 
 /**
  * Настраивает кнопку создания скриншота

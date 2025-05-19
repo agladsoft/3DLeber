@@ -705,6 +705,13 @@ button:disabled, .modern-button:disabled {
     z-index: 900;
 }
 
+/* Скрываем размерные метки (стрелки и тексты) */
+[name^="dimensions_"] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 /* Стили для модального окна выбора площадки */
 .platform-select-content {
     position: absolute;

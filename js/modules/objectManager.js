@@ -9,7 +9,8 @@ import { getLoaderByExtension } from './loaders.js';
 import { alignObjectToGround, saveInitialPosition } from './positionHelpers.js';
 import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
-import { showModelDimensions } from './dimensionDisplay/index.js'; 
+import { addDimensionsToModel, getModelDimensions } from './dimensionDisplay/dimensionArrows.js';
+
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -186,9 +187,11 @@ export function loadAndPlaceModel(modelName, position) {
                     showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
                 }
                 
-                // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
-                if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
-                    showModelDimensions(container);
+                // Автоматически показываем размеры модели при добавлении на площадку, если режим размерностей включён
+                if (window.dimensionsVisible === true) {
+                    addDimensionsToModel(container);
+                    const dimensions = getModelDimensions(container);
+                    if (dimensions) dimensions.show();
                 }
             },
             // Обработчик загрузки (прогресс)
