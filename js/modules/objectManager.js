@@ -89,6 +89,23 @@ export function loadAndPlaceModel(modelName, position) {
                             if (child.material && child.material.transparent) {
                                 child.material.opacity = 1.0;
                             }
+
+                            // Если это зона безопасности, меняем цвет на белый
+                            if (child.name && child.name.endsWith('safety_zone')) {
+                                if (child.material) {
+                                    // Создаем новый материал с нужными параметрами
+                                    const newMaterial = new THREE.MeshStandardMaterial({
+                                        color: 0xFFFFFF,
+                                        transparent: false,
+                                        opacity: 1.0,
+                                        metalness: 0,
+                                        roughness: 0.5,
+                                        emissive: 0xFFFFFF,
+                                        emissiveIntensity: 0.2
+                                    });
+                                    child.material = newMaterial;
+                                }
+                            }
                         }
                     });
                     
@@ -106,6 +123,21 @@ export function loadAndPlaceModel(modelName, position) {
                     const mesh = new THREE.Mesh(result, material);
                     mesh.castShadow = true;
                     mesh.receiveShadow = true;
+
+                    // Если это зона безопасности, меняем цвет на белый
+                    if (mesh.name && mesh.name.endsWith('safety_zone')) {
+                        const newMaterial = new THREE.MeshStandardMaterial({
+                            color: 0xFFFFFF,
+                            transparent: false,
+                            opacity: 1.0,
+                            metalness: 0,
+                            roughness: 0.5,
+                            emissive: 0xFFFFFF,
+                            emissiveIntensity: 0.2
+                        });
+                        mesh.material = newMaterial;
+                    }
+
                     container.add(mesh);
                     console.log("STL модель добавлена в контейнер");
                 }
@@ -116,6 +148,22 @@ export function loadAndPlaceModel(modelName, position) {
                         if (child.isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
+
+                            // Если это зона безопасности, меняем цвет на белый
+                            if (child.name && child.name.endsWith('safety_zone')) {
+                                if (child.material) {
+                                    const newMaterial = new THREE.MeshStandardMaterial({
+                                        color: 0xFFFFFF,
+                                        transparent: false,
+                                        opacity: 1.0,
+                                        metalness: 0,
+                                        roughness: 0.5,
+                                        emissive: 0xFFFFFF,
+                                        emissiveIntensity: 0.2
+                                    });
+                                    child.material = newMaterial;
+                                }
+                            }
                         }
                     });
                     container.add(result);
