@@ -40,18 +40,42 @@ export function createSimplePlayground(width, length) {
  * @returns {THREE.Material} Материал для площадки
  */
 function createGroundMaterial(width, length) {
-    // Если хотите использовать только цвет, закомментируйте строки с текстурой:
-    // const textureLoader = new THREE.TextureLoader();
-    // const texture = textureLoader.load('textures/Rubber001_2K-JPG_Color.jpg');
-    // texture.wrapS = THREE.RepeatWrapping;
-    // texture.wrapT = THREE.RepeatWrapping;
-    // texture.repeat.set(width, length);
-    return new THREE.MeshStandardMaterial({
-        color: 0xe0e0e0, // светло-серый
-        roughness: 0.8,
-        metalness: 0.2,
-        side: THREE.DoubleSide
-    });
+    // Создаем два материала: один для серой площадки, другой для зеленой травы вокруг
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Загружаем текстуру травы
+    const grassTexture = textureLoader.load('textures/grass/grass_texture.jpg');
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    
+    // Устанавливаем масштаб повторений текстуры в зависимости от размера площадки
+    grassTexture.repeat.set(width * 2, length * 2); // Увеличиваем количество повторений
+    
+    try {
+        // Загружаем нормальную карту для объемности травы
+        const grassNormalMap = textureLoader.load('textures/grass/grass_normal.jpg');
+        grassNormalMap.wrapS = THREE.RepeatWrapping;
+        grassNormalMap.wrapT = THREE.RepeatWrapping;
+        grassNormalMap.repeat.set(width * 2, length * 2);
+        
+        // Создаем материал для серой центральной площадки
+        return new THREE.MeshStandardMaterial({
+            color: 0xe0e0e0, // светло-серый
+            roughness: 0.8,
+            metalness: 0.2,
+            side: THREE.DoubleSide
+        });
+    } catch (error) {
+        console.error('Ошибка при загрузке текстур:', error);
+        
+        // В случае ошибки возвращаем простой материал
+        return new THREE.MeshStandardMaterial({
+            color: 0xe0e0e0, // светло-серый
+            roughness: 0.8,
+            metalness: 0.2,
+            side: THREE.DoubleSide
+        });
+    }
 }
 
 /**
@@ -76,6 +100,37 @@ function setupSimplePlayground(plane, width, length) {
     // Добавляем плоскость в сцену
     scene.add(plane);
     console.log('Плоскость добавлена в сцену, scene.children.length:', scene.children.length);
+    
+    // Создаем большую плоскость с текстурой травы для окружения
+    const surroundSize = 1000; // Очень большой размер травяного окружения
+    
+    // Создаем материал для травы
+    const grassMaterial = new THREE.MeshStandardMaterial({
+        color: 0x4CAF50, // Зеленый цвет для травы
+        roughness: 0.8,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+    });
+    
+    // Создаем большую плоскость для травы
+    const grassGeometry = new THREE.PlaneGeometry(surroundSize, surroundSize);
+    const grassPlane = new THREE.Mesh(grassGeometry, grassMaterial);
+    
+    // Настраиваем плоскость с травой
+    grassPlane.rotation.x = -Math.PI / 2;
+    grassPlane.position.y = -0.01; // Чуть ниже основной площадки, чтобы избежать z-fighting
+    grassPlane.receiveShadow = true;
+    grassPlane.name = "grass_surround";
+    
+    // Добавляем информацию для предотвращения выбора
+    grassPlane.userData = {
+        isGround: true,
+        nonInteractive: true
+    };
+    
+    // Добавляем траву в сцену
+    scene.add(grassPlane);
+    console.log('Трава добавлена в сцену');
     
     // Сохраняем ссылки на плоскость и данные для масштабирования через функцию обновления
     console.log('Обновляем ссылки на ground и groundMesh в простой площадке');
