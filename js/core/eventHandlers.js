@@ -2,7 +2,7 @@
  * Модуль для обработки событий приложения
  */
 import { ensureSingleInit, updateRendererSize } from './appCore.js';
-import { removeAllSafetyZones } from './safetyManager.js';
+import { removeAllSafetyZones, toggleSafetyZones } from './safetyManager.js';
 import { handleAppError } from './errorHandler.js';
 import { hideAllDimensions, showAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 
@@ -151,30 +151,23 @@ function setupToggleDimensionsButton() {
     }
 }
 
-
 /**
  * Настраивает кнопку скрытия/показа зоны безопасности
  */
 function setupToggleSafetyZoneButton() {
     const toggleButton = document.getElementById('toggleSafetyZone');
-    const safetyZone = document.getElementById('safetyZone');
-    if (toggleButton && safetyZone) {
+    if (toggleButton) {
         // Восстанавливаем состояние из localStorage (если есть)
         const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
         if (isHidden) {
-            safetyZone.style.display = 'none';
             toggleButton.textContent = '🛡️ Показать зону безопасности';
+            removeAllSafetyZones();
         }
+        
         toggleButton.addEventListener('click', function() {
-            const isCurrentlyHidden = safetyZone.style.display === 'none';
-            if (isCurrentlyHidden) {
-                safetyZone.style.display = '';
-                toggleButton.textContent = '🛡️ Скрыть зону безопасности';
-            } else {
-                safetyZone.style.display = 'none';
-                toggleButton.textContent = '🛡️ Показать зону безопасности';
-            }
-            localStorage.setItem('safetyZoneHidden', !isCurrentlyHidden);
+            const isVisible = toggleSafetyZones();
+            toggleButton.textContent = isVisible ? '🛡️ Скрыть зону безопасности' : '🛡️ Показать зону безопасности';
+            localStorage.setItem('safetyZoneHidden', !isVisible);
         });
     }
 }
