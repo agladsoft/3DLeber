@@ -9,6 +9,7 @@ import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
 
 // Создаем загрузчик GLTF для загрузки модели площадки
 let gltfLoader;
@@ -278,11 +279,16 @@ function processLoadedModel(gltf, modelName, resolve) {
     playgroundModel.userData.originalWidth = size.x;
     playgroundModel.userData.originalHeight = size.y;
     playgroundModel.userData.originalDepth = size.z;
+    
+    // Используем размеры из модели
+    const modelWidth = size.x;
+    const modelLength = size.z;
+    console.log("Используем размеры из модели:", modelWidth, modelLength);
 
-    // Теперь размеры площадки — это размеры модели
-    updatePlaygroundDimensions(size.x, size.z);
+    // Обновляем размеры площадки на основе модели
+    updatePlaygroundDimensions(modelWidth, modelLength);
 
-    // Не масштабируем модель под пользовательские значения!
+    // Не масштабируем модель, чтобы сохранить реальные размеры
     // playgroundModel.scale.set(1, 1, 1);
 
     console.log('После updatePlaygroundDimensions:', playgroundWidth, playgroundLength);
@@ -298,14 +304,30 @@ function processLoadedModel(gltf, modelName, resolve) {
     
     playgroundModel.userData.modelName = modelName;
 
-    // Обновляем UI — передаём реальные размеры модели
-    updatePlaygroundLabels(size.x, size.z);
+    // === ДОБАВЛЕНО: Поиск деревьев и скамеек внутри playground ===
+    // Массив для хранения найденных объектов
+    const playgroundSpecialObjects = [];
+    playgroundModel.traverse((child) => {
+        if (child.isMesh && child.name) {
+            console.log(child.name)
+            if (!PLAYGROUND_GROUND_PREFIXES.some(prefix => child.name.startsWith(prefix))) {
+                child.userData.isPlaygroundTreeOrBench = true;
+                playgroundSpecialObjects.push(child);
+            }
+        }
+    });
+    // Экспортируем массив для использования в других модулях
+    window.playgroundSpecialObjects = playgroundSpecialObjects;
+    // === КОНЕЦ ДОБАВЛЕНИЯ ===
+
+    // Обновляем UI
+    updatePlaygroundLabels(modelWidth, modelLength);
     
     // Удаляем все элементы безопасной зоны
     removeAllYellowElements();
     
     // Показываем уведомление о смене площадки
-    showNotification(`Площадка загружена: ${modelName} (${size.x.toFixed(2)}м × ${size.z.toFixed(2)}м)`, false);
+    showNotification(`Площадка загружена: ${modelName} (${modelWidth.toFixed(2)}м × ${modelLength.toFixed(2)}м)`, false);
     
     // Задержка перед скрытием индикатора загрузки - уменьшаем до 1 секунды
     setTimeout(() => {
