@@ -3,7 +3,6 @@
  */
 import * as THREE from 'three';
 import { showNotification } from '../utils.js';
-import { alignObjectToGround } from './positionHelpers.js';
 import { checkAndHighlightObject } from './collisionDetection.js';
 import { SIZE_CONVERSION } from '../config.js';
 
@@ -74,9 +73,6 @@ export function scaleModelToSize(container, targetSize) {
     
     // Сохраняем текущий размер
     container.userData.currentSize = targetSize;
-    
-    // Выравниваем нижнюю грань по Y=0 после изменения размера
-    alignObjectToGround(container);
 }
 
 /**

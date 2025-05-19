@@ -6,7 +6,7 @@ import { MODEL_ROTATIONS, ELEMENT_INFO } from '../config.js';
 import { scene } from '../scene.js';
 import { showNotification } from '../utils.js';
 import { getLoaderByExtension } from './loaders.js';
-import { alignObjectToGround, saveInitialPosition } from './positionHelpers.js';
+import { saveInitialPosition } from './positionHelpers.js';
 import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
 import { showModelDimensions } from './dimensionDisplay/index.js'; 
@@ -167,13 +167,6 @@ export function loadAndPlaceModel(modelName, position) {
                 const wasConverted = autoConvertUnits(container);
                 if (wasConverted) {
                     console.log(`Модель ${modelName}: выполнена конвертация из мм в м. Новые размеры: ${container.userData.realWidth.toFixed(2)}×${container.userData.realHeight.toFixed(2)}×${container.userData.realDepth.toFixed(2)}м`);
-                }
-                
-                // Выравниваем нижнюю грань по Y=0
-                alignObjectToGround(container);
-                // Корректируем позицию по Y, чтобы модель стояла на площадке
-                if (position && typeof position.y === 'number') {
-                    container.position.y += position.y;
                 }
                 
                 // Сохраняем исходную позицию и поворот (для возможного использования клавиши Esc)

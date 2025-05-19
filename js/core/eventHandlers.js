@@ -34,6 +34,9 @@ function handleDOMContentLoaded() {
     
     // Инициализация кнопки скрытия размеров
     setupToggleDimensionsButton();
+
+    // Инициализация кнопки скрытия размеров
+    setupToggleSafetyZoneButton();
 }
 
 /**
@@ -144,6 +147,34 @@ function setupToggleDimensionsButton() {
                 hideAllDimensions();
             }
             localStorage.setItem('dimensionLabelsHidden', !isCurrentlyHidden);
+        });
+    }
+}
+
+
+/**
+ * Настраивает кнопку скрытия/показа зоны безопасности
+ */
+function setupToggleSafetyZoneButton() {
+    const toggleButton = document.getElementById('toggleSafetyZone');
+    const safetyZone = document.getElementById('safetyZone');
+    if (toggleButton && safetyZone) {
+        // Восстанавливаем состояние из localStorage (если есть)
+        const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
+        if (isHidden) {
+            safetyZone.style.display = 'none';
+            toggleButton.textContent = '🛡️ Показать зону безопасности';
+        }
+        toggleButton.addEventListener('click', function() {
+            const isCurrentlyHidden = safetyZone.style.display === 'none';
+            if (isCurrentlyHidden) {
+                safetyZone.style.display = '';
+                toggleButton.textContent = '🛡️ Скрыть зону безопасности';
+            } else {
+                safetyZone.style.display = 'none';
+                toggleButton.textContent = '🛡️ Показать зону безопасности';
+            }
+            localStorage.setItem('safetyZoneHidden', !isCurrentlyHidden);
         });
     }
 }

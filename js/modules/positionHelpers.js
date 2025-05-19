@@ -6,21 +6,6 @@ import { showNotification } from '../utils.js';
 import { highlightPlaygroundBoundary } from './collisionDetection.js';
 
 /**
- * Выравнивает нижнюю грань объекта по плоскости Y=0
- * @param {Object} container - Контейнер модели
- */
-export function alignObjectToGround(container) {
-    if (!container) return;
-    
-    // Вычисляем ограничивающий бокс объекта
-    const box = new THREE.Box3().setFromObject(container);
-    
-    // Смещаем объект так, чтобы его нижняя грань была на уровне Y=0
-    const offsetY = box.min.y;
-    container.position.y -= offsetY;
-}
-
-/**
  * Сохраняет исходную позицию объекта
  * @param {Object} object - Объект для сохранения позиции
  */

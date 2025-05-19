@@ -7,7 +7,7 @@
 export { placedObjects, generateObjectId, loadAndPlaceModel, removeObject } from './modules/objectManager.js';
 export { scaleModelToSize, autoConvertUnits } from './modules/objectOperations.js';
 export { getObjectBounds, isWithinPlayground, highlightPlaygroundBoundary, checkObjectsIntersection, highlightObjectCollision, checkAndHighlightObject, checkAllObjectsPositions } from './modules/collisionDetection.js';
-export { alignObjectToGround, saveInitialPosition, resetToInitialPosition } from './modules/positionHelpers.js';
+export { saveInitialPosition, resetToInitialPosition } from './modules/positionHelpers.js';
 
 // Экспорт функций для работы с размерами моделей
 export { 
