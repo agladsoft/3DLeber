@@ -9,7 +9,8 @@ import { getLoaderByExtension } from './loaders.js';
 import { saveInitialPosition } from './positionHelpers.js';
 import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
-import { showModelDimensions } from './dimensionDisplay/index.js'; 
+import { showModelDimensions } from './dimensionDisplay/index.js';
+import { updateSafetyZonesVisibility } from '../core/safetyManager.js';
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -187,6 +188,9 @@ export function loadAndPlaceModel(modelName, position) {
                 if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
                     showModelDimensions(container);
                 }
+                
+                // После успешной загрузки модели обновляем видимость безопасных зон
+                updateSafetyZonesVisibility();
             },
             // Обработчик загрузки (прогресс)
             (xhr) => {

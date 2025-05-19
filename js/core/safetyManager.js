@@ -2,8 +2,8 @@
  * Модуль для управления безопасными зонами и удаления нежелательных элементов
  */
 
-// Состояние видимости безопасных зон
-let safetyZonesVisible = true;
+// Состояние видимости безопасных зон (по умолчанию скрыты)
+let safetyZonesVisible = false;
 
 /**
  * Переключает видимость безопасных зон
@@ -53,5 +53,15 @@ function removeSafetyZonesFromScene() {
                 object.visible = false;
             }
         });
+    }
+}
+
+/**
+ * Проверяет и обновляет видимость безопасных зон
+ * Эта функция должна вызываться при загрузке новых моделей или изменении сцены
+ */
+export function updateSafetyZonesVisibility() {
+    if (!safetyZonesVisible) {
+        removeAllSafetyZones();
     }
 }

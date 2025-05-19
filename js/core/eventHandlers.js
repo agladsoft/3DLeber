@@ -159,10 +159,15 @@ function setupToggleSafetyZoneButton() {
     if (toggleButton) {
         // Восстанавливаем состояние из localStorage (если есть)
         const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
-        if (isHidden) {
-            toggleButton.textContent = '🛡️ Показать зону безопасности';
-            removeAllSafetyZones();
+        
+        // По умолчанию зоны безопасности скрыты
+        if (!isHidden) {
+            localStorage.setItem('safetyZoneHidden', 'true');
         }
+        
+        // Устанавливаем начальное состояние кнопки и зон
+        toggleButton.textContent = '🛡️ Показать зону безопасности';
+        removeAllSafetyZones();
         
         toggleButton.addEventListener('click', function() {
             const isVisible = toggleSafetyZones();
