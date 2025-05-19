@@ -1,9 +1,9 @@
 /**
- * Модуль для управления безопасными зонами и удаления нежелательных элементов
+ * Модуль для управления безопасными зонами и удалением нежелательных элементов
  */
 
-// Состояние видимости безопасных зон (по умолчанию скрыты)
-let safetyZonesVisible = false;
+// Состояние видимости безопасных зон (по умолчанию показаны)
+let safetyZonesVisible = true;
 
 /**
  * Переключает видимость безопасных зон
@@ -24,7 +24,7 @@ export function toggleSafetyZones() {
 /**
  * Показывает все элементы безопасной зоны
  */
-function showAllSafetyZones() {
+export function showAllSafetyZones() {
     // Показываем все объекты с именем, заканчивающимся на safety_zone в Three.js сцене
     if (window.app && window.app.scene) {
         window.app.scene.traverse((object) => {

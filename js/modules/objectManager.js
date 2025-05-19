@@ -93,7 +93,6 @@ export function loadAndPlaceModel(modelName, position) {
                             // Если это зона безопасности, меняем цвет на белый
                             if (child.name && child.name.endsWith('safety_zone')) {
                                 if (child.material) {
-                                    // Создаем новый материал с нужными параметрами
                                     const newMaterial = new THREE.MeshStandardMaterial({
                                         color: 0xFFFFFF,
                                         transparent: false,
@@ -104,6 +103,8 @@ export function loadAndPlaceModel(modelName, position) {
                                         emissiveIntensity: 0.2
                                     });
                                     child.material = newMaterial;
+                                    // Проверяем состояние из localStorage и устанавливаем видимость
+                                    child.visible = localStorage.getItem('safetyZoneHidden') !== 'true';
                                 }
                             }
                         }
@@ -136,6 +137,8 @@ export function loadAndPlaceModel(modelName, position) {
                             emissiveIntensity: 0.2
                         });
                         mesh.material = newMaterial;
+                        // Проверяем состояние из localStorage и устанавливаем видимость
+                        mesh.visible = localStorage.getItem('safetyZoneHidden') !== 'true';
                     }
 
                     container.add(mesh);
@@ -162,6 +165,8 @@ export function loadAndPlaceModel(modelName, position) {
                                         emissiveIntensity: 0.2
                                     });
                                     child.material = newMaterial;
+                                    // Проверяем состояние из localStorage и устанавливаем видимость
+                                    child.visible = localStorage.getItem('safetyZoneHidden') !== 'true';
                                 }
                             }
                         }

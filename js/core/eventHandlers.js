@@ -2,7 +2,7 @@
  * Модуль для обработки событий приложения
  */
 import { ensureSingleInit, updateRendererSize } from './appCore.js';
-import { removeAllSafetyZones, toggleSafetyZones } from './safetyManager.js';
+import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from './safetyManager.js';
 import { handleAppError } from './errorHandler.js';
 import { hideAllDimensions, showAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 
@@ -157,17 +157,17 @@ function setupToggleDimensionsButton() {
 function setupToggleSafetyZoneButton() {
     const toggleButton = document.getElementById('toggleSafetyZone');
     if (toggleButton) {
-        // Восстанавливаем состояние из localStorage (если есть)
+        // Восстанавливаем состояние из localStorage
         const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
         
-        // По умолчанию зоны безопасности скрыты
-        if (!isHidden) {
-            localStorage.setItem('safetyZoneHidden', 'true');
+        // Устанавливаем начальное состояние
+        if (isHidden) {
+            toggleButton.textContent = '🛡️ Показать зону безопасности';
+            removeAllSafetyZones();
+        } else {
+            toggleButton.textContent = '🛡️ Скрыть зону безопасности';
+            showAllSafetyZones();
         }
-        
-        // Устанавливаем начальное состояние кнопки и зон
-        toggleButton.textContent = '🛡️ Показать зону безопасности';
-        removeAllSafetyZones();
         
         toggleButton.addEventListener('click', function() {
             const isVisible = toggleSafetyZones();
