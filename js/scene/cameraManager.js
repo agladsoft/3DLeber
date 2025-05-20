@@ -67,8 +67,8 @@ export function setupCamera(rendererInstance) {
     controls.dampingFactor = CAMERA_SETTINGS.dampingFactor;
     
     // Настройки зуммирования
-    // controls.minDistance = CAMERA_SETTINGS.minDistance;
-    // controls.maxDistance = CAMERA_SETTINGS.maxDistance;
+    controls.minDistance = CAMERA_SETTINGS.minDistance; // Минимальное расстояние камеры от цели
+    controls.maxDistance = CAMERA_SETTINGS.maxDistance; // Максимальное расстояние камеры от цели
     controls.zoomSpeed = CAMERA_SETTINGS.zoomSpeed;
     
     // Настройки углов обзора
@@ -82,115 +82,88 @@ export function setupCamera(rendererInstance) {
         CAMERA_SETTINGS.lookAt.z
     );
     
-    // Отключаем стандартные элементы управления OrbitControls для правой кнопки
+    // Настраиваем элементы управления OrbitControls для мыши
     controls.mouseButtons = {
         LEFT: MOUSE.ROTATE,     // Левая кнопка - вращение камеры вокруг цели
         MIDDLE: MOUSE.DOLLY,    // Средняя кнопка - зум
-        RIGHT: MOUSE.ROTATE     // Устанавливаем любое значение, чтобы OrbitControls не конфликтовал
+        RIGHT: MOUSE.PAN        // Правая кнопка - панорамирование (перемещение камеры)
     };
     
-    // Отключаем панорамирование (движение сцены)
-    controls.enablePan = false;
-    controls.keyPanSpeed = 0;
+    // Настраиваем панорамирование (движение камеры)
+    controls.enablePan = true;
+    controls.keyPanSpeed = 0.3; // Скорость панорамирования с клавиатуры
     
-    // Добавляем кастомное управление камерой с помощью правой кнопки мыши
-    // Скорость движения камеры
-    const cameraMoveSpeed = 0.05;
+    // Настраиваем параметры панорамирования камеры
+    controls.panSpeed = 1.0;     // Скорость панорамирования камеры (стандартное значение)
+    controls.screenSpacePanning = true; // Если true, панорамирование происходит в плоскости экрана
     
-    // Переменные для отслеживания правой кнопки мыши
-    let rightMouseDown = false;
-    let prevMouseX = 0;
-    let prevMouseY = 0;
+    // Дополнительные ограничения на панорамирование
+    // Рассчитываем максимальные границы панорамирования в зависимости от размера площадки
+    let maxPanBounds = 50; // Значение по умолчанию, если нет размеров площадки
     
-    // Добавляем обработчики событий мыши на холсте
+    // Добавляем только обработчик для отключения контекстного меню
     renderer.domElement.addEventListener('contextmenu', (event) => {
         // Предотвращаем появление контекстного меню
         event.preventDefault();
     });
     
+    // Добавляем ограничения на перемещение камеры и зум
+    controls.addEventListener('change', () => {
+        // Определяем минимальную допустимую высоту камеры
+        let minY = 1.0;
+        if (ground && ground.position && ground.userData && typeof ground.userData.originalHeight === 'number') {
+            minY = ground.position.y + (ground.userData.originalHeight * ground.scale.y) + 0.5;
+        }
+        
+        // Ограничение минимальной высоты камеры
+        if (camera.position.y < minY) {
+            camera.position.y = minY;
+        }
+        
+        // Динамическое обновление максимального расстояния от центра сцены
+        if (window.app && window.app.playgroundWidth && window.app.playgroundLength) {
+            // Рассчитываем максимальное расстояние на основе размеров площадки
+            const diagonal = Math.sqrt(Math.pow(window.app.playgroundWidth, 2) + Math.pow(window.app.playgroundLength, 2));
+            // Устанавливаем максимальное расстояние камеры от центра - увеличено для большего отдаления
+            controls.maxDistance = diagonal * 6;
+            
+            // Ограничиваем перемещение точки фокуса камеры - также увеличено
+            const maxOffset = diagonal * 3; // Максимальное смещение от центра
+            
+            // Проверяем расстояние от центра до цели камеры в горизонтальной плоскости
+            const targetDistFromCenter = Math.sqrt(Math.pow(controls.target.x, 2) + Math.pow(controls.target.z, 2));
+            if (targetDistFromCenter > maxOffset) {
+                // Если точка слишком далеко от центра, нормализуем вектор и умножаем на максимальное расстояние
+                const ratio = maxOffset / targetDistFromCenter;
+                controls.target.x *= ratio;
+                controls.target.z *= ratio;
+            }
+        } else {
+            // Если нет данных о размере площадки, устанавливаем большое значение по умолчанию
+            controls.maxDistance = 200;
+        }
+        
+        // Ограничение на высоту точки фокуса камеры
+        if (controls.target.y < 0) {
+            controls.target.y = 0;
+        }
+    });
+    // Добавляем визуальную обратную связь при панорамировании
     renderer.domElement.addEventListener('mousedown', (event) => {
-        // Проверяем, что это правая кнопка мыши (2)
-        if (event.button === 2) {
-            rightMouseDown = true;
-            prevMouseX = event.clientX;
-            prevMouseY = event.clientY;
+        if (event.button === 2) { // Правая кнопка мыши
+            renderer.domElement.style.cursor = 'move';
         }
     });
     
     renderer.domElement.addEventListener('mouseup', (event) => {
         if (event.button === 2) {
-            rightMouseDown = false;
+            renderer.domElement.style.cursor = 'auto';
         }
     });
     
-    renderer.domElement.addEventListener('mousemove', (event) => {
-        if (rightMouseDown) {
-            // Вычисляем разницу в позиции мыши
-            const deltaX = event.clientX - prevMouseX;
-            const deltaY = event.clientY - prevMouseY;
-            
-            // Получаем текущее направление камеры
-            const forward = new THREE.Vector3();
-            camera.getWorldDirection(forward);
-            
-            // Вычисляем вектор вправо относительно камеры (перпендикулярно к направлению взгляда)
-            const right = new THREE.Vector3();
-            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-            
-            // Вектор вверх (для вертикального движения используем мировую ось Y)
-            const up = new THREE.Vector3(0, 1, 0);
-            
-            // Определяем минимальную высоту камеры до перемещения
-            let minY = 1.0; // Увеличиваем минимальную высоту по умолчанию
-            if (ground && ground.position && ground.userData && typeof ground.userData.originalHeight === 'number') {
-                minY = ground.position.y + (ground.userData.originalHeight * ground.scale.y) + 0.5; // Увеличиваем отступ до 0.5
-            }
-            
-            // Создаем копии векторов для перемещения
-            const rightMove = right.clone().multiplyScalar(-deltaX * cameraMoveSpeed);
-            
-            // Перемещаем камеру горизонтально относительно ее направления
-            camera.position.add(rightMove);
-            
-            // Проверка для вертикального движения: разрешаем только если не опускаемся ниже минимума
-            let upMove;
-            if (deltaY > 0 || (camera.position.y + deltaY * cameraMoveSpeed) >= minY) {
-                // Перемещаем камеру вертикально по мировой оси Y
-                upMove = up.clone().multiplyScalar(deltaY * cameraMoveSpeed);
-                camera.position.add(upMove);
-            }
-
-            // Дополнительная проверка после перемещения
-            if (camera.position.y < minY) {
-                camera.position.y = minY;
-            }
-            
-            // Перемещаем точку фокуса камеры только по горизонтали
-            controls.target.add(right.clone().multiplyScalar(-deltaX * cameraMoveSpeed));
-            
-            // Для вертикального перемещения точки фокуса используем ту же логику
-            if (deltaY > 0 || (controls.target.y + deltaY * cameraMoveSpeed) >= 0) {
-                // Не позволяем точке фокуса опуститься ниже 0
-                controls.target.add(up.clone().multiplyScalar(deltaY * cameraMoveSpeed));
-            }
-            
-            // Дополнительная проверка для точки фокуса
-            if (controls.target.y < 0) {
-                controls.target.y = 0;
-            }
-            
-            // Обновляем предыдущие координаты мыши
-            prevMouseX = event.clientX;
-            prevMouseY = event.clientY;
-            
-            // Обновляем контролы
-            controls.update();
-        }
-    });
-    
-    // Обработчик для прекращения перемещения, если мышь покидает окно
-    renderer.domElement.addEventListener('mouseout', () => {
-        rightMouseDown = false;
+    // Сброс курсора при выходе за пределы окна
+    renderer.domElement.addEventListener('mouseleave', () => {
+        renderer.domElement.style.cursor = 'auto';
     });
     
     // Ограничение: не позволяем камере опускаться ниже верхней поверхности площадки
