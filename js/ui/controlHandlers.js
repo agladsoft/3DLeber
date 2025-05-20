@@ -15,8 +15,6 @@ import {
 } from '../playground.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
-import { showAllDimensions, hideAllDimensions, addDimensionsToModel } from '../modules/dimensionDisplay/index.js';
-import { placedObjects } from '../objects.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -41,7 +39,6 @@ function setupControlHandlers() {
     setupChangePlaygroundButton();
     setupResetViewButton();
     setupTopViewButton();
-    setupDimensionsButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
@@ -262,33 +259,4 @@ function updateTopViewButtonStyle(button, isActive) {
  */
 function isValidSize(size) {
     return size >= PLAYGROUND.minSize && size <= PLAYGROUND.maxSize;
-}
-
-/**
- * Настраивает кнопку "Размеры"
- */
-function setupDimensionsButton() {
-    const dimensionsButton = document.getElementById('toggleDimensions');
-    if (!dimensionsButton) return;
-
-    // Устанавливаем начальное состояние
-    if (typeof window.dimensionsVisible === 'undefined') {
-        window.dimensionsVisible = false;
-    }
-
-    // updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-
-    dimensionsButton.onclick = function() {
-        window.dimensionsVisible = !window.dimensionsVisible;
-        if (window.dimensionsVisible) {
-            // Для всех объектов на сцене добавляем размеры, если их нет
-            if (Array.isArray(placedObjects)) {
-                placedObjects.forEach(obj => addDimensionsToModel(obj));
-            }
-            showAllDimensions();
-        } else {
-            hideAllDimensions();
-        }
-        // updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-    };
 }
