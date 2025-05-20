@@ -67,8 +67,8 @@ export function setupCamera(rendererInstance) {
     controls.dampingFactor = CAMERA_SETTINGS.dampingFactor;
     
     // Настройки зуммирования
-    // controls.minDistance = CAMERA_SETTINGS.minDistance;
-    // controls.maxDistance = CAMERA_SETTINGS.maxDistance;
+    controls.minDistance = CAMERA_SETTINGS.minDistance; // Минимальное расстояние камеры от цели
+    controls.maxDistance = CAMERA_SETTINGS.maxDistance; // Максимальное расстояние камеры от цели
     controls.zoomSpeed = CAMERA_SETTINGS.zoomSpeed;
     
     // Настройки углов обзора
@@ -97,13 +97,17 @@ export function setupCamera(rendererInstance) {
     controls.panSpeed = 1.0;     // Скорость панорамирования камеры (стандартное значение)
     controls.screenSpacePanning = true; // Если true, панорамирование происходит в плоскости экрана
     
+    // Дополнительные ограничения на панорамирование
+    // Рассчитываем максимальные границы панорамирования в зависимости от размера площадки
+    let maxPanBounds = 50; // Значение по умолчанию, если нет размеров площадки
+    
     // Добавляем только обработчик для отключения контекстного меню
     renderer.domElement.addEventListener('contextmenu', (event) => {
         // Предотвращаем появление контекстного меню
         event.preventDefault();
     });
     
-    // Добавляем ограничение по высоте камеры
+    // Добавляем ограничения на перемещение камеры и зум
     controls.addEventListener('change', () => {
         // Определяем минимальную допустимую высоту камеры
         let minY = 1.0;
@@ -111,9 +115,32 @@ export function setupCamera(rendererInstance) {
             minY = ground.position.y + (ground.userData.originalHeight * ground.scale.y) + 0.5;
         }
         
-        // Применяем ограничение на высоту камеры
+        // Ограничение минимальной высоты камеры
         if (camera.position.y < minY) {
             camera.position.y = minY;
+        }
+        
+        // Динамическое обновление максимального расстояния от центра сцены
+        if (window.app && window.app.playgroundWidth && window.app.playgroundLength) {
+            // Рассчитываем максимальное расстояние на основе размеров площадки
+            const diagonal = Math.sqrt(Math.pow(window.app.playgroundWidth, 2) + Math.pow(window.app.playgroundLength, 2));
+            // Устанавливаем максимальное расстояние камеры от центра - увеличено для большего отдаления
+            controls.maxDistance = diagonal * 6;
+            
+            // Ограничиваем перемещение точки фокуса камеры - также увеличено
+            const maxOffset = diagonal * 3; // Максимальное смещение от центра
+            
+            // Проверяем расстояние от центра до цели камеры в горизонтальной плоскости
+            const targetDistFromCenter = Math.sqrt(Math.pow(controls.target.x, 2) + Math.pow(controls.target.z, 2));
+            if (targetDistFromCenter > maxOffset) {
+                // Если точка слишком далеко от центра, нормализуем вектор и умножаем на максимальное расстояние
+                const ratio = maxOffset / targetDistFromCenter;
+                controls.target.x *= ratio;
+                controls.target.z *= ratio;
+            }
+        } else {
+            // Если нет данных о размере площадки, устанавливаем большое значение по умолчанию
+            controls.maxDistance = 200;
         }
         
         // Ограничение на высоту точки фокуса камеры
