@@ -151,43 +151,8 @@ export function checkObjectsIntersection(object1, object2) {
  */
 export function highlightObjectCollision(object, highlight) {
     if (!object) return;
-    
-    // Применяем или снимаем подсветку для всех дочерних мешей
-    object.traverse((child) => {
-        if (child.isMesh && child.material) {
-            // Сохраняем оригинальный материал при первой подсветке
-            if (highlight && !child.userData.originalMaterial) {
-                // Клонируем материал, чтобы не влиять на другие объекты
-                child.userData.originalMaterial = child.material.clone();
-            }
-            
-            if (highlight) {
-                // Создаем новый красный материал для подсветки
-                const collisionMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xff0000,        // Красный цвет
-                    emissive: 0x500000,     // Легкое свечение
-                    metalness: 0.3,
-                    roughness: 0.7,
-                    transparent: false,
-                    opacity: 1.0
-                });
-                
-                // Применяем материал к мешу
-                child.material = collisionMaterial;
-                
-                // Устанавливаем флаг наличия коллизии
-                object.userData.hasCollision = true;
-            } 
-            else if (child.userData.originalMaterial) {
-                // Восстанавливаем оригинальный материал
-                child.material = child.userData.originalMaterial;
-                child.userData.originalMaterial = null;
-                
-                // Сбрасываем флаг коллизии
-                object.userData.hasCollision = false;
-            }
-        }
-    });
+    // Просто сбрасываем флаг коллизии, не меняем материал
+    object.userData.hasCollision = !!highlight;
 }
 
 /**

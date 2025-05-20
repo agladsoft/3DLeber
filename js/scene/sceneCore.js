@@ -6,6 +6,8 @@ import {
     LIGHTING 
 } from '../config.js';
 import * as THREE from 'three';
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+import { PMREMGenerator } from 'three';
 
 // Экспортируем переменные для доступа из других модулей
 export let canvas;
@@ -46,8 +48,8 @@ export function createScene() {
     // Создание освещения
     createLighting();
     
-    // Создание skybox
-    createSkybox();
+    // Создание HDRI-фона
+    createEXRBackground();
     
     return scene;
 }
@@ -96,22 +98,24 @@ function createLighting() {
 }
 
 /**
- * Создание skybox для сцены
+ * Создание HDRI-фона для сцены
  */
-function createSkybox() {
-    // Загрузчик кубических текстур
-    const loader = new THREE.CubeTextureLoader();
-    loader.setPath('textures/citybox/');
-    
-    // Загружаем текстуры для всех сторон skybox
-    const textureCube = loader.load([
-        'citybox_px.jpg', 'citybox_nx.jpg', // право, лево
-        'citybox_py.jpg', 'citybox_ny.jpg', // верх, низ
-        'citybox_pz.jpg', 'citybox_nz.jpg'  // перед, зад
-    ]);
-    
-    // Устанавливаем skybox как фон сцены
-    scene.background = textureCube;
+function createEXRBackground() {
+    if (!renderer) {
+        console.error('Renderer не инициализирован');
+        return;
+    }
+    const pmremGenerator = new PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    new EXRLoader()
+        .setDataType(THREE.FloatType)
+        .load('textures/hdri/rooitou_park_4k.exr', function(texture) {
+            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+            scene.environment = envMap;
+            scene.background = envMap;
+            texture.dispose();
+            pmremGenerator.dispose();
+        });
 }
 
 /**

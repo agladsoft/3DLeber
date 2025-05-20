@@ -11,6 +11,8 @@ import * as THREE from 'three';
  * @param {Boolean} isWarning - Флаг, является ли уведомление предупреждением
  */
 export function showNotification(message, isWarning = true) {
+    // Функция отключена, уведомления не показываются
+    /*
     const notification = document.getElementById('notification');
     const notificationMessage = document.querySelector('.notification-message');
     
@@ -32,6 +34,7 @@ export function showNotification(message, isWarning = true) {
             };
         }
     }
+    */
 }
 
 /**

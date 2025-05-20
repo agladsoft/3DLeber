@@ -103,7 +103,7 @@ export async function initializeApp() {
             // Обновляем информационную панель со статусом площадки
             const playgroundStatus = document.getElementById('playgroundStatus');
             if (playgroundStatus) {
-                playgroundStatus.textContent = `Площадка: ${playgroundType} (${userWidth}м × ${userLength}m)`;
+                // playgroundStatus.textContent = `Площадка: ${playgroundType} (${userWidth}м × ${userLength}м)`;
             }
         } catch (playgroundError) {
             console.error('Ошибка при загрузке площадки:', playgroundError);
@@ -132,7 +132,9 @@ export async function initializeApp() {
             // Инициализируем модуль отображения размеров объектов
             console.log('Инициализация модуля отображения размеров');
             initDimensionUpdates();
-            console.log('Модуль отображения размеров инициализирован');
+            // Устанавливаем флаг, что размеры должны быть скрыты
+            localStorage.setItem('dimensionLabelsHidden', 'true');
+            console.log('Модуль отображения размеров инициализирован (скрыт)');
         } catch (dimensionError) {
             console.error('Ошибка при инициализации модуля отображения размеров:', dimensionError);
         }
@@ -151,13 +153,18 @@ export async function initializeApp() {
         
         // Не скрываем индикатор загрузки здесь - это будет сделано после загрузки и рендеринга модели
         
+        // Инициализируем обновления размеров моделей
+        initDimensionUpdates();
+        console.log('Инициализация обновлений размеров моделей - OK');
+        
         console.log('Приложение успешно инициализировано');
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
         
-        // Скрываем индикатор загрузки только в случае критической ошибки
+        // Скрываем индикатор загрузки, если он есть
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {
+            console.log('Скрываем индикатор загрузки');
             loadingOverlay.classList.add('hidden');
             window.isLoading = false;
         }

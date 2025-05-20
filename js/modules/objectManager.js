@@ -11,6 +11,8 @@ import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOpe
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
 import { showModelDimensions } from './dimensionDisplay/index.js';
 import { updateSafetyZonesVisibility } from '../core/safetyManager.js';
+import { addDimensionsToModel, getModelDimensions } from './dimensionDisplay/dimensionArrows.js';
+
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -223,6 +225,9 @@ export function loadAndPlaceModel(modelName, position) {
                     console.log(`Модель ${modelName}: выполнена конвертация из мм в м. Новые размеры: ${container.userData.realWidth.toFixed(2)}×${container.userData.realHeight.toFixed(2)}×${container.userData.realDepth.toFixed(2)}м`);
                 }
                 
+                // Выравниваем нижнюю грань по Y=0
+                alignObjectToGround(container);
+                
                 // Сохраняем исходную позицию и поворот (для возможного использования клавиши Esc)
                 saveInitialPosition(container);
                 
@@ -237,11 +242,13 @@ export function loadAndPlaceModel(modelName, position) {
                     showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
                 }
                 
-                // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
-                if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
-                    showModelDimensions(container);
+                // Автоматически показываем размеры модели при добавлении на площадку, если режим размерностей включён
+                if (window.dimensionsVisible === true) {
+                    addDimensionsToModel(container);
+                    const dimensions = getModelDimensions(container);
+                    if (dimensions) dimensions.show();
                 }
-                
+
                 // После успешной загрузки модели обновляем видимость безопасных зон
                 updateSafetyZonesVisibility();
             },
