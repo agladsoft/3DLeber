@@ -163,7 +163,7 @@ model-viewer {
     border-radius: 12px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.04);
     max-height: 80vh;
-    width: 300px;
+    width: 320px;
     font-size: 0.93em;
     overflow-y: auto;
     display: flex;
@@ -460,23 +460,6 @@ button:disabled, .modern-button:disabled {
     color: #f0f0f0;
     cursor: not-allowed;
     box-shadow: none;
-}
-
-/* Скрываем все возможные "безопасные зоны" */
-.safety-zone, 
-[class*="safe"], 
-[class*="Safe"], 
-[class*="zone"], 
-[class*="Zone"],
-[id*="safe"],
-[id*="Safe"],
-[id*="zone"],
-[id*="Zone"] {
-    display: none !important;
-    border: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
 }
 
 /* Скрываем желтые прямоугольники и линии */

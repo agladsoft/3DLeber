@@ -3,13 +3,6 @@ import { initDragAndDrop } from './ui/dragAndDrop.js';
 const STORAGE_KEY = 'model_quantities';
 
 /**
- * Очищает сохраненные количества моделей
- */
-export function clearModelQuantities() {
-    localStorage.removeItem(STORAGE_KEY);
-}
-
-/**
  * Сохраняет актуальное количество модели
  * @param {string} modelName - Имя модели
  * @param {number} quantity - Количество
@@ -54,17 +47,8 @@ function initializeModelQuantities(models) {
     }
 }
 
-// Флаг для отслеживания первой загрузки
-let isFirstLoad = true;
-
 async function loadModels() {
     try {
-        // Очищаем сохраненные количества только при первой загрузке страницы
-        if (isFirstLoad) {
-            clearModelQuantities();
-            isFirstLoad = false;
-        }
-
         // TODO: В будущем раскомментировать API и закомментировать локальный JSON
         // Try to fetch the models list from the API
         let data;

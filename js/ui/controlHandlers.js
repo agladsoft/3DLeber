@@ -276,7 +276,7 @@ function setupDimensionsButton() {
         window.dimensionsVisible = false;
     }
 
-    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+    // updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
 
     dimensionsButton.onclick = function() {
         window.dimensionsVisible = !window.dimensionsVisible;
@@ -289,23 +289,6 @@ function setupDimensionsButton() {
         } else {
             hideAllDimensions();
         }
-        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+        // updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
     };
 }
-
-/**
- * Обновляет стиль кнопки "Размеры"
- * @param {HTMLElement} button - Кнопка
- * @param {Boolean} isActive - Активен ли режим отображения размеров
- */
-function updateDimensionsButtonStyle(button, isActive) {
-    if (isActive) {
-        button.classList.add('active');
-        button.textContent = '📏 Размеры ON';
-    } else {
-        button.classList.remove('active');
-        button.textContent = '📏 Скрыть размеры';
-    }
-}
-
-
