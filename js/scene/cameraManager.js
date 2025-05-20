@@ -140,20 +140,44 @@ export function setupCamera(rendererInstance) {
             // Вектор вверх (для вертикального движения используем мировую ось Y)
             const up = new THREE.Vector3(0, 1, 0);
             
+            // Определяем минимальную высоту камеры до перемещения
+            let minY = 1.0; // Увеличиваем минимальную высоту по умолчанию
+            if (ground && ground.position && ground.userData && typeof ground.userData.originalHeight === 'number') {
+                minY = ground.position.y + (ground.userData.originalHeight * ground.scale.y) + 0.5; // Увеличиваем отступ до 0.5
+            }
+            
             // Создаем копии векторов для перемещения
             const rightMove = right.clone().multiplyScalar(-deltaX * cameraMoveSpeed);
-            const upMove = up.clone().multiplyScalar(deltaY * cameraMoveSpeed);
             
             // Перемещаем камеру горизонтально относительно ее направления
             camera.position.add(rightMove);
             
-            // Перемещаем камеру вертикально по мировой оси Y
-            camera.position.add(upMove);
+            // Проверка для вертикального движения: разрешаем только если не опускаемся ниже минимума
+            let upMove;
+            if (deltaY > 0 || (camera.position.y + deltaY * cameraMoveSpeed) >= minY) {
+                // Перемещаем камеру вертикально по мировой оси Y
+                upMove = up.clone().multiplyScalar(deltaY * cameraMoveSpeed);
+                camera.position.add(upMove);
+            }
+
+            // Дополнительная проверка после перемещения
+            if (camera.position.y < minY) {
+                camera.position.y = minY;
+            }
             
-            // Перемещаем точку фокуса камеры на то же расстояние
-            // создание новых копий векторов для перемещения
+            // Перемещаем точку фокуса камеры только по горизонтали
             controls.target.add(right.clone().multiplyScalar(-deltaX * cameraMoveSpeed));
-            controls.target.add(up.clone().multiplyScalar(deltaY * cameraMoveSpeed));
+            
+            // Для вертикального перемещения точки фокуса используем ту же логику
+            if (deltaY > 0 || (controls.target.y + deltaY * cameraMoveSpeed) >= 0) {
+                // Не позволяем точке фокуса опуститься ниже 0
+                controls.target.add(up.clone().multiplyScalar(deltaY * cameraMoveSpeed));
+            }
+            
+            // Дополнительная проверка для точки фокуса
+            if (controls.target.y < 0) {
+                controls.target.y = 0;
+            }
             
             // Обновляем предыдущие координаты мыши
             prevMouseX = event.clientX;

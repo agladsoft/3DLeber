@@ -15,7 +15,7 @@ export function createSimplePlayground(width, length) {
     console.log('Текущие значения: ground =', ground, 'groundMesh =', groundMesh);
     console.log('Создаем простую площадку с размерами:', width, 'x', length);
     try {
-        // Создаем геометрию плоскости с установленными размерами
+        // Создаем геометрию прямоугольной площадки с установленными размерами
         const planeGeometry = new THREE.PlaneGeometry(width, length);
         console.log('Создана геометрия плоскости');
         // Создаем материал для плоскости (с текстурой)
@@ -85,7 +85,7 @@ function createGroundMaterial(width, length) {
  * @param {Number} length - Длина площадки
  */
 function setupSimplePlayground(plane, width, length) {
-    console.log('Настраиваем простую площадку');
+    console.log('Настраиваем простую площадку с круглым фоном');
     
     // Поворачиваем плоскость так, чтобы она была горизонтальной
     plane.rotation.x = -Math.PI / 2;
@@ -112,8 +112,8 @@ function setupSimplePlayground(plane, width, length) {
         side: THREE.DoubleSide
     });
     
-    // Создаем большую плоскость для травы
-    const grassGeometry = new THREE.PlaneGeometry(surroundSize, surroundSize);
+    // Создаем большую круглую площадку для травы
+    const grassGeometry = new THREE.CircleGeometry(surroundSize/2, 64); // Радиус = половина размера
     const grassPlane = new THREE.Mesh(grassGeometry, grassMaterial);
     
     // Настраиваем плоскость с травой
@@ -138,12 +138,14 @@ function setupSimplePlayground(plane, width, length) {
     console.log('После updateGroundReferences: ground =', ground, 'groundMesh =', groundMesh);
     
     // Добавляем данные для будущего масштабирования
+    // Добавляем данные для будущего масштабирования
     plane.userData = {
         originalWidth: width,
         originalHeight: 0.1,
         originalDepth: length,
         modelName: 'simple_playground',
-        isPlayground: true  // Маркер, что это площадка
+        isPlayground: true,  // Маркер, что это площадка
+        hasCircularGrass: true // Маркер, что фон круглый
     };
     console.log('Добавлены userData к плоскости:', plane.userData);
     
