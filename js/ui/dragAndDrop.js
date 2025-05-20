@@ -13,6 +13,7 @@ import {
     updateRaycaster 
 } from './uiCore.js';
 import * as THREE from 'three';
+import { saveModelQuantity } from '../models.js';
 
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
@@ -84,6 +85,9 @@ function removeExistingHandlers() {
  * @param {number} newQuantity - Новое количество
  */
 function updateModelQuantity(modelName, newQuantity) {
+    // Сохраняем новое количество
+    saveModelQuantity(modelName, newQuantity);
+    
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
@@ -322,6 +326,9 @@ export function updateModelQuantityOnRemove(modelName) {
         if (item.getAttribute('data-model') === modelName) {
             const currentQuantity = parseInt(item.getAttribute('data-quantity') || '0');
             const newQuantity = currentQuantity + 1;
+            
+            // Сохраняем новое количество
+            saveModelQuantity(modelName, newQuantity);
             
             // Обновляем отображение количества
             const quantityElement = item.querySelector('.model-quantity');

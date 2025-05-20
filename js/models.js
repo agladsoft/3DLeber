@@ -1,7 +1,70 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
 
+const STORAGE_KEY = 'model_quantities';
+
+/**
+ * Очищает сохраненные количества моделей
+ */
+export function clearModelQuantities() {
+    localStorage.removeItem(STORAGE_KEY);
+}
+
+/**
+ * Сохраняет актуальное количество модели
+ * @param {string} modelName - Имя модели
+ * @param {number} quantity - Количество
+ */
+export function saveModelQuantity(modelName, quantity) {
+    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    quantities[modelName] = quantity;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(quantities));
+}
+
+/**
+ * Получает актуальное количество модели
+ * @param {string} modelName - Имя модели
+ * @returns {number} Количество модели
+ */
+export function getModelQuantity(modelName) {
+    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return quantities[modelName] ?? 0;
+}
+
+/**
+ * Инициализирует начальные количества моделей
+ * @param {Array} models - Массив моделей из models.json
+ */
+function initializeModelQuantities(models) {
+    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    let hasChanges = false;
+
+    models.forEach(model => {
+        if (model.name) {
+            const modelName = `${model.name}.glb`;
+            // Инициализируем только если количество еще не установлено
+            if (!(modelName in quantities)) {
+                quantities[modelName] = model.quantity || 0;
+                hasChanges = true;
+            }
+        }
+    });
+
+    if (hasChanges) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(quantities));
+    }
+}
+
+// Флаг для отслеживания первой загрузки
+let isFirstLoad = true;
+
 async function loadModels() {
     try {
+        // Очищаем сохраненные количества только при первой загрузке страницы
+        if (isFirstLoad) {
+            clearModelQuantities();
+            isFirstLoad = false;
+        }
+
         // TODO: В будущем раскомментировать API и закомментировать локальный JSON
         // Try to fetch the models list from the API
         let data;
@@ -44,6 +107,9 @@ async function loadModels() {
 
         const { user_id, models } = data;
 
+        // Инициализируем начальные количества
+        initializeModelQuantities(models);
+
         // Get the sidebar element
         const sidebar = document.getElementById('sidebar');
         sidebar.innerHTML = `<h3>Выберите категорию (User: ${user_id || 'default'})</h3>`;
@@ -56,8 +122,12 @@ async function loadModels() {
                 categories[model.category] = [];
             }
             // Добавляем расширение .glb к имени модели
-            model.name = `${model.name}.glb`;
-            categories[model.category].push(model);
+            const modelName = `${model.name}.glb`;
+            // Используем сохраненное количество
+            const quantity = getModelQuantity(modelName);
+            // Создаем копию модели с обновленным количеством
+            const modelCopy = { ...model, name: modelName, quantity };
+            categories[model.category].push(modelCopy);
         });
 
         // Create categories container
@@ -103,10 +173,11 @@ function showModelsForCategory(category, models, sidebar) {
         item.className = 'item';
         item.setAttribute('draggable', 'true');
         item.setAttribute('data-model', model.name);
-        item.setAttribute('data-quantity', model.quantity || 0);
+        const quantity = getModelQuantity(model.name);
+        item.setAttribute('data-quantity', quantity);
 
         // Добавляем класс blurred если количество 0
-        if (!model.quantity || model.quantity === 0) {
+        if (quantity === 0) {
             item.classList.add('blurred');
         }
 
@@ -129,11 +200,11 @@ function showModelsForCategory(category, models, sidebar) {
         const cartIcon = document.createElement('span');
         cartIcon.className = 'cart-icon';
         cartIcon.textContent = '🛒';
-        const quantity = document.createElement('span');
-        quantity.className = 'model-quantity';
-        quantity.textContent = model.quantity || 0;
+        const quantityElement = document.createElement('span');
+        quantityElement.className = 'model-quantity';
+        quantityElement.textContent = quantity;
         cartContainer.appendChild(cartIcon);
-        cartContainer.appendChild(quantity);
+        cartContainer.appendChild(quantityElement);
 
         item.appendChild(modelViewer);
         item.appendChild(name);
