@@ -40,39 +40,100 @@ export function createSimplePlayground(width, length) {
  * @returns {THREE.Material} Материал для площадки
  */
 function createGroundMaterial(width, length) {
-    // Создаем два материала: один для серой площадки, другой для зеленой травы вокруг
+    // Создаем загрузчик текстур
     const textureLoader = new THREE.TextureLoader();
     
-    // Загружаем текстуру травы
-    const grassTexture = textureLoader.load('textures/grass/grass_texture.jpg');
-    grassTexture.wrapS = THREE.RepeatWrapping;
-    grassTexture.wrapT = THREE.RepeatWrapping;
-    
-    // Устанавливаем масштаб повторений текстуры в зависимости от размера площадки
-    grassTexture.repeat.set(width * 2, length * 2); // Увеличиваем количество повторений
-    
     try {
-        // Загружаем нормальную карту для объемности травы
-        const grassNormalMap = textureLoader.load('textures/grass/grass_normal.jpg');
-        grassNormalMap.wrapS = THREE.RepeatWrapping;
-        grassNormalMap.wrapT = THREE.RepeatWrapping;
-        grassNormalMap.repeat.set(width * 2, length * 2);
+        // Загружаем текстуру травы из папки textures/grass
+        console.log('Загружаем текстуру травы для площадки');
         
-        // Создаем материал для серой центральной площадки
+        // Основная текстура травы
+        const grassTexture = textureLoader.load('textures/grass/grass_texture.jpg');
+        
+        // Пробуем загрузить нормаль-маппинг для объемности
+        const normalTexture = textureLoader.load('textures/grass/grass_normal.jpg');
+        
+        // Также можно использовать основную текстуру травы
+        const grassMainTexture = textureLoader.load('textures/grass.jpg');
+        
+        // Настраиваем повторение текстур в зависимости от размера площадки
+        // Более крупное повторение для большой площадки
+        const repeats = Math.max(2, Math.max(width, length) / 3);
+        
+        // Настраиваем все текстуры
+        [grassTexture, normalTexture, grassMainTexture].forEach(texture => {
+            if (texture) {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(repeats, repeats);
+                texture.anisotropy = 16; // Улучшает качество при наклонных углах
+            }
+        });
+        
+        // Создаем программную текстуру бетона
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Заполняем фон серым цветом
+        ctx.fillStyle = '#9E9E9E'; // Средний серый
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Добавляем текстуру бетона - мелкие шумы и трещины
+        ctx.fillStyle = '#8D8D8D'; // Темно-серый для теней
+        
+        // Добавляем мелкие пятна для текстуры бетона
+        for (let i = 0; i < 5000; i++) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const radius = Math.random() * 2 + 0.5;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Добавляем несколько трещин
+        ctx.strokeStyle = '#7D7D7D';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 50; i++) {
+            const x1 = Math.random() * canvas.width;
+            const y1 = Math.random() * canvas.height;
+            const length = Math.random() * 30 + 5;
+            const angle = Math.random() * Math.PI * 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1 + Math.cos(angle) * length, y1 + Math.sin(angle) * length);
+            ctx.stroke();
+        }
+        
+        // Создаем текстуру из канваса
+        const concreteTexture = new THREE.CanvasTexture(canvas);
+        concreteTexture.wrapS = THREE.RepeatWrapping;
+        concreteTexture.wrapT = THREE.RepeatWrapping;
+        concreteTexture.repeat.set(repeats/2, repeats/2); // Более крупное повторение
+        concreteTexture.anisotropy = 16;
+        
+        // Создаем материал бетона
         return new THREE.MeshStandardMaterial({
-            color: 0xe0e0e0, // светло-серый
-            roughness: 0.8,
-            metalness: 0.2,
-            side: THREE.DoubleSide
+            map: concreteTexture,
+            normalMap: normalTexture.image && normalTexture.image.width > 10 ? normalTexture : null,
+            color: 0xAAAAAA, // Серый цвет для бетона
+            roughness: 0.85,  // Бетон более шероховатый
+            metalness: 0.05,  // Минимальная металличность
+            side: THREE.DoubleSide,
+            flatShading: false,
+            envMapIntensity: 0.3 // Меньше отражений для бетона
         });
     } catch (error) {
-        console.error('Ошибка при загрузке текстур:', error);
+        console.error('Ошибка при создании текстуры бетона:', error);
         
-        // В случае ошибки возвращаем простой материал
+        // В случае ошибки создаем простой серый материал для бетона
         return new THREE.MeshStandardMaterial({
-            color: 0xe0e0e0, // светло-серый
-            roughness: 0.8,
-            metalness: 0.2,
+            color: 0xAAAAAA, // Серый цвет для бетона
+            roughness: 0.85, // Большая шероховатость для бетона
+            metalness: 0.05, // Минимальная металличность
             side: THREE.DoubleSide
         });
     }
@@ -104,10 +165,26 @@ function setupSimplePlayground(plane, width, length) {
     // Создаем большую плоскость с текстурой травы для окружения
     const surroundSize = 1000; // Очень большой размер травяного окружения
     
+    // Создаем материал для травы с текстурой
+    const grassTexturePath = 'textures/grass.jpg';
+    const grassTexture = new THREE.TextureLoader().load(grassTexturePath);
+    
+    // Настраиваем текстуру для кругового фона
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    
+    // Устанавливаем большое повторение для фона травы
+    // Используем большое значение для мелкой текстуры
+    const circleSize = Math.max(width, length) * 2.5; // Увеличенный размер круга
+    const repeats = circleSize / 2;
+    grassTexture.repeat.set(repeats, repeats);
+    grassTexture.anisotropy = 16; // Улучшает качество при наклонных углах
+    
     // Создаем материал для травы
     const grassMaterial = new THREE.MeshStandardMaterial({
+        map: grassTexture,
         color: 0x4CAF50, // Зеленый цвет для травы
-        roughness: 0.8,
+        roughness: 0.7,
         metalness: 0.1,
         side: THREE.DoubleSide
     });
