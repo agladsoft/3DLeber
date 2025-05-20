@@ -426,10 +426,8 @@ function showDeleteButtonForObject(object, event) {
     btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
     btn.onclick = function(e) {
         e.stopPropagation();
-        import('../objects.js').then(module => {
-            module.removeObject(object);
-            removeDeleteButton();
-        });
+        handleObjectDeletion(object);
+        removeDeleteButton();
     };
     // Удаляем кнопку при клике вне её
     setTimeout(() => {
@@ -439,4 +437,34 @@ function showDeleteButtonForObject(object, event) {
         if (!btn.contains(e.target)) removeDeleteButton();
     }
     document.body.appendChild(btn);
+}
+
+/**
+ * Обрабатывает удаление объекта
+ * @param {THREE.Object3D} object - Объект для удаления
+ */
+function handleObjectDeletion(object) {
+    if (!object) return;
+    
+    // Сохраняем имя модели перед удалением
+    const modelName = object.userData.modelName;
+    
+    // Удаляем объект
+    import('../objects.js').then(module => {
+        module.removeObject(object);
+    }).catch(error => {
+        console.error('Ошибка при удалении объекта:', error);
+    });
+    
+    // Обновляем количество в сайдбаре
+    if (modelName) {
+        // Динамически импортируем функцию обновления количества
+        import('./dragAndDrop.js').then(module => {
+            if (typeof module.updateModelQuantityOnRemove === 'function') {
+                module.updateModelQuantityOnRemove(modelName);
+            }
+        }).catch(error => {
+            console.error('Ошибка при обновлении количества модели:', error);
+        });
+    }
 }

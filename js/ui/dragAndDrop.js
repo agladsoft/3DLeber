@@ -79,6 +79,37 @@ function removeExistingHandlers() {
 }
 
 /**
+ * Обновляет количество модели в сайдбаре
+ * @param {string} modelName - Имя модели
+ * @param {number} newQuantity - Новое количество
+ */
+function updateModelQuantity(modelName, newQuantity) {
+    const items = document.querySelectorAll('.item');
+    items.forEach(item => {
+        if (item.getAttribute('data-model') === modelName) {
+            const quantityElement = item.querySelector('.model-quantity');
+            if (quantityElement) {
+                quantityElement.textContent = newQuantity;
+            }
+            
+            // Обновляем атрибут data-quantity
+            item.setAttribute('data-quantity', newQuantity);
+            
+            // Применяем blur если количество 0
+            if (newQuantity === 0) {
+                item.style.filter = 'blur(2px)';
+                item.style.opacity = '0.9';
+                item.style.pointerEvents = 'none';
+            } else {
+                item.style.filter = 'none';
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+            }
+        }
+    });
+}
+
+/**
  * Добавляет обработчики начала перетаскивания для элементов каталога
  */
 function addDragStartHandlers() {
@@ -94,6 +125,14 @@ function addDragStartHandlers() {
     document.querySelectorAll(".item").forEach(item => {
         item.addEventListener("dragstart", event => {
             const model = event.target.closest(".item").getAttribute("data-model");
+            const currentQuantity = parseInt(event.target.closest(".item").getAttribute("data-quantity") || "0");
+            
+            // Проверяем, есть ли доступное количество
+            if (currentQuantity <= 0) {
+                event.preventDefault();
+                return;
+            }
+            
             console.log("Drag started:", model);
             event.dataTransfer.setData("model", model);
             
@@ -131,6 +170,21 @@ function handleDrop(event) {
             return;
         }
         
+        // Получаем текущее количество модели
+        const item = document.querySelector(`.item[data-model="${modelName}"]`);
+        if (!item) {
+            console.warn("Model item not found in sidebar");
+            isDropProcessing = false;
+            return;
+        }
+        
+        const currentQuantity = parseInt(item.getAttribute("data-quantity") || "0");
+        if (currentQuantity <= 0) {
+            console.warn("No available quantity for model");
+            isDropProcessing = false;
+            return;
+        }
+        
         // Проверка инициализации сцены и площадки
         if (!scene) {
             console.error("Scene not initialized");
@@ -162,6 +216,10 @@ function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         loadAndPlaceModel(modelName, position);
+        
+        // Уменьшаем количество модели
+        const newQuantity = currentQuantity - 1;
+        updateModelQuantity(modelName, newQuantity);
         
         // Сбрасываем флаг через небольшую задержку,
         // чтобы предотвратить возможные "дребезги" событий
@@ -254,6 +312,37 @@ function determineDropPosition() {
     }
 }
 
+/**
+ * Обновляет количество модели в сайдбаре при удалении объекта
+ * @param {string} modelName - Имя модели
+ */
+export function updateModelQuantityOnRemove(modelName) {
+    const items = document.querySelectorAll('.item');
+    items.forEach(item => {
+        if (item.getAttribute('data-model') === modelName) {
+            const currentQuantity = parseInt(item.getAttribute('data-quantity') || '0');
+            const newQuantity = currentQuantity + 1;
+            
+            // Обновляем отображение количества
+            const quantityElement = item.querySelector('.model-quantity');
+            if (quantityElement) {
+                quantityElement.textContent = newQuantity;
+            }
+            
+            // Обновляем атрибут data-quantity
+            item.setAttribute('data-quantity', newQuantity);
+            
+            // Убираем blur если количество стало больше 0
+            if (newQuantity > 0) {
+                item.style.filter = 'none';
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+                item.classList.remove('blurred');
+            }
+        }
+    });
+}
+
 function updateSidebarDeleteButtons() {
     document.querySelectorAll('.item').forEach(item => {
         const modelName = item.getAttribute('data-model');
@@ -268,7 +357,12 @@ function updateSidebarDeleteButtons() {
         if (exists) {
             newDeleteBtn.addEventListener('click', () => {
                 // Удаляем все объекты этой модели с площадки
-                placedObjects.filter(obj => obj.userData.modelName === modelName).forEach(obj => removeObject(obj));
+                const objectsToRemove = placedObjects.filter(obj => obj.userData.modelName === modelName);
+                objectsToRemove.forEach(obj => {
+                    removeObject(obj);
+                    // Обновляем количество в сайдбаре после каждого удаления
+                    updateModelQuantityOnRemove(modelName);
+                });
                 // После удаления обновляем кнопки
                 setTimeout(updateSidebarDeleteButtons, 100);
             });

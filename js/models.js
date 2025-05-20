@@ -105,6 +105,11 @@ function showModelsForCategory(category, models, sidebar) {
         item.setAttribute('data-model', model.name);
         item.setAttribute('data-quantity', model.quantity || 0);
 
+        // Добавляем класс blurred если количество 0
+        if (!model.quantity || model.quantity === 0) {
+            item.classList.add('blurred');
+        }
+
         const modelViewer = document.createElement('model-viewer');
         modelViewer.setAttribute('src', `models/${model.name}`);
         modelViewer.setAttribute('auto-rotate', '');

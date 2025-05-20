@@ -48,7 +48,18 @@ function setupControlHandlers() {
             const module = await import('../objects.js');
             // Копируем массив, чтобы не было проблем при изменении во время итерации
             const objectsToDelete = [...module.placedObjects];
-            objectsToDelete.forEach(obj => module.removeObject(obj));
+            
+            // Импортируем функцию обновления количества
+            const dragAndDropModule = await import('./dragAndDrop.js');
+            
+            // Удаляем каждый объект и обновляем количество
+            for (const obj of objectsToDelete) {
+                const modelName = obj.userData.modelName;
+                module.removeObject(obj);
+                if (modelName && dragAndDropModule.updateModelQuantityOnRemove) {
+                    dragAndDropModule.updateModelQuantityOnRemove(modelName);
+                }
+            }
         };
     }
 }
