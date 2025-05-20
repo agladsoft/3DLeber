@@ -125,3 +125,5 @@ export const TOP_VIEW_SETTINGS = {
     maxZoom: 3.0,                   // Максимальный уровень масштабирования
     heightMultiplier: 1.1           // Множитель высоты камеры относительно диагонали площадки
 };
+
+export const PLAYGROUND_GROUND_PREFIXES = ['Plane', 'Grass'];

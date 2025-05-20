@@ -132,9 +132,7 @@ export async function initializeApp() {
             // Инициализируем модуль отображения размеров объектов
             console.log('Инициализация модуля отображения размеров');
             initDimensionUpdates();
-            // Устанавливаем флаг, что размеры должны быть скрыты
-            localStorage.setItem('dimensionLabelsHidden', 'true');
-            console.log('Модуль отображения размеров инициализирован (скрыт)');
+            console.log('Модуль отображения размеров инициализирован');
         } catch (dimensionError) {
             console.error('Ошибка при инициализации модуля отображения размеров:', dimensionError);
         }
@@ -153,18 +151,13 @@ export async function initializeApp() {
         
         // Не скрываем индикатор загрузки здесь - это будет сделано после загрузки и рендеринга модели
         
-        // Инициализируем обновления размеров моделей
-        initDimensionUpdates();
-        console.log('Инициализация обновлений размеров моделей - OK');
-        
         console.log('Приложение успешно инициализировано');
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
         
-        // Скрываем индикатор загрузки, если он есть
+        // Скрываем индикатор загрузки только в случае критической ошибки
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {
-            console.log('Скрываем индикатор загрузки');
             loadingOverlay.classList.add('hidden');
             window.isLoading = false;
         }
