@@ -1,6 +1,7 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
 
 const STORAGE_KEY = 'model_quantities';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 /**
  * Очищает сохраненные количества моделей
@@ -65,37 +66,43 @@ async function loadModels() {
             isFirstLoad = false;
         }
 
-        // TODO: В будущем раскомментировать API и закомментировать локальный JSON
-        // Try to fetch the models list from the API
-        let data;
+        // // TODO: В будущем раскомментировать API и закомментировать локальный JSON
+        // // Try to fetch the models list from the API
         // try {
         //     const response = await fetch('http://localhost:3000/api/models');
         //     data = await response.json();
         // } catch (apiError) {
         //     console.log('API not available, using local JSON file');
         //     // If API is not available, try to load local JSON file
-        //     try {
-        //         const localResponse = await fetch('models.json');
-        //         data = await localResponse.json();
-        //     } catch (localError) {
-        //         console.error('Error loading local JSON:', localError);
-        //         // If both API and local JSON fail, show empty sidebar
-        //         const sidebar = document.getElementById('sidebar');
-        //         sidebar.innerHTML = '<h3>Нет доступных моделей</h3>';
-        //         return;
-        //     }
+        //     console.error('Error loading local JSON:', localError);
+        //     // If both API and local JSON fail, show empty sidebar
+        //     const sidebar = document.getElementById('sidebar');
+        //     sidebar.innerHTML = '<h3>Нет доступных моделей</h3>';
+        //     return;
         // }
-
-        // Временное решение для тестов - используем локальный JSON
-        try {
-            const localResponse = await fetch('models.json');
-            data = await localResponse.json();
-        } catch (localError) {
-            console.error('Error loading local JSON:', localError);
-            const sidebar = document.getElementById('sidebar');
-            sidebar.innerHTML = '<h3>Нет доступных моделей</h3>';
-            return;
+        
+        // Сначала загружаем JSON файл
+        const jsonResponse = await fetch('models.json');
+        if (!jsonResponse.ok) {
+            throw new Error('Failed to fetch JSON data');
         }
+        const jsonData = await jsonResponse.json();
+        
+        // Отправляем данные на сервер для сопоставления с БД
+        const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ models: jsonData.models }),
+        });
+        
+        if (!matchResponse.ok) {
+            throw new Error('Failed to match models with database');
+        }
+        
+        const data = await matchResponse.json();
+        console.log('Matched models:', data);
 
         // Check if we have valid data
         if (!data || !data.models || !Array.isArray(data.models)) {
@@ -105,14 +112,14 @@ async function loadModels() {
             return;
         }
 
-        const { user_id, models } = data;
+        const { models } = data;
 
         // Инициализируем начальные количества
         initializeModelQuantities(models);
 
         // Get the sidebar element
         const sidebar = document.getElementById('sidebar');
-        sidebar.innerHTML = `<h3>Выберите категорию (User: ${user_id || 'default'})</h3>`;
+        sidebar.innerHTML = `<h3>Выберите категорию (User: ${jsonData.user_id || 'default'})</h3>`;
 
         // Group models by category
         const categories = {};
@@ -173,6 +180,7 @@ function showModelsForCategory(category, models, sidebar) {
         item.className = 'item';
         item.setAttribute('draggable', 'true');
         item.setAttribute('data-model', model.name);
+        item.setAttribute('data-article', model.article);
         const quantity = getModelQuantity(model.name);
         item.setAttribute('data-quantity', quantity);
 
