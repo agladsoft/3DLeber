@@ -1,4 +1,5 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
+import { getQuantityFromStorage } from './ui/dragAndDrop.js';
 import { loadAndPlaceModel } from './modules/objectManager.js';
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -246,11 +247,19 @@ function showModelsForCategory(category, models, sidebar) {
         item.setAttribute('draggable', 'true');
         item.setAttribute('data-model', model.name);
         item.setAttribute('data-article', model.article);
-        item.setAttribute('data-quantity', model.quantity);
+        
+        // Проверяем количество в localStorage, если нет - используем значение из model
+        const storedQuantity = getQuantityFromStorage(model.name);
+        const quantity = storedQuantity !== null ? storedQuantity : model.quantity;
+        
+        item.setAttribute('data-quantity', quantity);
 
         // Добавляем класс blurred если количество 0
-        if (model.quantity === 0) {
+        if (quantity === 0) {
             item.classList.add('blurred');
+            item.style.filter = 'blur(2px)';
+            item.style.opacity = '0.9';
+            item.style.pointerEvents = 'none';
         }
 
         const modelViewer = document.createElement('model-viewer');
@@ -274,7 +283,7 @@ function showModelsForCategory(category, models, sidebar) {
         cartIcon.textContent = '🛒';
         const quantityElement = document.createElement('span');
         quantityElement.className = 'model-quantity';
-        quantityElement.textContent = model.quantity;
+        quantityElement.textContent = quantity;
         cartContainer.appendChild(cartIcon);
         cartContainer.appendChild(quantityElement);
 

@@ -18,6 +18,75 @@ import { saveModelQuantity } from '../models.js';
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
 
+// Ключ для хранения количества моделей в localStorage
+const MODELS_QUANTITY_KEY = 'modelQuantities';
+
+/**
+ * Получает количество модели из localStorage
+ */
+export function getQuantityFromStorage(modelName) {
+    try {
+        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        return quantities[modelName] !== undefined ? quantities[modelName] : null;
+    } catch (error) {
+        console.error('Error getting quantity from localStorage:', error);
+        return null;
+    }
+}
+
+/**
+ * Сохраняет количество моделей в localStorage
+ */
+function saveQuantitiesToStorage(modelName, quantity) {
+    try {
+        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        quantities[modelName] = quantity;
+        localStorage.setItem(MODELS_QUANTITY_KEY, JSON.stringify(quantities));
+    } catch (error) {
+        console.error('Error saving quantities to localStorage:', error);
+    }
+}
+
+/**
+ * Восстанавливает количество моделей из localStorage
+ */
+export function restoreQuantitiesFromStorage() {
+    try {
+        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        document.querySelectorAll('.item').forEach(item => {
+            const modelName = item.getAttribute('data-model');
+            if (modelName && modelName in quantities) {
+                const storedQuantity = quantities[modelName];
+                updateModelQuantityUI(item, storedQuantity);
+            }
+        });
+    } catch (error) {
+        console.error('Error restoring quantities from localStorage:', error);
+    }
+}
+
+/**
+ * Обновляет UI элемента с новым количеством
+ */
+function updateModelQuantityUI(item, newQuantity) {
+    const quantityElement = item.querySelector('.model-quantity');
+    if (quantityElement) {
+        quantityElement.textContent = newQuantity;
+    }
+    
+    item.setAttribute('data-quantity', newQuantity);
+    
+    if (newQuantity <= 0) {
+        item.style.filter = 'blur(2px)';
+        item.style.opacity = '0.9';
+        item.style.pointerEvents = 'none';
+    } else {
+        item.style.filter = 'none';
+        item.style.opacity = '1';
+        item.style.pointerEvents = 'auto';
+    }
+}
+
 /**
  * Инициализирует обработчики для drag and drop
  */
@@ -85,28 +154,13 @@ function removeExistingHandlers() {
  * @param {number} newQuantity - Новое количество
  */
 function updateModelQuantity(modelName, newQuantity) {
-    // Обновляем только UI, без сохранения в базу
+    // Обновляем только UI и localStorage, без сохранения в базу
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
-            const quantityElement = item.querySelector('.model-quantity');
-            if (quantityElement) {
-                quantityElement.textContent = newQuantity;
-            }
-            
-            // Обновляем атрибут data-quantity
-            item.setAttribute('data-quantity', newQuantity);
-            
-            // Применяем blur если количество 0
-            if (newQuantity === 0) {
-                item.style.filter = 'blur(2px)';
-                item.style.opacity = '0.9';
-                item.style.pointerEvents = 'none';
-            } else {
-                item.style.filter = 'none';
-                item.style.opacity = '1';
-                item.style.pointerEvents = 'auto';
-            }
+            updateModelQuantityUI(item, newQuantity);
+            // Сохраняем в localStorage
+            saveQuantitiesToStorage(modelName, newQuantity);
         }
     });
 }
@@ -325,22 +379,13 @@ export function updateModelQuantityOnRemove(modelName) {
             const currentQuantity = parseInt(item.getAttribute('data-quantity') || '0');
             const newQuantity = currentQuantity + 1;
             
-            // Обновляем только UI, без сохранения в базу
-            const quantityElement = item.querySelector('.model-quantity');
-            if (quantityElement) {
-                quantityElement.textContent = newQuantity;
-            }
+            // Обновляем UI
+            updateModelQuantityUI(item, newQuantity);
             
-            // Обновляем атрибут data-quantity
-            item.setAttribute('data-quantity', newQuantity);
+            // Сохраняем новое количество в localStorage
+            saveQuantitiesToStorage(modelName, newQuantity);
             
-            // Убираем blur если количество стало больше 0
-            if (newQuantity > 0) {
-                item.style.filter = 'none';
-                item.style.opacity = '1';
-                item.style.pointerEvents = 'auto';
-                item.classList.remove('blurred');
-            }
+            item.classList.remove('blurred');
         }
     });
 }
@@ -349,7 +394,9 @@ function updateSidebarDeleteButtons() {
     document.querySelectorAll('.item').forEach(item => {
         const modelName = item.getAttribute('data-model');
         const deleteBtn = item.querySelector('.sidebar-delete');
-        if (!deleteBtn) return;
+        if (!deleteBtn) {
+            return;
+        }
         // Проверяем, есть ли хотя бы один объект этой модели на площадке
         const exists = placedObjects.some(obj => obj.userData.modelName === modelName);
         deleteBtn.style.display = exists ? '' : 'none';
