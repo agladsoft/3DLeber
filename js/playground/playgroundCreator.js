@@ -9,8 +9,11 @@ import * as THREE from 'three';
 
 /**
  * Создает простую площадку в виде плоскости, если не удалось загрузить модель
+ * @param {Number} width - Ширина площадки
+ * @param {Number} length - Длина площадки 
+ * @param {String} color - Цвет площадки (серый, черный, зеленый, коричневый)
  */
-export function createSimplePlayground(width, length) {
+export function createSimplePlayground(width, length, color = 'серый') {
     console.log('Запущена функция createSimplePlayground');
     console.log('Текущие значения: ground =', ground, 'groundMesh =', groundMesh);
     console.log('Создаем простую площадку с размерами:', width, 'x', length);
@@ -19,7 +22,7 @@ export function createSimplePlayground(width, length) {
         const planeGeometry = new THREE.PlaneGeometry(width, length);
         console.log('Создана геометрия плоскости');
         // Создаем материал для плоскости (с текстурой)
-        const planeMaterial = createGroundMaterial(width, length);
+        const planeMaterial = createGroundMaterial(width, length, color);
         console.log('Создан материал для плоскости');
         // Создаем меш плоскости
         const plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -37,9 +40,12 @@ export function createSimplePlayground(width, length) {
 
 /**
  * Создает материал для простой площадки
+ * @param {Number} width - Ширина площадки
+ * @param {Number} length - Длина площадки
+ * @param {String} color - Цвет площадки (серый, черный, зеленый, коричневый)
  * @returns {THREE.Material} Материал для площадки
  */
-function createGroundMaterial(width, length) {
+function createGroundMaterial(width, length, color = 'серый') {
     // Создаем загрузчик текстур
     const textureLoader = new THREE.TextureLoader();
     
@@ -115,25 +121,66 @@ function createGroundMaterial(width, length) {
         concreteTexture.repeat.set(repeats/2, repeats/2); // Более крупное повторение
         concreteTexture.anisotropy = 16;
         
-        // Создаем материал бетона
+        // Определяем цвет площадки в зависимости от выбора пользователя
+        let groundColor;
+        let groundRoughness = 0.85;
+        let groundMetalness = 0.05;
+        
+        switch(color.toLowerCase()) {
+            case 'черный':
+                groundColor = 0x222222; // Чёрный
+                break;
+            case 'зеленый':
+                groundColor = 0x2E7D32; // Зелёный
+                groundRoughness = 0.75;
+                break;
+            case 'коричневый':
+                groundColor = 0x5D4037; // Коричневый
+                break;
+            case 'серый':
+            default:
+                groundColor = 0xAAAAAA; // Серый (по умолчанию)
+                break;
+        }
+        
+        // Создаем материал для площадки
         return new THREE.MeshStandardMaterial({
             map: concreteTexture,
             normalMap: normalTexture.image && normalTexture.image.width > 10 ? normalTexture : null,
-            color: 0xAAAAAA, // Серый цвет для бетона
-            roughness: 0.85,  // Бетон более шероховатый
-            metalness: 0.05,  // Минимальная металличность
+            color: groundColor,
+            roughness: groundRoughness,
+            metalness: groundMetalness,
             side: THREE.DoubleSide,
             flatShading: false,
-            envMapIntensity: 0.3 // Меньше отражений для бетона
+            envMapIntensity: 0.3
         });
     } catch (error) {
         console.error('Ошибка при создании текстуры бетона:', error);
         
-        // В случае ошибки создаем простой серый материал для бетона
+        // Определяем цвет площадки в зависимости от выбора пользователя (упрощенная версия)
+        let groundColor;
+        
+        switch(color.toLowerCase()) {
+            case 'черный':
+                groundColor = 0x222222; // Чёрный
+                break;
+            case 'зеленый':
+                groundColor = 0x2E7D32; // Зелёный
+                break;
+            case 'коричневый':
+                groundColor = 0x5D4037; // Коричневый
+                break;
+            case 'серый':
+            default:
+                groundColor = 0xAAAAAA; // Серый (по умолчанию)
+                break;
+        }
+        
+        // В случае ошибки создаем простой материал с выбранным цветом
         return new THREE.MeshStandardMaterial({
-            color: 0xAAAAAA, // Серый цвет для бетона
-            roughness: 0.85, // Большая шероховатость для бетона
-            metalness: 0.05, // Минимальная металличность
+            color: groundColor,
+            roughness: 0.85,
+            metalness: 0.05,
             side: THREE.DoubleSide
         });
     }
@@ -215,14 +262,14 @@ function setupSimplePlayground(plane, width, length) {
     console.log('После updateGroundReferences: ground =', ground, 'groundMesh =', groundMesh);
     
     // Добавляем данные для будущего масштабирования
-    // Добавляем данные для будущего масштабирования
     plane.userData = {
         originalWidth: width,
         originalHeight: 0.1,
         originalDepth: length,
         modelName: 'simple_playground',
         isPlayground: true,  // Маркер, что это площадка
-        hasCircularGrass: true // Маркер, что фон круглый
+        hasCircularGrass: true, // Маркер, что фон круглый
+        groundColor: color // Сохраняем информацию о цвете площадки
     };
     console.log('Добавлены userData к плоскости:', plane.userData);
     

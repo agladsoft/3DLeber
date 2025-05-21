@@ -67,6 +67,7 @@ export async function initializeApp() {
         let playgroundType = 'playground.glb'; // По умолчанию
         let userWidth = 10; // По умолчанию
         let userLength = 10; // По умолчанию
+        let userColor = 'серый'; // Цвет по умолчанию
         
         // Если есть выбранный тип площадки из модального окна, используем его
         if (window.selectedPlaygroundType) {
@@ -85,6 +86,12 @@ export async function initializeApp() {
             console.log('Используем длину площадки из модального окна:', userLength);
         }
         
+        // Если есть выбранный цвет площадки из модального окна, используем его
+        if (window.selectedPlaygroundColor) {
+            userColor = window.selectedPlaygroundColor;
+            console.log('Используем цвет площадки из модального окна:', userColor);
+        }
+        
         // Устанавливаем значения в контрольной панели, если она существует
         const playgroundTypeSelect = document.getElementById('playgroundType');
         const playgroundWidthInput = document.getElementById('playgroundWidth');
@@ -95,9 +102,9 @@ export async function initializeApp() {
         if (playgroundLengthInput) playgroundLengthInput.value = userLength;
         
         try {
-            // Попытка загрузить площадку с указанными размерами
-            console.log('Начинаем загрузку площадки:', playgroundType, 'с размерами:', userWidth, 'x', userLength);
-            const result = await loadPlayground(playgroundType);
+            // Попытка загрузить площадку с указанными размерами и цветом
+            console.log('Начинаем загрузку площадки:', playgroundType, 'с размерами:', userWidth, 'x', userLength, 'цвет:', userColor);
+            const result = await loadPlayground(playgroundType, userWidth, userLength, userColor);
             console.log('Площадка загружена, результат:', result);
             
             // Обновляем информационную панель со статусом площадки

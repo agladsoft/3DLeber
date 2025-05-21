@@ -37,17 +37,30 @@ function updateModalValuesFromCurrent() {
     // Получаем текущие параметры площадки
     const currentWidth = window.selectedPlaygroundWidth || 10;
     const currentLength = window.selectedPlaygroundLength || 10;
+    const currentColor = window.selectedPlaygroundColor || 'серый';
     
     // Обновляем значения в модальном окне
     const modalPlaygroundWidth = document.getElementById('modalPlaygroundWidth');
     const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
+    const modalPlaygroundColor = document.getElementById('modalPlaygroundColor');
     
     if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
     if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
+    if (modalPlaygroundColor) modalPlaygroundColor.value = currentColor;
+    
+    // Обновляем выделение цветного квадратика
+    const colorSquares = document.querySelectorAll('.color-square');
+    colorSquares.forEach(square => {
+        square.classList.remove('selected');
+        if (square.getAttribute('data-color') === currentColor) {
+            square.classList.add('selected');
+        }
+    });
     
     console.log('Обновлены значения в модальном окне из текущей площадки:', {
         ширина: currentWidth,
-        длина: currentLength
+        длина: currentLength,
+        цвет: currentColor
     });
 }
 
@@ -62,9 +75,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeAppButton = document.getElementById('closeAppButton');
     const playgroundPreview = document.getElementById('playgroundPreview');
     const modalPlaygroundType = document.getElementById('modalPlaygroundType');
+    const modalPlaygroundColorField = document.getElementById('modalPlaygroundColor');
+    const colorSquares = document.querySelectorAll('.color-square');
     
     // Инициализация превью площадки
     initializePlaygroundPreview();
+    
+    // Добавляем обработчики для цветных квадратиков
+    colorSquares.forEach(square => {
+        square.addEventListener('click', function() {
+            // Снимаем выделение с ранее выбранного квадратика
+            colorSquares.forEach(s => s.classList.remove('selected'));
+            
+            // Выделяем новый выбранный квадратик
+            this.classList.add('selected');
+            
+            // Получаем значение цвета из атрибута data-color
+            const selectedColor = this.getAttribute('data-color');
+            
+            // Устанавливаем значение в скрытое поле
+            modalPlaygroundColorField.value = selectedColor;
+            
+            console.log('Выбран цвет:', selectedColor);
+        });
+    });
     
     // Запуск модального окна выбора площадки
     launchButton.addEventListener('click', () => {
@@ -95,17 +129,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Получаем выбранные значения
         const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
         const selectedLength = document.getElementById('modalPlaygroundLength').value;
+        const selectedColor = document.getElementById('modalPlaygroundColor').value;
         
         // Сохраняем выбранные значения в глобальных переменных для использования в приложении
         window.selectedPlaygroundType = 'basketball_court.glb'; // всегда площадка 3
         window.selectedPlaygroundWidth = parseFloat(selectedWidth);
         window.selectedPlaygroundLength = parseFloat(selectedLength);
+        window.selectedPlaygroundColor = selectedColor;
         
         // Выводим информацию в консоль для отладки
         console.log('Настройки площадки из модального окна:', {
             тип: 'basketball_court.glb',
             ширина: selectedWidth,
-            длина: selectedLength
+            длина: selectedLength,
+            цвет: selectedColor
         });
         
         // Скрываем модальное окно выбора площадки
@@ -126,8 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Импортируем модуль загрузки площадки
                 import('./playground.js').then(module => {
-                    // Загружаем новую площадку
-                    module.loadPlayground('basketball_court.glb').then(() => {
+                    // Загружаем новую площадку с выбранным цветом
+                    module.loadPlayground('basketball_court.glb', null, null, window.selectedPlaygroundColor).then(() => {
                         console.log('Площадка успешно изменена');
                         
                         // Восстанавливаем состояние кнопки

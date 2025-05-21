@@ -30,6 +30,16 @@
                     <label for="modalPlaygroundLength">Длина (м):</label>
                     <input type="number" id="modalPlaygroundLength" min="5" max="50" value="10" step="1">
                 </div>
+                <div class="control-group">
+                    <label>Цвет площадки:</label>
+                    <div class="horizontal-color-picker modal-color-picker">
+                        <span class="color-square" data-color="серый" style="background-color: #AAAAAA;"></span>
+                        <span class="color-square" data-color="черный" style="background-color: #222222;"></span>
+                        <span class="color-square" data-color="зеленый" style="background-color: #2E7D32;"></span>
+                        <span class="color-square" data-color="коричневый" style="background-color: #5D4037;"></span>
+                    </div>
+                    <input type="hidden" id="modalPlaygroundColor" value="серый">
+                </div>
             </div>
             <div class="platform-buttons">
                 <button id="startAppButton" class="action-button">🚀 Запустить</button>
@@ -111,8 +121,17 @@
                 <div class="control-panel">
     <button id="resetView">👁️‍🗨️ Сбросить вид</button>
     <button id="topView">🔝 Вид сверху (сетка 1×1м)</button>
-    <button id="saveScreenshot">📸 Сделать скриншот</button>
+    <button id="saveScreenshot">📷 Сделать скриншот</button>
     <button id="toggleDimensions">📏 Размеры</button>
+    <button id="playgroundButton">🏞️ Площадка</button>
+    <table id="playgroundColorPicker" class="color-table hidden" width="100%" cellspacing="0" cellpadding="5">
+        <tr>
+            <td align="center" width="25%"><div class="color-square" data-color="серый" style="background-color: #AAAAAA;"></div></td>
+            <td align="center" width="25%"><div class="color-square" data-color="черный" style="background-color: #222222;"></div></td>
+            <td align="center" width="25%"><div class="color-square" data-color="зеленый" style="background-color: #2E7D32;"></div></td>
+            <td align="center" width="25%"><div class="color-square" data-color="коричневый" style="background-color: #5D4037;"></div></td>
+        </tr>
+    </table>
     <button id="deleteAllModels">🗑️ Удалить все модели</button>
     <button id="closeAppButton">❌ Закрыть приложение</button>
 </div>
