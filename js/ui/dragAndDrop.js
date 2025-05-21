@@ -18,30 +18,30 @@ import { saveModelQuantity } from '../models.js';
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
 
-// Ключ для хранения количества моделей в localStorage
+// Ключ для хранения количества моделей в sessionStorage
 const MODELS_QUANTITY_KEY = 'modelQuantities';
 
 /**
- * Получает количество модели из localStorage
+ * Получает количество модели из sessionStorage
  */
 export function getQuantityFromStorage(modelName) {
     try {
-        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
         return quantities[modelName] !== undefined ? quantities[modelName] : null;
     } catch (error) {
-        console.error('Error getting quantity from localStorage:', error);
+        console.error('Error getting quantity from sessionStorage:', error);
         return null;
     }
 }
 
 /**
- * Сохраняет количество моделей в localStorage
+ * Сохраняет количество моделей в sessionStorage
  */
 function saveQuantitiesToStorage(modelName, quantity) {
     try {
-        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
         quantities[modelName] = quantity;
-        localStorage.setItem(MODELS_QUANTITY_KEY, JSON.stringify(quantities));
+        sessionStorage.setItem(MODELS_QUANTITY_KEY, JSON.stringify(quantities));
     } catch (error) {
         console.error('Error saving quantities to localStorage:', error);
     }
@@ -52,7 +52,7 @@ function saveQuantitiesToStorage(modelName, quantity) {
  */
 export function restoreQuantitiesFromStorage() {
     try {
-        const quantities = JSON.parse(localStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
+        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
         document.querySelectorAll('.item').forEach(item => {
             const modelName = item.getAttribute('data-model');
             if (modelName && modelName in quantities) {
