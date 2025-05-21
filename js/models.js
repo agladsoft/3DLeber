@@ -1,4 +1,5 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
+import { loadAndPlaceModel } from './modules/objectManager.js';
 
 const STORAGE_KEY = 'model_quantities';
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -19,6 +20,8 @@ export function saveModelQuantity(modelName, quantity) {
     const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     quantities[modelName] = quantity;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(quantities));
+    // Автоматически сохраняем сессию при изменении количества
+    // autoSaveSession();
 }
 
 /**
@@ -55,6 +58,89 @@ function initializeModelQuantities(models) {
     }
 }
 
+/**
+ * Сохраняет текущую сессию в БД
+ * @param {string} userId - ID пользователя
+ * @param {Object} sessionData - Данные сессии
+ */
+async function saveSessionToDb(userId, sessionData) {
+    try {
+        if (!userId || !sessionData) {
+            console.error('Invalid session data or userId');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save session');
+        }
+    } catch (error) {
+        console.error('Error saving session:', error);
+    }
+}
+
+/**
+ * Загружает сохраненную сессию из БД
+ * @param {string} userId - ID пользователя
+ * @returns {Object|null} Данные сессии или null если сессия не найдена
+ */
+async function loadSessionFromDb(userId) {
+    try {
+        if (!userId) {
+            console.error('Invalid userId');
+            return null;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null;
+            }
+            throw new Error('Failed to load session');
+        }
+        const data = await response.json();
+        return data.session;
+    } catch (error) {
+        console.error('Error loading session:', error);
+        return null;
+    }
+}
+
+/**
+ * Восстанавливает состояние из сессии
+ * @param {Object} session - Данные сессии
+ */
+async function restoreSession(session) {
+    if (!session) {
+        return;
+    }
+
+    try {
+        // Восстанавливаем количества моделей
+        if (session.quantities) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(session.quantities));
+        }
+
+        // Восстанавливаем размещенные объекты
+        if (session.placedObjects && Array.isArray(session.placedObjects)) {
+            for (const obj of session.placedObjects) {
+                if (obj.modelName && obj.position) {
+                    await loadAndPlaceModel(obj.modelName, obj.position);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error restoring session:', error);
+    }
+}
+
 // Флаг для отслеживания первой загрузки
 let isFirstLoad = true;
 
@@ -65,28 +151,21 @@ async function loadModels() {
             clearModelQuantities();
             isFirstLoad = false;
         }
-
-        // // TODO: В будущем раскомментировать API и закомментировать локальный JSON
-        // // Try to fetch the models list from the API
-        // try {
-        //     const response = await fetch('http://localhost:3000/api/models');
-        //     data = await response.json();
-        // } catch (apiError) {
-        //     console.log('API not available, using local JSON file');
-        //     // If API is not available, try to load local JSON file
-        //     console.error('Error loading local JSON:', localError);
-        //     // If both API and local JSON fail, show empty sidebar
-        //     const sidebar = document.getElementById('sidebar');
-        //     sidebar.innerHTML = '<h3>Нет доступных моделей</h3>';
-        //     return;
-        // }
         
-        // Сначала загружаем JSON файл
+        // Загружаем JSON файл
         const jsonResponse = await fetch('models.json');
         if (!jsonResponse.ok) {
             throw new Error('Failed to fetch JSON data');
         }
         const jsonData = await jsonResponse.json();
+        
+        // Пытаемся восстановить сессию
+        if (jsonData.user_id) {
+            const session = await loadSessionFromDb(jsonData.user_id);
+            if (session) {
+                await restoreSession(session);
+            }
+        }
         
         // Отправляем данные на сервер для сопоставления с БД
         const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
@@ -124,7 +203,9 @@ async function loadModels() {
         // Group models by category
         const categories = {};
         models.forEach(model => {
-            if (!model.name || !model.category) return;
+            if (!model.name || !model.category) {
+                return;
+            }
             if (!categories[model.category]) {
                 categories[model.category] = [];
             }
@@ -151,6 +232,15 @@ async function loadModels() {
         });
 
         sidebar.appendChild(categoriesContainer);
+
+        // После успешной загрузки моделей сохраняем текущее состояние сессии
+        if (jsonData.user_id) {
+            const sessionData = {
+                quantities: JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'),
+                placedObjects: window.placedObjects || []
+            };
+            await saveSessionToDb(jsonData.user_id, sessionData);
+        }
 
     } catch (error) {
         console.error('Error loading models:', error);
@@ -225,6 +315,31 @@ function showModelsForCategory(category, models, sidebar) {
     // Reinitialize drag and drop handlers after creating new items
     if (typeof initDragAndDrop === 'function') {
         initDragAndDrop();
+    }
+}
+
+/**
+ * Автоматически сохраняет текущее состояние сессии
+ */
+export async function autoSaveSession() {
+    try {
+        const jsonResponse = await fetch('models.json');
+        if (!jsonResponse.ok) {
+            return;
+        }
+        const jsonData = await jsonResponse.json();
+        
+        if (!jsonData.user_id) {
+            return;
+        }
+
+        const sessionData = {
+            quantities: JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'),
+            placedObjects: window.placedObjects || []
+        };
+        await saveSessionToDb(jsonData.user_id, sessionData);
+    } catch (error) {
+        console.error('Error auto-saving session:', error);
     }
 }
 
