@@ -3,6 +3,7 @@
  * Отвечает за запуск приложения в модальном режиме
  */
 import { startSceneChecks } from './sceneCheck.js';
+import { initializeNewSession } from './models.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export function showPlatformSelectModal() {
@@ -67,9 +68,55 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePlaygroundPreview();
     
     // Запуск модального окна выбора площадки
-    launchButton.addEventListener('click', () => {
+    launchButton.addEventListener('click', async () => {
+        try {
+            // Получаем user_id из models.json
+            const response = await fetch('models.json');
+            const data = await response.json();
+            const userId = data.user_id;
+
+            if (!userId) {
+                throw new Error('No user ID found');
+            }
+
+            // Проверяем наличие сессии
+            const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+            if (!sessionResponse.ok) {
+                throw new Error('Failed to get session');
+            }
+
+            const { session } = await sessionResponse.json();
+            
+            if (session) {
+                // Если есть сессия, показываем модальное окно управления сессией
+                launchContainer.style.display = 'none';
+                const sessionModal = document.getElementById('sessionModal');
+                if (sessionModal) {
+                    sessionModal.style.display = 'block';
+                }
+            } else {
+                // Если сессии нет, сразу показываем окно выбора площадки
+                launchContainer.style.display = 'none';
+                const platformSelectModal = document.getElementById('platformSelectModal');
+                if (platformSelectModal) {
+                    // Сбрасываем значения в полях ввода
+                    const widthInput = document.getElementById('modalPlaygroundWidth');
+                    const lengthInput = document.getElementById('modalPlaygroundLength');
+                    if (widthInput) widthInput.value = '10';
+                    if (lengthInput) lengthInput.value = '10';
+                    
+                    platformSelectModal.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error checking session:', error);
+            // В случае ошибки показываем окно выбора площадки
         launchContainer.style.display = 'none';
+            const platformSelectModal = document.getElementById('platformSelectModal');
+            if (platformSelectModal) {
         platformSelectModal.style.display = 'block';
+            }
+        }
     });
     
     // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
@@ -87,7 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
-    startAppButton.addEventListener('click', () => {
+    startAppButton.addEventListener('click', async () => {
+        try {
         // Показываем индикатор загрузки на кнопке
         startAppButton.innerHTML = 'Загрузка...';
         startAppButton.disabled = true;
@@ -100,6 +148,21 @@ document.addEventListener('DOMContentLoaded', () => {
         window.selectedPlaygroundType = 'basketball_court.glb'; // всегда площадка 3
         window.selectedPlaygroundWidth = parseFloat(selectedWidth);
         window.selectedPlaygroundLength = parseFloat(selectedLength);
+            
+            // Получаем user_id и модели из models.json
+            const response = await fetch('models.json');
+            const data = await response.json();
+            const userId = data.user_id;
+
+            if (!userId) {
+                throw new Error('No user ID found');
+            }
+
+            // Инициализируем новую сессию с моделями из JSON
+            if (data.models && Array.isArray(data.models)) {
+                console.log('Initializing new session with models:', data.models);
+                await initializeNewSession(userId, data.models);
+            }
         
         // Выводим информацию в консоль для отладки
         console.log('Настройки площадки из модального окна:', {
@@ -111,9 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Скрываем модальное окно выбора площадки
         platformSelectModal.style.display = 'none';
         
-        // Проверяем, возвращаемся ли мы к приложению или запускаем новое
-        if (window.returnToApp) {
-            // Показываем приложение после смены площадки
+            // Показываем приложение
             appModal.style.display = 'block';
             
             // Показываем индикатор загрузки
@@ -123,44 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.isLoading = true;
             }
             
-            try {
-                // Импортируем модуль загрузки площадки
-                import('./playground.js').then(module => {
-                    // Загружаем новую площадку
-                    module.loadPlayground('basketball_court.glb').then(() => {
-                        console.log('Площадка успешно изменена');
-                        
-                        // Восстанавливаем состояние кнопки
-                        startAppButton.innerHTML = 'Запустить';
-                        startAppButton.disabled = false;
-                    });
-                });
-            } catch (error) {
-                console.error('Ошибка при загрузке новой площадки:', error);
-                
-                // Восстанавливаем состояние кнопки в случае ошибки
-                startAppButton.innerHTML = 'Запустить';
-                startAppButton.disabled = false;
-            }
-        } else {
-            // Показываем основное приложение для первого запуска
-            appModal.style.display = 'block';
-            
-            // Показываем индикатор загрузки
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                window.isLoading = true;
-            }
-            
-            // Вызываем функцию инициализации приложения
+            // Запускаем приложение
             if (window.initApp) {
                 window.initApp();
-                
-                // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
                 setTimeout(initializeTopViewButtonWithDelay, 1000);
-                
-                // Запускаем проверку сцены после открытия модального окна
                 setTimeout(() => {
                     console.log("Запуск проверки сцены после открытия модального окна");
                     startSceneChecks();
@@ -172,8 +199,147 @@ document.addEventListener('DOMContentLoaded', () => {
                 startAppButton.innerHTML = 'Запустить';
                 startAppButton.disabled = false;
             }, 2000);
+        } catch (error) {
+            console.error('Error starting app:', error);
+            startAppButton.innerHTML = 'Запустить';
+            startAppButton.disabled = false;
         }
     });
+    
+    // Обработчик для кнопки "Начать новую сессию"
+    const newSessionButton = document.getElementById('newSessionButton');
+    if (newSessionButton) {
+        newSessionButton.addEventListener('click', async () => {
+            try {
+                // Получаем user_id и модели из models.json
+                const response = await fetch('models.json');
+                const data = await response.json();
+                console.log('Data from models.json:', data);
+                const userId = data.user_id;
+
+                if (userId) {
+                    // Очищаем сессию в базе данных
+                    const clearResponse = await fetch(`http://localhost:3000/api/session/${userId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!clearResponse.ok) {
+                        throw new Error('Failed to clear session');
+                    }
+
+                    // Инициализируем новую сессию данными из JSON
+                    if (data.models && Array.isArray(data.models)) {
+                        console.log('Initializing new session with models:', data.models);
+                        await initializeNewSession(userId, data.models);
+                    } else {
+                        console.error('No models found in models.json');
+                        throw new Error('No models found in models.json');
+                    }
+                }
+                
+                // Скрываем модальное окно управления сессией
+                const sessionModal = document.getElementById('sessionModal');
+                if (sessionModal) {
+                    sessionModal.style.display = 'none';
+                }
+
+                // Показываем модальное окно выбора площадки
+                const platformSelectModal = document.getElementById('platformSelectModal');
+                if (platformSelectModal) {
+                    // Сбрасываем значения в полях ввода
+                    const widthInput = document.getElementById('modalPlaygroundWidth');
+                    const lengthInput = document.getElementById('modalPlaygroundLength');
+                    if (widthInput) widthInput.value = '10';
+                    if (lengthInput) lengthInput.value = '10';
+                    
+                    // Показываем модальное окно
+                    platformSelectModal.style.display = 'block';
+                    console.log('Showing platform selection modal');
+                } else {
+                    console.error('Platform selection modal not found');
+                }
+            } catch (error) {
+                console.error('Error clearing session:', error);
+            }
+        });
+    }
+    
+    // Обработчик для кнопки "Продолжить сессию"
+    const continueSessionButton = document.getElementById('continueSessionButton');
+    if (continueSessionButton) {
+        continueSessionButton.addEventListener('click', async () => {
+            try {
+                // Получаем user_id из models.json
+                const response = await fetch('models.json');
+                const data = await response.json();
+                const userId = data.user_id;
+
+                if (!userId) {
+                    throw new Error('No user ID found');
+                }
+
+                // Получаем данные сессии из БД
+                const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                if (!sessionResponse.ok) {
+                    throw new Error('Failed to get session');
+                }
+
+                const { session } = await sessionResponse.json();
+                if (!session) {
+                    throw new Error('No session found');
+                }
+
+                const sessionModal = document.getElementById('sessionModal');
+                if (sessionModal) {
+                    sessionModal.style.display = 'none';
+                }
+                
+                // Показываем приложение с дефолтными настройками площадки
+                appModal.style.display = 'block';
+                
+                // Устанавливаем дефолтные значения для площадки
+                window.selectedPlaygroundType = 'basketball_court.glb';
+                window.selectedPlaygroundWidth = 10;
+                window.selectedPlaygroundLength = 10;
+                
+                // Показываем индикатор загрузки
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('hidden');
+                    window.isLoading = true;
+                }
+                
+                // Запускаем приложение
+                if (window.returnToApp) {
+                    try {
+                        import('./playground.js').then(module => {
+                            module.loadPlayground('basketball_court.glb').then(() => {
+                                console.log('Площадка успешно изменена');
+                            });
+                        });
+                    } catch (error) {
+                        console.error('Ошибка при загрузке новой площадки:', error);
+                    }
+                } else {
+                    if (window.initApp) {
+                        window.initApp();
+                        setTimeout(initializeTopViewButtonWithDelay, 1000);
+                        setTimeout(() => {
+                            console.log("Запуск проверки сцены после открытия модального окна");
+                            startSceneChecks();
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error continuing session:', error);
+                // Если произошла ошибка, показываем модальное окно выбора площадки
+                const platformSelectModal = document.getElementById('platformSelectModal');
+                if (platformSelectModal) {
+                    platformSelectModal.style.display = 'block';
+                }
+            }
+        });
+    }
     
     // Обработчик нажатия на кнопку закрытия приложения
     closeAppButton.addEventListener('click', () => {

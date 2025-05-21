@@ -1,75 +1,98 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
 import { loadAndPlaceModel } from './modules/objectManager.js';
 
-const STORAGE_KEY = 'model_quantities';
 const API_BASE_URL = 'http://localhost:3000/api';
 
 /**
- * Очищает сохраненные количества моделей
+ * Получает актуальное количество модели из сессии
+ * @param {string} modelName - Имя модели
+ * @param {Object} sessionData - Данные сессии
+ * @returns {number} Количество модели
  */
-export function clearModelQuantities() {
-    localStorage.removeItem(STORAGE_KEY);
+export function getModelQuantity(modelName, sessionData) {
+    if (!sessionData || !sessionData.quantities) {
+        return 0;
+    }
+    return sessionData.quantities[modelName] || 0;
 }
 
 /**
- * Сохраняет актуальное количество модели
+ * Сохраняет актуальное количество модели в сессии
+ * @param {string} userId - ID пользователя
  * @param {string} modelName - Имя модели
  * @param {number} quantity - Количество
  */
-export function saveModelQuantity(modelName, quantity) {
-    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    quantities[modelName] = quantity;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(quantities));
-    // Автоматически сохраняем сессию при изменении количества
-    // autoSaveSession();
-}
-
-/**
- * Получает актуальное количество модели
- * @param {string} modelName - Имя модели
- * @returns {number} Количество модели
- */
-export function getModelQuantity(modelName) {
-    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return quantities[modelName] ?? 0;
-}
-
-/**
- * Инициализирует начальные количества моделей
- * @param {Array} models - Массив моделей из models.json
- */
-function initializeModelQuantities(models) {
-    const quantities = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    let hasChanges = false;
-
-    models.forEach(model => {
-        if (model.name) {
-            const modelName = `${model.name}.glb`;
-            // Инициализируем только если количество еще не установлено
-            if (!(modelName in quantities)) {
-                quantities[modelName] = model.quantity || 0;
-                hasChanges = true;
-            }
+export async function saveModelQuantity(userId, modelName, quantity) {
+    try {
+        // Получаем текущую сессию
+        const response = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to get session');
         }
-    });
-
-    if (hasChanges) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(quantities));
+        const { session } = await response.json();
+        
+        // Обновляем количество в сессии
+        const sessionData = session || { quantities: {} };
+        sessionData.quantities = sessionData.quantities || {};
+        sessionData.quantities[modelName] = quantity;
+        
+        // Сохраняем обновленную сессию
+        await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+    } catch (error) {
+        console.error('Error saving model quantity:', error);
     }
 }
 
 /**
- * Сохраняет текущую сессию в БД
+ * Инициализирует новую сессию данными из JSON
  * @param {string} userId - ID пользователя
- * @param {Object} sessionData - Данные сессии
+ * @param {Array} models - Массив моделей из JSON
  */
-async function saveSessionToDb(userId, sessionData) {
+export async function initializeNewSession(userId, models) {
     try {
-        if (!userId || !sessionData) {
-            console.error('Invalid session data or userId');
-            return;
+        console.log('Initializing new session with models:', models);
+        
+        // Сначала получаем полные данные моделей через API
+        const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ models }),
+        });
+
+        if (!matchResponse.ok) {
+            throw new Error('Failed to match models with database');
         }
 
+        const { models: matchedModels } = await matchResponse.json();
+        console.log('Matched models:', matchedModels);
+
+        // Создаем начальные данные сессии
+        const sessionData = {
+            quantities: {},
+            placedObjects: []
+        };
+
+        // Заполняем количества из JSON, используя article для сопоставления
+        models.forEach(jsonModel => {
+            const matchedModel = matchedModels.find(m => m.article === jsonModel.article);
+            if (matchedModel && matchedModel.name) {
+                const modelName = `${matchedModel.name}.glb`;
+                sessionData.quantities[modelName] = jsonModel.quantity;
+                console.log(`Setting quantity for ${modelName}: ${jsonModel.quantity}`);
+            }
+        });
+
+        console.log('Final session data to save:', sessionData);
+
+        // Сохраняем сессию в БД
         const response = await fetch(`${API_BASE_URL}/session`, {
             method: 'POST',
             headers: {
@@ -77,93 +100,43 @@ async function saveSessionToDb(userId, sessionData) {
             },
             body: JSON.stringify({ userId, sessionData }),
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to save session');
         }
-    } catch (error) {
-        console.error('Error saving session:', error);
-    }
-}
 
-/**
- * Загружает сохраненную сессию из БД
- * @param {string} userId - ID пользователя
- * @returns {Object|null} Данные сессии или null если сессия не найдена
- */
-async function loadSessionFromDb(userId) {
-    try {
-        if (!userId) {
-            console.error('Invalid userId');
-            return null;
+        // Проверяем, что данные сохранились
+        const verifyResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (verifyResponse.ok) {
+            const { session } = await verifyResponse.json();
+            console.log('Verified saved session data:', session);
         }
 
-        const response = await fetch(`${API_BASE_URL}/session/${userId}`);
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
-            }
-            throw new Error('Failed to load session');
-        }
-        const data = await response.json();
-        return data.session;
+        return sessionData;
     } catch (error) {
-        console.error('Error loading session:', error);
+        console.error('Error initializing new session:', error);
         return null;
     }
 }
 
-/**
- * Восстанавливает состояние из сессии
- * @param {Object} session - Данные сессии
- */
-async function restoreSession(session) {
-    if (!session) {
-        return;
-    }
-
-    try {
-        // Восстанавливаем количества моделей
-        if (session.quantities) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(session.quantities));
-        }
-
-        // Восстанавливаем размещенные объекты
-        if (session.placedObjects && Array.isArray(session.placedObjects)) {
-            for (const obj of session.placedObjects) {
-                if (obj.modelName && obj.position) {
-                    await loadAndPlaceModel(obj.modelName, obj.position);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error restoring session:', error);
-    }
-}
-
-// Флаг для отслеживания первой загрузки
-let isFirstLoad = true;
-
 async function loadModels() {
     try {
-        // Очищаем сохраненные количества только при первой загрузке страницы
-        if (isFirstLoad) {
-            clearModelQuantities();
-            isFirstLoad = false;
-        }
-        
         // Загружаем JSON файл
         const jsonResponse = await fetch('models.json');
         if (!jsonResponse.ok) {
             throw new Error('Failed to fetch JSON data');
         }
         const jsonData = await jsonResponse.json();
+        console.log('Loaded JSON data:', jsonData);
         
-        // Пытаемся восстановить сессию
+        // Получаем сессию из БД
+        let sessionData = null;
         if (jsonData.user_id) {
-            const session = await loadSessionFromDb(jsonData.user_id);
-            if (session) {
-                await restoreSession(session);
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${jsonData.user_id}`);
+            if (sessionResponse.ok) {
+                const { session } = await sessionResponse.json();
+                sessionData = session;
+                console.log('Loaded session data:', sessionData);
             }
         }
         
@@ -193,9 +166,6 @@ async function loadModels() {
 
         const { models } = data;
 
-        // Инициализируем начальные количества
-        initializeModelQuantities(models);
-
         // Get the sidebar element
         const sidebar = document.getElementById('sidebar');
         sidebar.innerHTML = `<h3>Выберите категорию (User: ${jsonData.user_id || 'default'})</h3>`;
@@ -211,9 +181,23 @@ async function loadModels() {
             }
             // Добавляем расширение .glb к имени модели
             const modelName = `${model.name}.glb`;
-            // Используем сохраненное количество
-            const quantity = getModelQuantity(modelName);
-            // Создаем копию модели с обновленным количеством
+            
+            // Получаем количество из сессии или из JSON
+            let quantity = 0;
+            if (sessionData && sessionData.quantities) {
+                // Если есть данные в сессии, используем их
+                quantity = sessionData.quantities[modelName] || 0;
+            } else {
+                // Если сессии нет, ищем количество в JSON по article
+                const jsonModel = jsonData.models.find(m => m.article === model.article);
+                if (jsonModel) {
+                    quantity = jsonModel.quantity || 0;
+                }
+            }
+            
+            console.log(`Model ${modelName} (${model.article}) quantity: ${quantity}`);
+            
+            // Создаем копию модели с количеством
             const modelCopy = { ...model, name: modelName, quantity };
             categories[model.category].push(modelCopy);
         });
@@ -232,15 +216,6 @@ async function loadModels() {
         });
 
         sidebar.appendChild(categoriesContainer);
-
-        // После успешной загрузки моделей сохраняем текущее состояние сессии
-        if (jsonData.user_id) {
-            const sessionData = {
-                quantities: JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'),
-                placedObjects: window.placedObjects || []
-            };
-            await saveSessionToDb(jsonData.user_id, sessionData);
-        }
 
     } catch (error) {
         console.error('Error loading models:', error);
@@ -271,11 +246,10 @@ function showModelsForCategory(category, models, sidebar) {
         item.setAttribute('draggable', 'true');
         item.setAttribute('data-model', model.name);
         item.setAttribute('data-article', model.article);
-        const quantity = getModelQuantity(model.name);
-        item.setAttribute('data-quantity', quantity);
+        item.setAttribute('data-quantity', model.quantity);
 
         // Добавляем класс blurred если количество 0
-        if (quantity === 0) {
+        if (model.quantity === 0) {
             item.classList.add('blurred');
         }
 
@@ -300,7 +274,7 @@ function showModelsForCategory(category, models, sidebar) {
         cartIcon.textContent = '🛒';
         const quantityElement = document.createElement('span');
         quantityElement.className = 'model-quantity';
-        quantityElement.textContent = quantity;
+        quantityElement.textContent = model.quantity;
         cartContainer.appendChild(cartIcon);
         cartContainer.appendChild(quantityElement);
 
@@ -315,31 +289,6 @@ function showModelsForCategory(category, models, sidebar) {
     // Reinitialize drag and drop handlers after creating new items
     if (typeof initDragAndDrop === 'function') {
         initDragAndDrop();
-    }
-}
-
-/**
- * Автоматически сохраняет текущее состояние сессии
- */
-export async function autoSaveSession() {
-    try {
-        const jsonResponse = await fetch('models.json');
-        if (!jsonResponse.ok) {
-            return;
-        }
-        const jsonData = await jsonResponse.json();
-        
-        if (!jsonData.user_id) {
-            return;
-        }
-
-        const sessionData = {
-            quantities: JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'),
-            placedObjects: window.placedObjects || []
-        };
-        await saveSessionToDb(jsonData.user_id, sessionData);
-    } catch (error) {
-        console.error('Error auto-saving session:', error);
     }
 }
 

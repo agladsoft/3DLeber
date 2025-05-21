@@ -4,12 +4,23 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
+import pg from 'pg';
+const { Pool } = pg;
 
 const app = express();
 const PORT = 3000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Создаем пул подключений к базе данных
+const pool = new Pool({
+    host: 'localhost',
+    port: 5432,
+    user: 'admin',
+    database: 'admin',
+    password: 'admin'
+});
 
 // ✅ Разрешить CORS
 app.use(cors());
@@ -143,39 +154,6 @@ app.get('/api/session/:userId', async (req, res) => {
 app.post('/api/session', async (req, res) => {
     try {
         const { userId, sessionData } = req.body;
-        
-        if (!userId || !sessionData) {
-            res.status(400).json({ error: 'Missing userId or sessionData' });
-            return;
-        }
-        
-        await saveSession(userId, sessionData);
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Error saving session:', err);
-        res.status(500).json({ error: 'Error saving session' });
-    }
-});
-
-// Получение сессии пользователя
-app.get('/api/session/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const session = await getSession(userId);
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-        res.json({ session });
-    } catch (err) {
-        console.error('Error fetching session:', err);
-        res.status(500).json({ error: 'Error fetching session from database' });
-    }
-});
-
-// Сохранение сессии пользователя
-app.post('/api/session', async (req, res) => {
-    try {
-        const { userId, sessionData } = req.body;
         if (!userId || !sessionData) {
             return res.status(400).json({ error: 'userId and sessionData are required' });
         }
@@ -184,6 +162,26 @@ app.post('/api/session', async (req, res) => {
     } catch (err) {
         console.error('Error saving session:', err);
         res.status(500).json({ error: 'Error saving session to database' });
+    }
+});
+
+// Удаление сессии пользователя
+app.delete('/api/session/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const query = `
+            DELETE FROM sessions
+            WHERE user_id = (SELECT id FROM users WHERE user_id = $1)
+        `;
+        await pool.query(query, [userId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting session:', err);
+        res.status(500).json({ error: 'Error deleting session from database' });
     }
 });
 

@@ -85,9 +85,7 @@ function removeExistingHandlers() {
  * @param {number} newQuantity - Новое количество
  */
 function updateModelQuantity(modelName, newQuantity) {
-    // Сохраняем новое количество
-    saveModelQuantity(modelName, newQuantity);
-    
+    // Обновляем только UI, без сохранения в базу
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
@@ -327,10 +325,7 @@ export function updateModelQuantityOnRemove(modelName) {
             const currentQuantity = parseInt(item.getAttribute('data-quantity') || '0');
             const newQuantity = currentQuantity + 1;
             
-            // Сохраняем новое количество
-            saveModelQuantity(modelName, newQuantity);
-            
-            // Обновляем отображение количества
+            // Обновляем только UI, без сохранения в базу
             const quantityElement = item.querySelector('.model-quantity');
             if (quantityElement) {
                 quantityElement.textContent = newQuantity;
