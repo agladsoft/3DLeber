@@ -403,6 +403,9 @@ function initializeTopViewButtonWithDelay() {
 function cleanupResources() {
     console.log("Очистка ресурсов при закрытии приложения");
     
+    // Очищаем modelQuantities из sessionStorage
+    sessionStorage.removeItem('modelQuantities');
+    
     // Очистка сетки, если режим вида сверху был активен
     if (window.app && window.app.gridHelper) {
         console.log("Удаляем сетку при закрытии");

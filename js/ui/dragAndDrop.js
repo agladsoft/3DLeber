@@ -21,6 +21,11 @@ let isDropProcessing = false;
 // Ключ для хранения количества моделей в sessionStorage
 const MODELS_QUANTITY_KEY = 'modelQuantities';
 
+// Добавляем обработчик для очистки sessionStorage при перезагрузке страницы
+window.addEventListener('beforeunload', () => {
+    sessionStorage.removeItem(MODELS_QUANTITY_KEY);
+});
+
 /**
  * Получает количество модели из sessionStorage
  */
@@ -43,7 +48,7 @@ function saveQuantitiesToStorage(modelName, quantity) {
         quantities[modelName] = quantity;
         sessionStorage.setItem(MODELS_QUANTITY_KEY, JSON.stringify(quantities));
     } catch (error) {
-        console.error('Error saving quantities to localStorage:', error);
+        console.error('Error saving quantities to sessionStorage:', error);
     }
 }
 
