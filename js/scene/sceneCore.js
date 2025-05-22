@@ -35,6 +35,9 @@ export function initializeRenderer() {
     renderer.shadowMap.enabled = RENDERER_SETTINGS.shadowMapEnabled;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // мягкие тени
     
+    // Улучшение точности буфера глубины для предотвращения Z-fighting
+    renderer.logarithmicDepthBuffer = true; // Использование логарифмического буфера глубины
+    
     return renderer;
 }
 

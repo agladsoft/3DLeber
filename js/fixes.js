@@ -177,6 +177,9 @@ export function createEmergencyGround() {
         // Поворачиваем плоскость так, чтобы она была горизонтальной
         plane.rotation.x = -Math.PI / 2;
         
+        // Размещаем плоскость немного ниже, чтобы избежать Z-fighting
+        plane.position.y = -0.01;
+        
         // Разрешаем плоскости принимать тени
         plane.receiveShadow = true;
         

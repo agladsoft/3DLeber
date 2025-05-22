@@ -242,7 +242,7 @@ function setupSimplePlayground(plane, width, length) {
     
     // Настраиваем плоскость с травой
     grassPlane.rotation.x = -Math.PI / 2;
-    grassPlane.position.y = -0.01; // Чуть ниже основной площадки, чтобы избежать z-fighting
+    grassPlane.position.y = -0.1; // Значительно ниже основной площадки, чтобы устранить z-fighting
     grassPlane.receiveShadow = true;
     grassPlane.name = "grass_surround";
     
