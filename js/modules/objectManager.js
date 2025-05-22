@@ -52,9 +52,24 @@ export function loadAndPlaceModel(modelName, position) {
     if (position) {
         console.log("Устанавливаем позицию из параметра:", position);
         container.position.set(position.x, position.y, position.z);
+        
+        // Сохраняем координаты в userData
+        container.userData.coordinates = {
+            x: position.x.toFixed(2),
+            y: position.y.toFixed(2),
+            z: position.z.toFixed(2)
+        };
+        
+        // Логируем координаты размещения
+        console.log(`Модель ${modelName} размещена по координатам:`, {
+            x: position.x.toFixed(2),
+            y: position.y.toFixed(2),
+            z: position.z.toFixed(2)
+        });
     } else {
         console.log("Позиция не указана, размещаем в центре (0,0,0)");
         container.position.set(0, 0, 0);
+        container.userData.coordinates = { x: "0.00", y: "0.00", z: "0.00" };
         showNotification("Объект помещен в центр площадки", false);
     }
     
@@ -68,7 +83,7 @@ export function loadAndPlaceModel(modelName, position) {
         console.log("Начинаем загрузку модели:", modelPath);
         loader.load(
             modelPath,
-            (result) => {
+            async (result) => {
                 console.log("Модель успешно загружена:", modelPath);
                 console.log("Тип результата:", typeof result);
                 
@@ -229,6 +244,21 @@ export function loadAndPlaceModel(modelName, position) {
                 // Добавляем объект в массив размещенных объектов
                 placedObjects.push(container);
                 
+                // Логируем информацию о размещенном объекте
+                console.log("Размещенный объект:", {
+                    id: container.userData.id,
+                    name: modelName,
+                    coordinates: container.userData.coordinates,
+                    dimensions: {
+                        width: container.userData.realWidth.toFixed(2),
+                        height: container.userData.realHeight.toFixed(2),
+                        depth: container.userData.realDepth.toFixed(2)
+                    }
+                });
+                
+                // Логируем общее количество размещенных объектов
+                console.log("Всего размещено объектов:", placedObjects.length);
+                
                 // Проверяем все объекты на коллизии
                 checkAllObjectsPositions();
                 
@@ -244,6 +274,68 @@ export function loadAndPlaceModel(modelName, position) {
                 
                 // После успешной загрузки модели обновляем видимость безопасных зон
                 updateSafetyZonesVisibility();
+
+                // Обновляем сессию в базе данных после размещения модели
+                try {
+                    // Получаем user_id из models.json
+                    const response = await fetch('models.json');
+                    const data = await response.json();
+                    const userId = data.user_id;
+
+                    if (!userId) {
+                        console.error('No user ID found');
+                        return;
+                    }
+
+                    // Получаем текущую сессию
+                    const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                    if (!sessionResponse.ok) {
+                        throw new Error('Failed to get session');
+                    }
+
+                    const { session } = await sessionResponse.json();
+                    const sessionData = session || { quantities: {}, placedObjects: [] };
+
+                    // Добавляем информацию о новом объекте
+                    const objectData = {
+                        id: container.userData.id,
+                        modelName: modelName,
+                        coordinates: container.userData.coordinates,
+                        rotation: container.rotation.y.toFixed(2),
+                        dimensions: {
+                            width: container.userData.realWidth.toFixed(2),
+                            height: container.userData.realHeight.toFixed(2),
+                            depth: container.userData.realDepth.toFixed(2)
+                        }
+                    };
+
+                    sessionData.placedObjects.push(objectData);
+
+                    // Обновляем количество модели в quantities
+                    if (!sessionData.quantities) {
+                        sessionData.quantities = {};
+                    }
+                    const currentQuantity = sessionData.quantities[modelName] || 0;
+                    sessionData.quantities[modelName] = Math.max(0, currentQuantity - 1);
+
+                    // Сохраняем обновленную сессию
+                    const saveResponse = await fetch('http://localhost:3000/api/session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userId, sessionData }),
+                    });
+
+                    if (!saveResponse.ok) {
+                        throw new Error('Failed to save session');
+                    }
+
+                    console.log('Session updated successfully for new object:', objectData);
+                    console.log('Updated quantities:', sessionData.quantities);
+                } catch (error) {
+                    console.error('Error updating session:', error);
+                }
             },
             // Обработчик загрузки (прогресс)
             (xhr) => {
@@ -270,7 +362,7 @@ export function removeObject(container) {
     if (!container) return;
     
     // Импортируем функцию удаления размеров динамически
-    import('./dimensionDisplay/index.js').then(module => {
+    import('./dimensionDisplay/index.js').then(async module => {
         // Удаляем размеры модели перед удалением самой модели
         if (typeof module.removeModelDimensions === 'function') {
             console.log('Удаляем размеры модели:', container.name || container.uuid);
@@ -284,6 +376,60 @@ export function removeObject(container) {
         const index = placedObjects.indexOf(container);
         if (index > -1) {
             placedObjects.splice(index, 1);
+        }
+
+        // Обновляем сессию в базе данных после удаления объекта
+        try {
+            // Получаем user_id из models.json
+            const response = await fetch('models.json');
+            const data = await response.json();
+            const userId = data.user_id;
+
+            if (!userId) {
+                console.error('No user ID found');
+                return;
+            }
+
+            // Получаем текущую сессию
+            const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+            if (!sessionResponse.ok) {
+                throw new Error('Failed to get session');
+            }
+
+            const { session } = await sessionResponse.json();
+            const sessionData = session || { quantities: {}, placedObjects: [] };
+
+            // Удаляем объект из массива placedObjects в сессии
+            const objectIndex = sessionData.placedObjects.findIndex(obj => obj.id === container.userData.id);
+            if (objectIndex !== -1) {
+                sessionData.placedObjects.splice(objectIndex, 1);
+            }
+
+            // Обновляем количество модели в quantities
+            if (!sessionData.quantities) {
+                sessionData.quantities = {};
+            }
+            const modelName = container.userData.modelName;
+            const currentQuantity = sessionData.quantities[modelName] || 0;
+            sessionData.quantities[modelName] = currentQuantity + 1;
+
+            // Сохраняем обновленную сессию
+            const saveResponse = await fetch('http://localhost:3000/api/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId, sessionData }),
+            });
+
+            if (!saveResponse.ok) {
+                throw new Error('Failed to save session');
+            }
+
+            console.log('Session updated successfully after removing object:', container.userData.id);
+            console.log('Updated quantities:', sessionData.quantities);
+        } catch (error) {
+            console.error('Error updating session after object removal:', error);
         }
         
         // Перепроверяем все объекты

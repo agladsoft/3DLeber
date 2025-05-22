@@ -34,6 +34,70 @@ import * as THREE from 'three';
 import { showModelDimensions, updateModelDimensions } from '../modules/dimensionDisplay/index.js';
 
 /**
+ * Обновляет сессию в базе данных
+ * @param {Object} object - Объект, который был изменен
+ */
+async function updateSessionInDatabase(object) {
+    try {
+        // Получаем user_id из models.json
+        const response = await fetch('models.json');
+        const data = await response.json();
+        const userId = data.user_id;
+
+        if (!userId) {
+            console.error('No user ID found');
+            return;
+        }
+
+        // Получаем текущую сессию
+        const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+
+        const { session } = await sessionResponse.json();
+        const sessionData = session || { quantities: {}, placedObjects: [] };
+
+        // Обновляем или добавляем информацию об объекте
+        const objectIndex = sessionData.placedObjects.findIndex(obj => obj.id === object.userData.id);
+        const objectData = {
+            id: object.userData.id,
+            modelName: object.userData.modelName,
+            coordinates: object.userData.coordinates,
+            rotation: object.rotation.y.toFixed(2),
+            dimensions: {
+                width: object.userData.realWidth.toFixed(2),
+                height: object.userData.realHeight.toFixed(2),
+                depth: object.userData.realDepth.toFixed(2)
+            }
+        };
+
+        if (objectIndex !== -1) {
+            sessionData.placedObjects[objectIndex] = objectData;
+        } else {
+            sessionData.placedObjects.push(objectData);
+        }
+
+        // Сохраняем обновленную сессию
+        const saveResponse = await fetch('http://localhost:3000/api/session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+
+        if (!saveResponse.ok) {
+            throw new Error('Failed to save session');
+        }
+
+        console.log('Session updated successfully for object:', objectData);
+    } catch (error) {
+        console.error('Error updating session:', error);
+    }
+}
+
+/**
  * Инициализирует обработчики для манипуляции объектами
  */
 export function initObjectManipulation() {
@@ -303,6 +367,16 @@ function handleObjectDragging(event) {
         selectedObject.position.x = intersectionPoint.x;
         selectedObject.position.z = intersectionPoint.z;
         
+        // Обновляем координаты в userData
+        selectedObject.userData.coordinates = {
+            x: intersectionPoint.x.toFixed(2),
+            y: intersectionPoint.y.toFixed(2),
+            z: intersectionPoint.z.toFixed(2)
+        };
+
+        // Обновляем сессию в базе данных
+        updateSessionInDatabase(selectedObject);
+
         // Проверяем на коллизии с другими объектами
         checkAndHighlightObject(selectedObject);
         
@@ -329,6 +403,16 @@ function handleObjectRotation(event) {
     
     // Применяем новый угол поворота (0.01 - чувствительность вращения)
     selectedObject.rotation.y = initialRotationY + deltaX * 0.01;
+    
+    // Обновляем координаты в userData (даже при вращении, так как они могут измениться)
+    selectedObject.userData.coordinates = {
+        x: selectedObject.position.x.toFixed(2),
+        y: selectedObject.position.y.toFixed(2),
+        z: selectedObject.position.z.toFixed(2)
+    };
+    
+    // Обновляем сессию в базе данных
+    updateSessionInDatabase(selectedObject);
     
     // Проверяем на коллизии после вращения
     checkAndHighlightObject(selectedObject);
@@ -358,6 +442,18 @@ function finishObjectManipulation() {
     // Если у выбранного объекта обнаружена коллизия, показываем уведомление
     if (selectedObject && selectedObject.userData && selectedObject.userData.hasCollision) {
         showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
+    }
+    
+    // Логируем финальные координаты после завершения манипуляций
+    if (selectedObject) {
+        // Обновляем сессию в базе данных с финальными координатами
+        updateSessionInDatabase(selectedObject);
+        
+        console.log(`Завершение манипуляций с моделью ${selectedObject.userData.modelName}:`, {
+            id: selectedObject.userData.id,
+            finalCoordinates: selectedObject.userData.coordinates,
+            rotation: selectedObject.rotation.y.toFixed(2)
+        });
     }
     
     // Сообщаем контроллеру вида сверху, что закончили перемещать объект

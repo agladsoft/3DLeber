@@ -15,6 +15,7 @@ import {
 } from '../playground.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
+import { initializeNewSession } from '../models.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -45,21 +46,36 @@ function setupControlHandlers() {
     const deleteAllBtn = document.getElementById('deleteAllModels');
     if (deleteAllBtn) {
         deleteAllBtn.onclick = async function() {
-            // Динамически импортируем placedObjects и removeObject
-            const module = await import('../objects.js');
-            // Копируем массив, чтобы не было проблем при изменении во время итерации
-            const objectsToDelete = [...module.placedObjects];
-            
-            // Импортируем функцию обновления количества
-            const dragAndDropModule = await import('./dragAndDrop.js');
-            
-            // Удаляем каждый объект и обновляем количество
-            for (const obj of objectsToDelete) {
-                const modelName = obj.userData.modelName;
-                module.removeObject(obj);
-                if (modelName && dragAndDropModule.updateModelQuantityOnRemove) {
-                    dragAndDropModule.updateModelQuantityOnRemove(modelName);
+            try {
+                // Получаем user_id и модели из models.json
+                const response = await fetch('models.json');
+                const data = await response.json();
+                const userId = data.user_id;
+
+                if (!userId) {
+                    throw new Error('No user ID found');
                 }
+
+                // Инициализируем новую сессию с моделями из JSON
+                if (data.models && Array.isArray(data.models)) {
+                    console.log('Reinitializing session with models:', data.models);
+                    await initializeNewSession(userId, data.models);
+                }
+
+                // Динамически импортируем placedObjects и removeObject
+                const module = await import('../objects.js');
+                // Копируем массив, чтобы не было проблем при изменении во время итерации
+                const objectsToDelete = [...module.placedObjects];
+                
+                // Удаляем все объекты с площадки
+                for (const obj of objectsToDelete) {
+                    module.removeObject(obj);
+                }
+
+                console.log('All models removed and session reinitialized');
+            } catch (error) {
+                console.error('Error removing all models:', error);
+                showNotification('Ошибка при удалении всех моделей', true);
             }
         };
     }
