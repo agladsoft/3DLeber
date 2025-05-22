@@ -357,8 +357,9 @@ export function loadAndPlaceModel(modelName, position) {
 /**
  * Удаляет объект из сцены и обновляет UI
  * @param {Object} container - Контейнер модели для удаления
+ * @param {boolean} isMassRemoval - Флаг массового удаления (не увеличивать количество)
  */
-export function removeObject(container) {
+export function removeObject(container, isMassRemoval = false) {
     if (!container) return;
     
     // Импортируем функцию удаления размеров динамически
@@ -405,13 +406,16 @@ export function removeObject(container) {
                 sessionData.placedObjects.splice(objectIndex, 1);
             }
 
-            // Обновляем количество модели в quantities
-            if (!sessionData.quantities) {
-                sessionData.quantities = {};
+            // Обновляем количество модели в quantities только если это не массовое удаление
+            if (!isMassRemoval) {
+                if (!sessionData.quantities) {
+                    sessionData.quantities = {};
+                }
+                const modelName = container.userData.modelName;
+                const currentQuantity = sessionData.quantities[modelName] || 0;
+                sessionData.quantities[modelName] = currentQuantity + 1;
+                console.log(`Increased quantity for ${modelName} to ${currentQuantity + 1}`);
             }
-            const modelName = container.userData.modelName;
-            const currentQuantity = sessionData.quantities[modelName] || 0;
-            sessionData.quantities[modelName] = currentQuantity + 1;
 
             // Сохраняем обновленную сессию
             const saveResponse = await fetch('http://localhost:3000/api/session', {
@@ -427,7 +431,9 @@ export function removeObject(container) {
             }
 
             console.log('Session updated successfully after removing object:', container.userData.id);
-            console.log('Updated quantities:', sessionData.quantities);
+            if (!isMassRemoval) {
+                console.log('Updated quantities:', sessionData.quantities);
+            }
         } catch (error) {
             console.error('Error updating session after object removal:', error);
         }

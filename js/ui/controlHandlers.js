@@ -56,20 +56,45 @@ function setupControlHandlers() {
                     throw new Error('No user ID found');
                 }
 
-                // Инициализируем новую сессию с моделями из JSON
-                if (data.models && Array.isArray(data.models)) {
-                    console.log('Reinitializing session with models:', data.models);
-                    await initializeNewSession(userId, data.models);
+                // Получаем текущую сессию
+                const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                if (!sessionResponse.ok) {
+                    throw new Error('Failed to get session');
                 }
 
-                // Динамически импортируем placedObjects и removeObject
+                const { session } = await sessionResponse.json();
+                const sessionData = session || { quantities: {}, placedObjects: [] };
+
+                // Очищаем placedObjects в текущей сессии
+                sessionData.placedObjects = [];
+
+                // Сохраняем обновленную сессию перед удалением объектов
+                const saveResponse = await fetch('http://localhost:3000/api/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId, sessionData }),
+                });
+
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save session');
+                }
+
+                // Удаляем все объекты с площадки
                 const module = await import('../objects.js');
                 // Копируем массив, чтобы не было проблем при изменении во время итерации
                 const objectsToDelete = [...module.placedObjects];
                 
-                // Удаляем все объекты с площадки
+                // Удаляем все объекты с площадки, передавая флаг массового удаления
                 for (const obj of objectsToDelete) {
-                    module.removeObject(obj);
+                    module.removeObject(obj, true);
+                }
+
+                // Инициализируем новую сессию с моделями из JSON
+                if (data.models && Array.isArray(data.models)) {
+                    console.log('Reinitializing session with models:', data.models);
+                    await initializeNewSession(userId, data.models);
                 }
 
                 console.log('All models removed and session reinitialized');
