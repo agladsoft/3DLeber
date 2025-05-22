@@ -39,6 +39,7 @@ function setupControlHandlers() {
     setupChangePlaygroundButton();
     setupResetViewButton();
     setupTopViewButton();
+    setupPlaygroundButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
@@ -259,4 +260,87 @@ function updateTopViewButtonStyle(button, isActive) {
  */
 function isValidSize(size) {
     return size >= PLAYGROUND.minSize && size <= PLAYGROUND.maxSize;
+}
+
+/**
+ * Настраивает кнопку изменения параметров площадки
+ */
+function setupPlaygroundButton() {
+    const playgroundButton = document.getElementById('playgroundButton');
+    const colorPicker = document.getElementById('playgroundColorPicker');
+    const colorSquares = colorPicker ? colorPicker.querySelectorAll('.color-square') : [];
+    
+    if (!playgroundButton || !colorPicker) return;
+    
+    // Отмечаем текущий выбранный цвет
+    updateSelectedColorSquare();
+    
+    // Обработчик нажатия на кнопку площадки
+    playgroundButton.onclick = function() {
+        // Просто показываем/скрываем цветовой набор
+        colorPicker.classList.toggle('hidden');
+        updateSelectedColorSquare();
+    };
+
+    // Обработчики нажатия на цветные квадратики
+    colorSquares.forEach(square => {
+        square.addEventListener('click', async function() {
+            // Получаем выбранный цвет
+            const selectedColor = this.getAttribute('data-color');
+            
+            // Снимаем выделение с других квадратиков
+            colorSquares.forEach(s => s.classList.remove('selected'));
+            
+            // Выделяем выбранный квадратик
+            this.classList.add('selected');
+            
+            // Сохраняем выбранный цвет в глобальной переменной
+            window.selectedPlaygroundColor = selectedColor;
+            
+            // Показываем индикатор загрузки
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                window.isLoading = true;
+            }
+
+            try {
+                // Импортируем модуль загрузки площадки
+                const playgroundModule = await import('../playground.js');
+                
+                // Получаем текущие размеры площадки
+                const width = window.selectedPlaygroundWidth || playgroundModule.playgroundWidth || 10;
+                const length = window.selectedPlaygroundLength || playgroundModule.playgroundLength || 10;
+                
+                // Загружаем новую площадку с теми же размерами, но с новым цветом
+                await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
+                
+                console.log('Цвет площадки изменен на:', selectedColor);
+                
+                // Скрываем выбор цвета после выбора
+                colorPicker.classList.add('hidden');
+            } catch (error) {
+                console.error('Ошибка при изменении цвета площадки:', error);
+            } finally {
+                // Скрываем индикатор загрузки
+                if (loadingOverlay) {
+                    setTimeout(() => {
+                        loadingOverlay.classList.add('hidden');
+                        window.isLoading = false;
+                    }, 500);
+                }
+            }
+        });
+    });
+
+    // Функция для обновления выделения текущего цвета
+    function updateSelectedColorSquare() {
+        const currentColor = window.selectedPlaygroundColor || 'серый';
+        colorSquares.forEach(square => {
+            square.classList.remove('selected');
+            if (square.getAttribute('data-color') === currentColor) {
+                square.classList.add('selected');
+            }
+        });
+    }
 }

@@ -34,11 +34,15 @@ let lastProgressValue = 0;
  * @param {String} modelName - Имя файла модели площадки (по умолчанию 'playground.glb')
  * @param {Number} width - Ширина площадки (опционально)
  * @param {Number} length - Длина площадки (опционально)
+ * @param {String} color - Цвет площадки (серый, черный, зеленый, коричневый)
  * @returns {Promise} Промис, который разрешается, когда площадка загружена
  */
-export function loadPlayground(modelName = 'playground.glb', width = null, length = null) {
+export function loadPlayground(modelName = 'playground.glb', width = null, length = null, color = null) {
     let userWidth = 10;
     let userLength = 10;
+    let userColor = 'серый'; // Добавляем переменную с цветом по умолчанию
+    
+    // Получаем размеры площадки
     if (width && length) {
         userWidth = width;
         userLength = length;
@@ -53,12 +57,24 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
             userLength = parseFloat(lengthInput.value) || 10;
         }
     }
+    
+    // Получаем цвет площадки
+    if (color) {
+        userColor = color;
+    } else if (window.selectedPlaygroundColor) {
+        userColor = window.selectedPlaygroundColor;
+    }
     try { removeExistingPlaygrounds(); } catch (error) {}
     updateGroundReferences(null, null);
-    const simplePlane = createSimplePlayground(userWidth, userLength);
+    const simplePlane = createSimplePlayground(userWidth, userLength, userColor);
     // Устанавливаем позицию площадки на Y=0
     if (simplePlane && simplePlane.position) simplePlane.position.y = 0;
     updatePlaygroundDimensions(userWidth, userLength);
+    
+    // Сохраняем цвет площадки в userData
+    if (simplePlane && simplePlane.userData) {
+        simplePlane.userData.groundColor = userColor;
+    }
     setTimeout(() => {
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {
@@ -119,8 +135,9 @@ function removeExistingPlaygrounds() {
  * @param {Function} resolve - Функция resolve для промиса
  * @param {Number} width - Ширина площадки (опционально)
  * @param {Number} length - Длина площадки (опционально)
+ * @param {String} color - Цвет площадки (опционально)
  */
-function processLoadedModel(gltf, modelName, resolve, width = null, length = null) {
+function processLoadedModel(gltf, modelName, resolve, width = null, length = null, color = null) {
     console.log('processLoadedModel для', modelName);
     
     // Получаем модель

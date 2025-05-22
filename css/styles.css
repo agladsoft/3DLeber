@@ -149,6 +149,7 @@ model-viewer {
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -201,9 +202,7 @@ model-viewer {
 
 table {
     width: 100%; /* Ширина таблицы 100% от её контейнера */
-    width: 100%; /* Ширина таблицы 100% от её контейнера */
     margin-top: 10px;
-    /* border-collapse: collapse; Восстанавливаем border-collapse */
     /* border-collapse: collapse; Восстанавливаем border-collapse */
 }
 
@@ -211,9 +210,6 @@ th, td {
     border: 1px solid #ddd;
     padding: 5px;
     text-align: left;
-    word-break: break-word; /* Разрешает перенос длинных слов */
-    min-width: 60px; /* Минимальная ширина для компактности */
-    max-width: 150px; /* Максимальная ширина для баланса */
     word-break: break-word; /* Разрешает перенос длинных слов */
     min-width: 60px; /* Минимальная ширина для компактности */
     max-width: 150px; /* Максимальная ширина для баланса */
@@ -225,6 +221,97 @@ th, td {
     background: #f5f5f5;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для цветных квадратиков выбора цвета */
+.color-picker {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 5px; /* Маленький отступ между элементами */
+    margin: 5px 0;
+    padding: 0;
+    width: 100%; /* Ширина на всю доступную область */
+}
+
+.color-table {
+    width: 100%;
+    margin: 5px 0;
+    border-collapse: collapse;
+    background-color: rgba(240, 240, 240, 0.8);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.color-table td {
+    border: none;
+    padding: 5px;
+    text-align: center;
+    width: 25%; /* Каждый элемент занимает ровно 25% от ширины таблицы */
+}
+
+.color-picker.hidden,
+.horizontal-color-picker.hidden,
+.color-table.hidden,
+.inline-colors.hidden {
+    display: none;
+}
+
+.inline-colors {
+    text-align: center;
+    white-space: nowrap;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 5px 0;
+}
+
+/* Стили для таблицы с цветами */
+.color-table {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin: 5px 0;
+    box-sizing: border-box;
+    border-collapse: separate;
+    border-spacing: 5px;
+}
+
+.color-table.hidden {
+    display: none;
+}
+
+.color-table td {
+    padding: 5px;
+    text-align: center;
+    border: none;
+}
+
+.playground-control button {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.color-square {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    display: inline-block;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: border-color 0.2s ease;
+    margin: 2px;
+}
+
+.color-square:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.color-square.selected {
+    border: 2px solid #444;
+    transform: none;
 }
 
 .control-group {
