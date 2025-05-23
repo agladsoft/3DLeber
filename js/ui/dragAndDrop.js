@@ -42,7 +42,7 @@ export function getQuantityFromStorage(modelName) {
 /**
  * Сохраняет количество моделей в sessionStorage
  */
-function saveQuantitiesToStorage(modelName, quantity) {
+export function saveQuantitiesToStorage(modelName, quantity) {
     try {
         const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
         quantities[modelName] = quantity;
@@ -73,7 +73,7 @@ export function restoreQuantitiesFromStorage() {
 /**
  * Обновляет UI элемента с новым количеством
  */
-function updateModelQuantityUI(item, newQuantity) {
+export function updateModelQuantityUI(item, newQuantity) {
     const quantityElement = item.querySelector('.model-quantity');
     if (quantityElement) {
         quantityElement.textContent = newQuantity;

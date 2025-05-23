@@ -16,6 +16,7 @@ import {
 import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
 import { initializeNewSession } from '../models.js';
+import { updateModelQuantityUI, saveQuantitiesToStorage } from './dragAndDrop.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -82,19 +83,32 @@ function setupControlHandlers() {
                 }
 
                 // Удаляем все объекты с площадки
-                const module = await import('../objects.js');
-                // Копируем массив, чтобы не было проблем при изменении во время итерации
-                const objectsToDelete = [...module.placedObjects];
-                
+            const module = await import('../objects.js');
+            // Копируем массив, чтобы не было проблем при изменении во время итерации
+            const objectsToDelete = [...module.placedObjects];
+            
                 // Удаляем все объекты с площадки, передавая флаг массового удаления
-                for (const obj of objectsToDelete) {
+            for (const obj of objectsToDelete) {
                     module.removeObject(obj, true);
                 }
 
                 // Инициализируем новую сессию с моделями из JSON
                 if (data.models && Array.isArray(data.models)) {
                     console.log('Reinitializing session with models:', data.models);
-                    await initializeNewSession(userId, data.models);
+                    const newSessionData = await initializeNewSession(userId, data.models);
+                    
+                    // Обновляем количества в sessionStorage
+                    if (newSessionData && newSessionData.quantities) {
+                        Object.entries(newSessionData.quantities).forEach(([modelName, quantity]) => {
+                            const items = document.querySelectorAll('.item');
+                            items.forEach(item => {
+                                if (item.getAttribute('data-model') === modelName) {
+                                    updateModelQuantityUI(item, quantity);
+                                    saveQuantitiesToStorage(modelName, quantity);
+                                }
+                            });
+                        });
+                    }
                 }
 
                 console.log('All models removed and session reinitialized');
