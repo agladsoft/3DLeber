@@ -259,7 +259,7 @@ function initializeTopViewButtonWithDelay() {
     if (topViewButton) {
         console.log("Кнопка вида сверху найдена, устанавливаем базовый стиль");
         
-        topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
+        topViewButton.textContent = "🔝 Вид сверху";
         topViewButton.classList.remove("active");
         
         console.log("Базовый стиль кнопки установлен:", topViewButton.style.backgroundColor);
@@ -274,29 +274,6 @@ function initializeTopViewButtonWithDelay() {
 function cleanupResources() {
     console.log("Очистка ресурсов при закрытии приложения");
     
-    // Очистка сетки, если режим вида сверху был активен
-    if (window.app && window.app.gridHelper) {
-        console.log("Удаляем сетку при закрытии");
-        window.app.scene.remove(window.app.gridHelper);
-        
-        // Освобождаем ресурсы геометрии и материалов
-        if (window.app.gridHelper.geometry) {
-            window.app.gridHelper.geometry.dispose();
-        }
-        
-        if (window.app.gridHelper.material) {
-            if (Array.isArray(window.app.gridHelper.material)) {
-                window.app.gridHelper.material.forEach(mat => {
-                    if (mat) mat.dispose();
-                });
-            } else {
-                window.app.gridHelper.material.dispose();
-            }
-        }
-        
-        window.app.gridHelper = null;
-    }
-    
     // Сбрасываем флаг активного режима сверху
     if (window.app) {
         window.app.isTopViewActive = false;
@@ -305,7 +282,7 @@ function cleanupResources() {
     // Сбрасываем стиль кнопки на неактивный
     const topViewButton = document.getElementById("topView");
     if (topViewButton) {
-        topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
+        topViewButton.textContent = "🔝 Вид сверху";
         topViewButton.classList.remove("active");
     }
 }

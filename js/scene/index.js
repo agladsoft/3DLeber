@@ -24,8 +24,8 @@ export {
     animateCameraMove
 } from './cameraManager.js';
 
-// Импортируем компоненты сетки
-export { gridHelper, createGrid } from './gridManager.js';
+// Импортируем компоненты сетки (функции оставлены для совместимости)
+export { createGrid } from './gridManager.js';
 
 // Импортируем функции скриншота
 export { takeScreenshot } from './screenshotManager.js';
@@ -58,8 +58,7 @@ export function initScene() {
         scene, 
         camera, 
         controls,
-        isTopViewActive: false,  // Начальное значение - режим отключен
-        gridHelper: null         // Сетка изначально отсутствует
+        isTopViewActive: false  // Начальное значение - режим отключен
     };
     
     console.log("Инициализация сцены завершена");

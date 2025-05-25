@@ -58,8 +58,7 @@ export async function initializeApp() {
         window.app = {
             ...sceneComponents,
             // Добавляем дополнительные экспортируемые переменные из scene.js
-            isTopViewActive: sceneComponents.isTopViewActive,
-            gridHelper: sceneComponents.gridHelper
+            isTopViewActive: sceneComponents.isTopViewActive
         };
         console.log('Window.app инициализирован:', window.app);
         
@@ -226,21 +225,10 @@ export function startRenderLoop() {
                     window.app.controls.update();
                 }
                 
+                // Код проверки сетки удален - вид сверху работает без сетки
+                
                 // Фиксируем элементы сцены в режиме вида сверху
                 if (window.app.isTopViewActive) {
-                    // Убедимся, что сетка и площадка не двигаются
-                    if (window.app.gridHelper) {
-                        // Проверяем, что сетка на месте
-                        if (window.app.gridHelper.position.y !== 0.01) {
-                            window.app.gridHelper.position.set(0, 0.01, 0);
-                        }
-                        
-                        // Обновляем матрицу только если нужно
-                        if (window.app.gridHelper.matrixAutoUpdate) {
-                            window.app.gridHelper.matrixAutoUpdate = false;
-                            window.app.gridHelper.updateMatrix();
-                        }
-                    }
                     
                     // Фиксируем высоту камеры, если включен вид сверху
                     if (window.app.camera && window.app.camera.position.y < 1) {
@@ -316,11 +304,7 @@ export function updateRendererSize() {
                 }
             });
             
-            // Если активен вид сверху, убедимся, что сетка фиксирована
-            if (window.app.isTopViewActive && window.app.gridHelper) {
-                window.app.gridHelper.matrixAutoUpdate = false;
-                window.app.gridHelper.updateMatrix();
-            }
+            // Код проверки сетки удален - вид сверху работает без сетки
         }
     }
 }

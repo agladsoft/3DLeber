@@ -192,7 +192,7 @@ function initializeTopViewButton(button) {
     // Принудительно сбрасываем все стили и классы
     button.className = ""; // Сбрасываем все классы
     
-    button.textContent = "🔝 Вид сверху (сетка 1×1м)";
+    button.textContent = "🔝 Вид сверху";
     
     // Создаем новый обработчик клика и удаляем старые, если они были
     button.replaceWith(button.cloneNode(true));
@@ -237,7 +237,7 @@ function updateTopViewButtonStyle(button, isActive) {
     } else {
         // Устанавливаем зеленый стиль для неактивного режима
         console.log("Устанавливаем зеленый стиль кнопки");
-        button.textContent = "🔝 Вид сверху (сетка 1×1м)";
+        button.textContent = "🔝 Вид сверху";
         button.setAttribute("style", inactiveStyles);
         button.classList.remove("active");
     }

@@ -49,25 +49,7 @@ export function createPlayground(width, length) {
     // Удаляем все желтые элементы
     removeAllYellowElements();
     
-    // Обновляем сетку, если активен вид сверху
-    // Проверяем как локальную переменную, так и глобальное состояние в window.app
-    if (isTopViewActive || (window.app && window.app.isTopViewActive)) {
-        const gridHelper = createGrid(width, length);
-        
-        // Убеждаемся, что сетка фиксирована на площадке
-        if (gridHelper) {
-            gridHelper.matrixAutoUpdate = false;
-            gridHelper.updateMatrix();
-            
-            // Привязываем сетку к площадке по y-координате
-            gridHelper.position.y = 0.01;
-            
-            // Обновляем ссылку в глобальном контексте
-            if (window.app) {
-                window.app.gridHelper = gridHelper;
-            }
-        }
-    }
+    // Код обновления сетки удален - вид сверху работает без сетки
     
     // Удаляем все объекты, которые могут относиться к зонам безопасности
     cleanupSafetyObjects();

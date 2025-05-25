@@ -366,20 +366,8 @@ function enableTopView(width, length) {
         enableRotate: controls.enableRotate
     };
     
-    // Используем импортированную функцию createGrid напрямую
-    console.log("Вызываем createGrid для создания сетки");
-    try {
-        // Создаем сетку
-        const gridHelper = createGrid(width, length);
-        
-        // Сохраняем ссылку на сетку
-        if (window.app) {
-            window.app.gridHelper = gridHelper;
-            console.log("Сохранена ссылка на сетку в window.app.gridHelper");
-        }
-    } catch (error) {
-        console.error("Ошибка при создании сетки:", error);
-    }
+    // Код создания сетки удален - теперь вид сверху работает без сетки
+    console.log("Вид сверху активирован без сетки");
     
     // Перемещаем камеру для вида сверху
     const diagonal = Math.sqrt(width * width + length * length);
@@ -407,7 +395,7 @@ function enableTopView(width, length) {
         // Активируем контроллер вида сверху
         initTopViewController(canvasElement, camera, targetHeight);
         
-        showNotification("Вид сверху активирован. Используйте мышь для перемещения по площадке и колесико для масштабирования.", false);
+        showNotification("Вид сверху активирован. Используйте правую кнопку мыши для перемещения по площадке и колесико для масштабирования.", false);
     });
 }
 
@@ -469,52 +457,9 @@ function disableTopView() {
  * Очищает сетку и связанные с ней ресурсы
  */
 function cleanupGridHelper() {
-    console.log("Начинаем очистку сетки...");
-    
-    if (window.app && window.app.gridHelper) {
-        console.log("Сетка найдена в window.app.gridHelper:", window.app.gridHelper);
-        
-        // Удаляем центральную ось, если она существует
-        if (window.app.gridHelper.userData && window.app.gridHelper.userData.centerAxis) {
-            console.log("Удаляем центральную ось");
-            scene.remove(window.app.gridHelper.userData.centerAxis);
-            window.app.gridHelper.userData.centerAxis = null;
-        }
-        
-        // Удаляем саму сетку
-        console.log("Удаляем сетку из сцены");
-        scene.remove(window.app.gridHelper);
-        
-        // Освобождаем ресурсы
-        if (window.app.gridHelper.geometry) {
-            window.app.gridHelper.geometry.dispose();
-        }
-        
-        if (window.app.gridHelper.material) {
-            if (Array.isArray(window.app.gridHelper.material)) {
-                window.app.gridHelper.material.forEach(mat => {
-                    if (mat) mat.dispose();
-                });
-            } else {
-                window.app.gridHelper.material.dispose();
-            }
-        }
-        
-        // Очищаем ссылку
-        window.app.gridHelper = null;
-        console.log("Сетка успешно удалена");
-        
-        // Проверяем, не осталось ли сеток на сцене
-        let remainingGrids = 0;
-        scene.traverse(obj => {
-            if (obj.userData && obj.userData.isGridHelper) {
-                remainingGrids++;
-                console.log("Найдена оставшаяся сетка:", obj);
-                // Удаляем найденные сетки
-                scene.remove(obj);
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
+    // Функция оставлена для совместимости, но больше не удаляет сетку
+    console.log("cleanupGridHelper вызвана, но сетка не удаляется (функционал отключен)");
+}
                         obj.material.forEach(m => m.dispose());
                     } else {
                         obj.material.dispose();
