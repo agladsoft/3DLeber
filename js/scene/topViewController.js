@@ -70,6 +70,9 @@ function resetCamera(height) {
     cameraTarget.set(0, 0, 0);
     camera.lookAt(cameraTarget);
     zoomLevel = 1.0;
+    
+    // Убедимся, что камера смотрит строго вниз - это важно для фиксации размерной сетки
+    camera.up.set(0, 0, -1); // Устанавливаем вектор up для камеры, чтобы она была правильно ориентирована
 }
 
 // Флаг, указывающий, что в данный момент перемещается объект
@@ -88,7 +91,18 @@ export function setObjectDraggingState(isDragging) {
  * @param {MouseEvent} event - Событие нажатия мыши
  */
 function handleMouseDown(event) {
-    // Используем правую кнопку мыши (кнопка 2) и только если не перемещается объект
+    // Если нажата левая кнопка мыши (button === 0)
+    if (event.button === 0) {
+        // Предотвращаем стандартные действия
+        // В режиме вида сверху левая кнопка мыши не должна влиять на камеру
+        // Она используется только для выделения объектов
+        if (!objectBeingDragged) {
+            // Если не перетаскивается объект, предотвращаем стандартное поведение
+            event.stopPropagation();
+        }
+    }
+    
+    // Используем правую кнопку мыши (кнопка 2) для панорамирования, так же как в обычном режиме
     if (event.button === 2 && !objectBeingDragged) {
         isDragging = true;
         startPosition = { x: event.clientX, y: event.clientY };
@@ -108,19 +122,33 @@ function handleMouseMove(event) {
     const deltaX = event.clientX - startPosition.x;
     const deltaY = event.clientY - startPosition.y;
     
-    // Масштабируем смещение в зависимости от высоты камеры и настроек
-    const moveScale = camera.position.y * 0.0005 * TOP_VIEW_SETTINGS.panSpeed;
+    // Настраиваем перемещение идентично обычному режиму
+    // В обычном режиме используется panSpeed = 1.0 и screenSpacePanning = true
+    // Имитируем это поведение с учетом высоты камеры
+    
+    // Используем фиксированную скорость панорамирования как в основном режиме
+    // Интенсивность движения должна быть одинаковой в обоих режимах
+    
+    // Вместо TOP_VIEW_SETTINGS.panSpeed используем фиксированное значение 1.0
+    const panSpeed = 1.0;
+    
+    // Рассчитываем масштаб движения аналогично OrbitControls
+    // Формула взята из реализации панорамирования в OrbitControls
+    const moveScale = (panSpeed * 0.3) / camera.position.y;
     
     // Перемещаем камеру в горизонтальной плоскости (X и Z координаты)
-    // X - влево-вправо, Z - вперед-назад
+    // Направление движения имитирует screenSpacePanning = true из OrbitControls
     camera.position.x -= deltaX * moveScale;
-    camera.position.z -= deltaY * moveScale;  // Инвертировано: перемещение вниз должно увеличивать Z, а вверх - уменьшать
+    camera.position.z -= deltaY * moveScale;
     
     // Перемещаем точку, на которую смотрит камера, соответственно
     cameraTarget.x -= deltaX * moveScale;
     cameraTarget.z -= deltaY * moveScale;
     
-    // Обновляем направление камеры
+    // Важно: Сохраняем Y-координату цели камеры равной 0, чтобы всегда смотреть сверху вниз
+    cameraTarget.y = 0;
+    
+    // Обновляем направление камеры - камера всегда смотрит вертикально вниз
     camera.lookAt(cameraTarget);
     
     // Обновляем начальную позицию

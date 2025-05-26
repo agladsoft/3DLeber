@@ -78,6 +78,13 @@ export function createDimensionGrid(width, length, color = 'серый', visible
     dimensionGrid = new THREE.Object3D();
     dimensionGrid.name = "dimensionGrid";
     
+    // Устанавливаем свойство raycast.enabled = false, чтобы сетка не блокировала взаимодействие с объектами
+    // Это сделает сетку прозрачной для событий мыши
+    dimensionGrid.userData.isInteractive = false;
+    dimensionGrid.traverse(object => {
+        object.userData.isInteractive = false;
+    });
+    
     // Увеличиваем размеры сетки на 1 метр с каждой стороны
     const gridWidth = width + 2;
     const gridLength = length + 2;
@@ -214,11 +221,24 @@ export function createDimensionGrid(width, length, color = 'серый', visible
         }
     }
     
+    // Делаем все объекты сетки неинтерактивными для raycast
+    dimensionGrid.traverse(function(object) {
+        // Переопределяем метод raycast для всех объектов сетки
+        object.raycast = function() { return null; };
+        // Устанавливаем дополнительные метки
+        object.userData.isTopViewGrid = true;
+        object.userData.isInteractive = false;
+    });
+    
+    // Дополнительно переопределяем метод raycast для корневого объекта сетки
+    dimensionGrid.raycast = function() { return null; };
+    
     // Устанавливаем видимость и добавляем в сцену
     dimensionGrid.visible = visible;
     scene.add(dimensionGrid);
     
     console.log(`[GRID] Создана новая размерная сетка с ${verticalLines} вертикальными и ${horizontalLines} горизонтальными линиями`);
+    console.log(`[GRID] Сетка настроена как неинтерактивная для взаимодействия с мышью`);
     
     return dimensionGrid;
 }
@@ -387,12 +407,24 @@ function calculateGridStep(size) {
  */
 export function toggleDimensionGridVisibility(visible = null) {
     if (dimensionGrid) {
-        if (visible === null) {
-            dimensionGrid.visible = !dimensionGrid.visible;
+        // Проверяем, активен ли режим вида сверху
+        const isTopViewActive = window.app && window.app.isTopViewActive;
+        
+        // Если вид сверху активен, сетка всегда видима
+        if (isTopViewActive) {
+            // Не позволяем скрыть сетку в режиме вида сверху
+            dimensionGrid.visible = true;
+            console.log(`[GRID] Сетка остается видимой в режиме вида сверху`);
         } else {
-            dimensionGrid.visible = visible;
+            // Если режим вида сверху неактивен, применяем стандартное поведение
+            if (visible === null) {
+                dimensionGrid.visible = !dimensionGrid.visible;
+            } else {
+                dimensionGrid.visible = visible;
+            }
+            console.log(`[GRID] Видимость сетки изменена на ${dimensionGrid.visible}`);
         }
-        console.log(`[GRID] Видимость сетки изменена на ${dimensionGrid.visible}`);
+        
         return dimensionGrid.visible;
     }
     return false;
