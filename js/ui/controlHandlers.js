@@ -318,6 +318,13 @@ function setupPlaygroundButton() {
     
     if (!playgroundButton || !playgroundSettings) return;
     
+    // Скрываем панель настроек по умолчанию
+    playgroundSettings.classList.add('hidden');
+    // Добавляем также inline стиль для гарантии скрытия
+    playgroundSettings.style.display = 'none';
+    
+    console.log('Элементы управления площадкой скрыты по умолчанию');
+    
     // Инициализация текущих значений размеров площадки
     window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 10;
     window.selectedPlaygroundLength = window.selectedPlaygroundLength || 10;
@@ -340,6 +347,16 @@ function setupPlaygroundButton() {
     playgroundButton.onclick = function() {
         // Показываем/скрываем панель настроек площадки
         playgroundSettings.classList.toggle('hidden');
+        
+        // Переключаем стиль display
+        if (playgroundSettings.style.display === 'none') {
+            playgroundSettings.style.display = 'block';
+            console.log('Элементы управления площадкой показаны');
+        } else {
+            playgroundSettings.style.display = 'none';
+            console.log('Элементы управления площадкой скрыты');
+        }
+        
         updateSelectedColorSquare();
     };
     
