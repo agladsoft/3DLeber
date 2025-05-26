@@ -268,8 +268,9 @@ function setupDimensionsButton() {
 
     updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
 
-    dimensionsButton.onclick = function() {
+    dimensionsButton.onclick = async function() {
         window.dimensionsVisible = !window.dimensionsVisible;
+        
         if (window.dimensionsVisible) {
             // Для всех объектов на сцене добавляем размеры, если их нет
             if (Array.isArray(placedObjects)) {
@@ -279,6 +280,7 @@ function setupDimensionsButton() {
         } else {
             hideAllDimensions();
         }
+        
         updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
     };
 }

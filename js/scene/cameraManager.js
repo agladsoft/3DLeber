@@ -298,6 +298,19 @@ export function toggleTopView(width, length) {
             window.app.isTopViewActive = isTopViewActive;
         }
         
+        // Управляем отображением размерной сетки
+        import('../scene/gridManager.js').then(gridManagerModule => {
+            // Получаем цвет площадки, если доступен
+            let groundColor = 'серый';
+            if (window.app && window.app.ground && window.app.ground.userData && window.app.ground.userData.groundColor) {
+                groundColor = window.app.ground.userData.groundColor;
+            } else if (ground && ground.userData && ground.userData.groundColor) {
+                groundColor = ground.userData.groundColor;
+            }
+            
+            gridManagerModule.handleTopViewToggle(isTopViewActive, width, length, groundColor);
+        });
+        
         // Выполняем обновление стиля кнопки после переключения режима
         setTimeout(() => {
             updateTopViewButtonStyle(isTopViewActive);
@@ -395,6 +408,20 @@ function enableTopView(width, length) {
         // Активируем контроллер вида сверху
         initTopViewController(canvasElement, camera, targetHeight);
         
+        // Добавляем создание увеличенной размерной сетки
+        import('../scene/gridManager.js').then(gridManagerModule => {
+            // Получаем цвет площадки, если доступен
+            let groundColor = 'серый';
+            if (window.app && window.app.ground && window.app.ground.userData && window.app.ground.userData.groundColor) {
+                groundColor = window.app.ground.userData.groundColor;
+            } else if (ground && ground.userData && ground.userData.groundColor) {
+                groundColor = ground.userData.groundColor;
+            }
+            
+            // Создаем размерную сетку, увеличенную на 10%
+            gridManagerModule.createDimensionGrid(width, length, groundColor, true);
+        });
+        
         showNotification("Вид сверху активирован. Используйте правую кнопку мыши для перемещения по площадке и колесико для масштабирования.", false);
     });
 }
@@ -459,19 +486,4 @@ function disableTopView() {
 function cleanupGridHelper() {
     // Функция оставлена для совместимости, но больше не удаляет сетку
     console.log("cleanupGridHelper вызвана, но сетка не удаляется (функционал отключен)");
-}
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material.dispose();
-                    }
-                }
-            }
-        });
-        
-        if (remainingGrids > 0) {
-            console.log(`Удалено еще ${remainingGrids} оставшихся сеток`);
-        }
-    } else {
-        console.log("Сетка не найдена в window.app.gridHelper");
-    }
 }

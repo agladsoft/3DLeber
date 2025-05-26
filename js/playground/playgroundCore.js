@@ -6,6 +6,7 @@ import { scene, createGrid, isTopViewActive } from '../scene.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
+import { createDimensionGrid, updateDimensionGrid } from '../scene/gridManager.js';
 
 // Глобальные переменные для площадки
 export let playgroundWidth = PLAYGROUND.defaultWidth;
@@ -105,6 +106,15 @@ export function resetPlayground(width, length) {
     
     // Проверяем позиции всех объектов после изменения размеров
     checkAllObjectsPositions();
+    
+    // Получаем цвет площадки, если доступен
+    let groundColor = 'серый';
+    if (ground && ground.userData && ground.userData.groundColor) {
+        groundColor = ground.userData.groundColor;
+    }
+    
+    // Обновляем размерную сетку
+    updateDimensionGrid(width, length, groundColor);
     
     // Обновляем сетку, если активен вид сверху
     // Проверяем как локальную переменную, так и глобальное состояние в window.app
