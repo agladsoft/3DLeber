@@ -112,7 +112,7 @@ function createEXRBackground() {
     pmremGenerator.compileEquirectangularShader();
     new EXRLoader()
         .setDataType(THREE.FloatType)
-        .load('textures/hdri/rooitou_park_4k.exr', function(texture) {
+        .load('textures/hdri/M3_Photoreal_hdri-exr_wide_open_plaza_in_847306475_455207.exr', function(texture) {
             const envMap = pmremGenerator.fromEquirectangular(texture).texture;
             scene.environment = envMap;
             scene.background = envMap;
