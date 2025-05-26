@@ -186,6 +186,11 @@ export function setupCamera(rendererInstance) {
  * @param {Number} length - Длина площадки для расчета позиции камеры
  */
 export function resetCameraView(width, length) {
+    // Всегда скрываем размерную сетку при сбросе вида, независимо от режима
+    import('../scene/gridManager.js').then(gridManagerModule => {
+        gridManagerModule.toggleDimensionGridVisibility(false);
+    });
+    
     // Если активен режим вида сверху, но мы не вызываем disableTopView()
     // для избежания двойной анимации
     if (isTopViewActive) {
@@ -199,11 +204,6 @@ export function resetCameraView(width, length) {
         
         // Очищаем обработчики вида сверху
         cleanupEventListeners();
-        
-        // Скрываем размерную сетку
-        import('../scene/gridManager.js').then(gridManagerModule => {
-            gridManagerModule.toggleDimensionGridVisibility(false);
-        });
         
         // Обновляем состояние и уведомляем другие модули
         isTopViewActive = false;

@@ -305,20 +305,99 @@ function updateDimensionsButtonStyle(button, isActive) {
  */
 function setupPlaygroundButton() {
     const playgroundButton = document.getElementById('playgroundButton');
+    const playgroundSettings = document.getElementById('playgroundSettings');
     const colorPicker = document.getElementById('playgroundColorPicker');
     const colorSquares = colorPicker ? colorPicker.querySelectorAll('.color-square') : [];
     
-    if (!playgroundButton || !colorPicker) return;
+    // Элементы управления размерами
+    const widthSlider = document.getElementById('widthSlider');
+    const lengthSlider = document.getElementById('lengthSlider');
+    const widthValue = document.getElementById('widthValue');
+    const lengthValue = document.getElementById('lengthValue');
+    const applyButton = document.getElementById('applyPlaygroundSize');
+    
+    if (!playgroundButton || !playgroundSettings) return;
+    
+    // Инициализация текущих значений размеров площадки
+    window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 10;
+    window.selectedPlaygroundLength = window.selectedPlaygroundLength || 10;
+    
+    // Установка начальных значений для ползунков
+    if (widthSlider && widthValue) {
+        widthSlider.value = window.selectedPlaygroundWidth;
+        widthValue.textContent = window.selectedPlaygroundWidth;
+    }
+    
+    if (lengthSlider && lengthValue) {
+        lengthSlider.value = window.selectedPlaygroundLength;
+        lengthValue.textContent = window.selectedPlaygroundLength;
+    }
     
     // Отмечаем текущий выбранный цвет
     updateSelectedColorSquare();
     
     // Обработчик нажатия на кнопку площадки
     playgroundButton.onclick = function() {
-        // Просто показываем/скрываем цветовой набор
-        colorPicker.classList.toggle('hidden');
+        // Показываем/скрываем панель настроек площадки
+        playgroundSettings.classList.toggle('hidden');
         updateSelectedColorSquare();
     };
+    
+    // Функция для применения новых размеров площадки
+    const applyPlaygroundSize = async (newWidth, newLength) => {
+        // Проверка на изменение размеров
+        if (window.selectedPlaygroundWidth === newWidth && window.selectedPlaygroundLength === newLength) {
+            return; // Размеры не изменились, ничего не делаем
+        }
+        
+        // Сохраняем новые размеры
+        window.selectedPlaygroundWidth = newWidth;
+        window.selectedPlaygroundLength = newLength;
+        
+        // Получаем текущий цвет
+        const currentColor = window.selectedPlaygroundColor || 'серый';
+        
+        try {
+            // Импортируем модуль загрузки площадки
+            const playgroundModule = await import('../playground.js');
+            
+            // Загружаем новую площадку с новыми размерами
+            await playgroundModule.loadPlayground('basketball_court.glb', newWidth, newLength, currentColor);
+            
+            console.log(`Размеры площадки изменены: ширина=${newWidth}м, длина=${newLength}м`);
+        } catch (error) {
+            console.error('Ошибка при изменении размеров площадки:', error);
+        }
+    };
+    
+    // Обработчики для ползунков
+    if (widthSlider && widthValue) {
+        // Обновляем текст при перемещении ползунка
+        widthSlider.oninput = function() {
+            widthValue.textContent = this.value;
+        };
+        
+        // Применяем новый размер при отпускании ползунка
+        widthSlider.onchange = function() {
+            const newWidth = parseInt(this.value);
+            const newLength = parseInt(lengthSlider.value);
+            applyPlaygroundSize(newWidth, newLength);
+        };
+    }
+    
+    if (lengthSlider && lengthValue) {
+        // Обновляем текст при перемещении ползунка
+        lengthSlider.oninput = function() {
+            lengthValue.textContent = this.value;
+        };
+        
+        // Применяем новый размер при отпускании ползунка
+        lengthSlider.onchange = function() {
+            const newWidth = parseInt(widthSlider.value);
+            const newLength = parseInt(this.value);
+            applyPlaygroundSize(newWidth, newLength);
+        };
+    }
     
     // Обработчики нажатия на цветные квадратики
     colorSquares.forEach(square => {
@@ -335,38 +414,20 @@ function setupPlaygroundButton() {
             // Сохраняем выбранный цвет в глобальной переменной
             window.selectedPlaygroundColor = selectedColor;
             
-            // Показываем индикатор загрузки
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                window.isLoading = true;
-            }
-            
             try {
                 // Импортируем модуль загрузки площадки
                 const playgroundModule = await import('../playground.js');
                 
                 // Получаем текущие размеры площадки
-                const width = window.selectedPlaygroundWidth || playgroundModule.playgroundWidth || 10;
-                const length = window.selectedPlaygroundLength || playgroundModule.playgroundLength || 10;
+                const width = window.selectedPlaygroundWidth || 10;
+                const length = window.selectedPlaygroundLength || 10;
                 
                 // Загружаем новую площадку с теми же размерами, но с новым цветом
                 await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
                 
                 console.log('Цвет площадки изменен на:', selectedColor);
-                
-                // Скрываем выбор цвета после выбора
-                colorPicker.classList.add('hidden');
             } catch (error) {
                 console.error('Ошибка при изменении цвета площадки:', error);
-            } finally {
-                // Скрываем индикатор загрузки
-                if (loadingOverlay) {
-                    setTimeout(() => {
-                        loadingOverlay.classList.add('hidden');
-                        window.isLoading = false;
-                    }, 500);
-                }
             }
         });
     });
