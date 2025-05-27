@@ -2,43 +2,43 @@
     "user_id": "id_12345678",
     "models": [
         {
-            "article": "TE319",
+            "article": "ЛГД-19",
             "quantity": 2
         },
         {
-            "article": "FISH",
+            "article": "ЛГК-24.7",
             "quantity": 1
         },
         {
-            "article": "TE706",
+            "article": "ЛГИК-7.26",
             "quantity": 1
         },
         {
-            "article": "TE703",
+            "article": "ЛГИК-7.03",
             "quantity": 1
         },
         {
-            "article": "TE701",
+            "article": "ЛГИК-7.01",
             "quantity": 1
         },
         {
-            "article": "1384",
+            "article": "ЛГД-29",
             "quantity": 1
         },
         {
-            "article": "3701.2",
+            "article": "ЛГД-25",
             "quantity": 1
         },
         {
-            "article": "TE323",
+            "article": "ЛГД-23",
             "quantity": 1
         },
         {
-            "article": "1364",
+            "article": "ЛГД-14",
             "quantity": 1
         },
         {
-            "article": "2279.50",
+            "article": "ЛГВО-421",
             "quantity": 1
         }
     ]
