@@ -8,6 +8,7 @@ import {
 import * as THREE from 'three';
 import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { PMREMGenerator } from 'three';
+// CubeTextureLoader уже включен в импорт THREE
 
 // Экспортируем переменные для доступа из других модулей
 export let canvas;
@@ -101,24 +102,38 @@ function createLighting() {
 }
 
 /**
- * Создание HDRI-фона для сцены
+ * Создание фона для сцены (Skybox с использованием citybox текстур)
  */
 function createEXRBackground() {
     if (!renderer) {
         console.error('Renderer не инициализирован');
         return;
     }
+    
+    // Загружаем кубическую текстуру (Skybox) вместо HDRI
+    const loader = new THREE.CubeTextureLoader();
+    loader.setPath('textures/citybox/');
+    
+    const textureCube = loader.load([
+        'citybox_px.jpg', // положительный X (право)
+        'citybox_nx.jpg', // отрицательный X (лево)
+        'citybox_py.jpg', // положительный Y (верх)
+        'citybox_ny.jpg', // отрицательный Y (низ)
+        'citybox_pz.jpg', // положительный Z (перед)
+        'citybox_nz.jpg'  // отрицательный Z (зад)
+    ]);
+    
+    // Устанавливаем фон и окружение для сцены
+    scene.background = textureCube;
+    
+    // Опционально сохраняем окружение для отражений
+    // Создаем PMREMGenerator для преобразования кубической текстуры
     const pmremGenerator = new PMREMGenerator(renderer);
-    pmremGenerator.compileEquirectangularShader();
-    new EXRLoader()
-        .setDataType(THREE.FloatType)
-        .load('textures/hdri/M3_Photoreal_hdri-exr_wide_open_plaza_in_847306475_455207.exr', function(texture) {
-            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-            scene.environment = envMap;
-            scene.background = envMap;
-            texture.dispose();
-            pmremGenerator.dispose();
-        });
+    const envMap = pmremGenerator.fromCubemap(textureCube).texture;
+    scene.environment = envMap;
+    pmremGenerator.dispose();
+    
+    console.log('Skybox с использованием citybox текстур успешно загружен');
 }
 
 /**

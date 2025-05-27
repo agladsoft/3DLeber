@@ -134,15 +134,22 @@
             </tr>
         </table>
         
-        <div class="size-sliders">
-            <div class="slider-container">
-                <label for="widthSlider">Ширина площадки: <span id="widthValue">10</span>м</label>
-                <input type="range" id="widthSlider" min="5" max="100" value="10" step="5" class="slider">
+        <div class="size-controls">
+            <div class="size-inputs-row">
+                <div class="size-input-container">
+                    <input type="text" id="widthInput" value="10" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                </div>
+                <div class="size-input-container">
+                    <input type="text" id="lengthInput" value="10" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                </div>
             </div>
-            
-            <div class="slider-container">
-                <label for="lengthSlider">Длина площадки: <span id="lengthValue">10</span>м</label>
-                <input type="range" id="lengthSlider" min="5" max="100" value="10" step="5" class="slider">
+            <div class="sliders-row">
+                <div class="slider-container">
+                    <input type="range" id="widthSlider" min="5" max="100" value="10" step="1" class="slider">
+                </div>
+                <div class="slider-container">
+                    <input type="range" id="lengthSlider" min="5" max="100" value="10" step="1" class="slider">
+                </div>
             </div>
         </div>
     </div>
