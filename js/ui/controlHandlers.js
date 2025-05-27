@@ -71,7 +71,7 @@ function setupControlHandlers() {
                 sessionData.placedObjects = [];
 
                 // Сохраняем обновленную сессию перед удалением объектов
-                const saveResponse = await fetch('${API_BASE_URL}/session', {
+                const saveResponse = await fetch(`${API_BASE_URL}/session`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
