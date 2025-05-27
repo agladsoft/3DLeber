@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - SERVER_IP=${SERVER_IP}
+        - SERVER_PORT=${SERVER_PORT}
     ports:
       - "80:80"
     volumes:

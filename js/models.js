@@ -121,6 +121,7 @@ export async function initializeNewSession(userId, models) {
 
 async function loadModels() {
     try {
+        console.log(API_BASE_URL);
         // Загружаем JSON файл
         const jsonResponse = await fetch('models.json');
         if (!jsonResponse.ok) {
@@ -140,7 +141,6 @@ async function loadModels() {
             }
         }
         
-        console.log(API_BASE_URL);
         // Отправляем данные на сервер для сопоставления с БД
         const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
             method: 'POST',
