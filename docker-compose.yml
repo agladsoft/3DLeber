@@ -13,6 +13,8 @@ services:
       - ./css:/usr/share/nginx/html/css
       - ./textures:/usr/share/nginx/html/textures
       - ./models.json:/usr/share/nginx/html/models.json
+    environment:
+      - SERVER_IP=${SERVER_IP}
     depends_on:
       api:
         condition: service_healthy
