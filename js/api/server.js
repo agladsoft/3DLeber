@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
 import { SERVER_IP, SERVER_PORT, DB_CONFIG } from './serverConfig.js';
@@ -10,12 +11,18 @@ const { Pool } = pg;
 const app = express();
 const PORT = SERVER_PORT;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Создаем пул подключений к базе данных
 const pool = new Pool(DB_CONFIG);
 
 // ✅ Разрешить CORS
 app.use(cors());
 app.use(express.json());
+
+const modelsDir = path.join(__dirname, '..', 'models');
+console.log(modelsDir)
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -24,7 +31,6 @@ app.get('/health', async (req, res) => {
         await pool.query('SELECT 1');
         
         // Проверяем доступность директории с моделями
-        const modelsDir = '/app/models';
         if (!fs.existsSync(modelsDir)) {
             throw new Error('Models directory not found');
         }
@@ -46,9 +52,6 @@ app.get('/health', async (req, res) => {
         });
     }
 });
-
-const modelsDir = '/app/models';
-console.log(modelsDir)
 
 function collectGlbModels(dir, baseDir = dir) {
     let models = [];

@@ -30,7 +30,7 @@ services:
       - "3000:3000"
     volumes:
       - ./js:/app/js
-      - ./models:/app/models
+      - ./models:/app/js/models
     environment:
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_DB=${POSTGRES_NAME}
