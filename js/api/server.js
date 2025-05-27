@@ -5,22 +5,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
+import { SERVER_IP, SERVER_PORT, DB_CONFIG } from '../config.js';
 const { Pool } = pg;
 
 const app = express();
-const PORT = 3000;
+const PORT = SERVER_PORT;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Создаем пул подключений к базе данных
-const pool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    user: 'admin',
-    database: 'admin',
-    password: 'admin'
-});
+const pool = new Pool(DB_CONFIG);
 
 // ✅ Разрешить CORS
 app.use(cors());
@@ -188,5 +183,5 @@ app.delete('/api/session/:userId', async (req, res) => {
 app.use('/models', express.static(modelsDir));
 
 app.listen(PORT, () => {
-    console.log(`API сервер запущен на http://localhost:${PORT}`);
+    console.log(`API сервер запущен на http://${SERVER_IP}:${PORT}`);
 });

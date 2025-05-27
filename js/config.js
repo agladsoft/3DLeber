@@ -127,3 +127,20 @@ export const TOP_VIEW_SETTINGS = {
 };
 
 export const PLAYGROUND_GROUND_PREFIXES = ['Plane', 'Grass'];
+
+// Server configuration
+export const SERVER_IP = process.env.SERVER_IP || 'localhost';
+export const SERVER_PORT = process.env.SERVER_PORT || '3000';
+export const API_BASE_URL = `http://${SERVER_IP}:${SERVER_PORT}/api`;
+export const POSTGRES_NAME = process.env.POSTGRES_NAME || 'admin';
+export const POSTGRES_USER = process.env.POSTGRES_USER || 'admin';
+export const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'admin';
+
+// Database configuration
+export const DB_CONFIG = {
+    host: SERVER_IP,
+    port: 5432,
+    user: POSTGRES_USER,
+    database: POSTGRES_NAME,
+    password: POSTGRES_PASSWORD
+};

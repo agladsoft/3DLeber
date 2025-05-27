@@ -1,13 +1,8 @@
 import pg from 'pg';
+import { DB_CONFIG } from '../config.js';
 const { Pool } = pg;
 
-const pool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    user: 'admin',
-    database: 'admin',
-    password: 'admin'
-});
+const pool = new Pool(DB_CONFIG);
 
 export async function getModelsByArticles(articles) {
     const query = `

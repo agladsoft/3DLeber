@@ -4,6 +4,7 @@
  */
 import { startSceneChecks } from './sceneCheck.js';
 import { initializeNewSession } from './models.js';
+import { API_BASE_URL } from './config.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export function showPlatformSelectModal() {
@@ -114,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Проверяем наличие сессии
-            const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
             if (!sessionResponse.ok) {
                 throw new Error('Failed to get session');
             }
@@ -256,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (userId) {
                     // Очищаем сессию в базе данных
-                    const clearResponse = await fetch(`http://localhost:3000/api/session/${userId}`, {
+                    const clearResponse = await fetch(`${API_BASE_URL}/session/${userId}`, {
                         method: 'DELETE'
                     });
 
@@ -316,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Получаем данные сессии из БД
-                const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
                 if (!sessionResponse.ok) {
                     throw new Error('Failed to get session');
                 }
