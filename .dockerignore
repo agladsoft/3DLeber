@@ -1,0 +1,9 @@
+node_modules
+pgdata
+.git
+.vscode
+.idea
+*.log
+*.sql
+*.md
+!README.md 
