@@ -1,7 +1,7 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
 import { getQuantityFromStorage } from './ui/dragAndDrop.js';
 import { loadAndPlaceModel } from './modules/objectManager.js';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL } from './api/serverConfig.js';
 
 /**
  * Получает актуальное количество модели из сессии

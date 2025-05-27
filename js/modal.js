@@ -4,7 +4,7 @@
  */
 import { startSceneChecks } from './sceneCheck.js';
 import { initializeNewSession } from './models.js';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL } from './api/serverConfig.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export function showPlatformSelectModal() {

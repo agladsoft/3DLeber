@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { DB_CONFIG } from '../config.js';
+import { DB_CONFIG } from './serverConfig.js';
 const { Pool } = pg;
 
 const pool = new Pool(DB_CONFIG);

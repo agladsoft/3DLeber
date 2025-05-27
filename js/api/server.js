@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
-import { SERVER_IP, SERVER_PORT, DB_CONFIG } from '../config.js';
+import { SERVER_IP, SERVER_PORT, DB_CONFIG } from './serverConfig.js';
 const { Pool } = pg;
 
 const app = express();
