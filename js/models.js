@@ -140,6 +140,7 @@ async function loadModels() {
             }
         }
         
+        console.log(API_BASE_URL);
         // Отправляем данные на сервер для сопоставления с БД
         const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
             method: 'POST',
