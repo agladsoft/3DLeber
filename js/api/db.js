@@ -85,7 +85,7 @@ export async function saveSession(userId, sessionData) {
             VALUES ($1, $2)
             ON CONFLICT (user_id) 
             DO UPDATE SET session_data = $2
-            RETURNING id
+            RETURNING user_id
         `;
         const result = await pool.query(query, [user.id, sessionData]);
         return result.rows[0];
