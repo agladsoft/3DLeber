@@ -5,7 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
-import { SERVER_IP, SERVER_PORT, DB_CONFIG } from './serverConfig.js';
+import { SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
+
+
 const { Pool } = pg;
 
 const app = express();
@@ -213,5 +215,5 @@ app.delete('/api/session/:userId', async (req, res) => {
 app.use('/models', express.static(modelsDir));
 
 app.listen(PORT, () => {
-    console.log(`API сервер запущен на http://${SERVER_IP}:${PORT}`);
+    console.log(`API сервер запущен на ${API_BASE_URL}`);
 });
