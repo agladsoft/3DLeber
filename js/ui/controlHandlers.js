@@ -17,6 +17,7 @@ import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
 import { initializeNewSession } from '../models.js';
 import { updateModelQuantityUI, saveQuantitiesToStorage } from './dragAndDrop.js';
+import { API_BASE_URL } from '../api/serverConfig.js'
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -58,7 +59,7 @@ function setupControlHandlers() {
                 }
 
                 // Получаем текущую сессию
-                const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
                 if (!sessionResponse.ok) {
                     throw new Error('Failed to get session');
                 }
@@ -70,7 +71,7 @@ function setupControlHandlers() {
                 sessionData.placedObjects = [];
 
                 // Сохраняем обновленную сессию перед удалением объектов
-                const saveResponse = await fetch('http://localhost:3000/api/session', {
+                const saveResponse = await fetch('${API_BASE_URL}/session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

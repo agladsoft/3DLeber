@@ -11,6 +11,7 @@ import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOpe
 import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
 import { showModelDimensions } from './dimensionDisplay/index.js';
 import { updateSafetyZonesVisibility } from '../core/safetyManager.js';
+import { API_BASE_URL } from '../api/serverConfig.js'
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -288,7 +289,7 @@ export function loadAndPlaceModel(modelName, position) {
                     }
 
                     // Получаем текущую сессию
-                    const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
                     if (!sessionResponse.ok) {
                         throw new Error('Failed to get session');
                     }
@@ -319,7 +320,7 @@ export function loadAndPlaceModel(modelName, position) {
                     sessionData.quantities[modelName] = Math.max(0, currentQuantity - 1);
 
                     // Сохраняем обновленную сессию
-                    const saveResponse = await fetch('http://localhost:3000/api/session', {
+                    const saveResponse = await fetch(`${API_BASE_URL}/session`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -392,7 +393,7 @@ export function removeObject(container, isMassRemoval = false) {
             }
 
             // Получаем текущую сессию
-            const sessionResponse = await fetch(`http://localhost:3000/api/session/${userId}`);
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
             if (!sessionResponse.ok) {
                 throw new Error('Failed to get session');
             }
@@ -418,7 +419,7 @@ export function removeObject(container, isMassRemoval = false) {
             }
 
             // Сохраняем обновленную сессию
-            const saveResponse = await fetch('http://localhost:3000/api/session', {
+            const saveResponse = await fetch(`${API_BASE_URL}/session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
