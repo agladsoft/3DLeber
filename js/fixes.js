@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { showNotification } from './utils.js';
+import { API_BASE_URL } from './api/serverConfig.js'
 
 /**
  * Проверяет целостность сцены и объектов
@@ -328,6 +329,62 @@ export function resetDragHandlers() {
 }
 
 /**
+ * Восстанавливает размещенные объекты из сессии
+ * @param {Object} session - Данные сессии
+ * @returns {Promise<void>}
+ */
+export async function restorePlacedObjects(session) {
+    console.log("Восстановление размещенных объектов из сессии");
+    
+    if (!session || !session.placedObjects || session.placedObjects.length === 0) {
+        console.log("Нет объектов для восстановления");
+        return;
+    }
+    
+    try {
+        // Импортируем необходимые модули
+        const objectManager = await import('./modules/objectManager.js');
+        const collisionModule = await import('./modules/collisionDetection.js');
+        
+        console.log('Восстанавливаем размещенные объекты:', session.placedObjects);
+        
+        // Восстанавливаем каждый объект
+        for (const objectData of session.placedObjects) {
+            // Создаем объект позиции из сохраненных координат
+            const position = {
+                x: parseFloat(objectData.coordinates.x),
+                y: parseFloat(objectData.coordinates.y),
+                z: parseFloat(objectData.coordinates.z)
+            };
+            
+            // Загружаем и размещаем модель с флагом восстановления
+            await objectManager.loadAndPlaceModel(objectData.modelName, position, true);
+            
+            // Находим последний размещенный объект и устанавливаем его поворот
+            const lastPlacedObject = objectManager.placedObjects[objectManager.placedObjects.length - 1];
+            if (lastPlacedObject) {
+                lastPlacedObject.rotation.y = parseFloat(objectData.rotation);
+                
+                // Обновляем размеры объекта, если они были сохранены
+                if (objectData.dimensions) {
+                    lastPlacedObject.userData.realWidth = parseFloat(objectData.dimensions.width);
+                    lastPlacedObject.userData.realHeight = parseFloat(objectData.dimensions.height);
+                    lastPlacedObject.userData.realDepth = parseFloat(objectData.dimensions.depth);
+                }
+            }
+        }
+        
+        // Проверяем все объекты на коллизии после восстановления
+        collisionModule.checkAllObjectsPositions();
+        
+        console.log("Размещенные объекты успешно восстановлены");
+    } catch (error) {
+        console.error("Ошибка при восстановлении размещенных объектов:", error);
+        showNotification("Ошибка при восстановлении объектов", true);
+    }
+}
+
+/**
  * Применяет все исправления
  */
 export function applyAllFixes() {
@@ -341,6 +398,30 @@ export function applyAllFixes() {
     
     // Сбрасываем обработчики drag-and-drop, чтобы избежать дублирования
     resetDragHandlers();
+    
+    // Восстанавливаем размещенные объекты, если есть сессия
+    try {
+        // Получаем user_id из models.json
+        fetch('models.json')
+            .then(response => response.json())
+            .then(async data => {
+                if (data.user_id) {
+                    // Получаем данные сессии
+                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${data.user_id}`);
+                    if (sessionResponse.ok) {
+                        const { session } = await sessionResponse.json();
+                        if (session) {
+                            await restorePlacedObjects(session);
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка при получении данных сессии:", error);
+            });
+    } catch (error) {
+        console.error("Ошибка при восстановлении сессии:", error);
+    }
     
     console.log("Все исправления применены");
     

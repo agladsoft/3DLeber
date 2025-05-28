@@ -14,59 +14,105 @@ import {
 } from './uiCore.js';
 import * as THREE from 'three';
 import { saveModelQuantity } from '../models.js';
+import { API_BASE_URL } from '../api/serverConfig.js';
 
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
 
-// Ключ для хранения количества моделей в sessionStorage
-const MODELS_QUANTITY_KEY = 'modelQuantities';
-
-// Добавляем обработчик для очистки sessionStorage при перезагрузке страницы
-window.addEventListener('beforeunload', () => {
-    sessionStorage.removeItem(MODELS_QUANTITY_KEY);
-});
+// Кэш для хранения количеств моделей
+let modelQuantitiesCache = {};
 
 /**
- * Получает количество модели из sessionStorage
+ * Получает количество модели из базы данных
+ * @param {string} modelName - Имя модели
+ * @returns {Promise<number>} Количество модели
  */
-export function getQuantityFromStorage(modelName) {
+export async function getQuantityFromDatabase(modelName) {
     try {
-        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
-        return quantities[modelName] !== undefined ? quantities[modelName] : null;
+        // Получаем user_id из models.json
+        const response = await fetch('models.json');
+        const data = await response.json();
+        const userId = data.user_id;
+
+        if (!userId) {
+            throw new Error('No user ID found');
+        }
+
+        // Получаем данные сессии
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+
+        const { session } = await sessionResponse.json();
+        if (!session || !session.quantities) {
+            return 0;
+        }
+
+        // Обновляем кэш
+        modelQuantitiesCache = { ...session.quantities };
+        return session.quantities[modelName] || 0;
     } catch (error) {
-        console.error('Error getting quantity from sessionStorage:', error);
-        return null;
+        console.error('Error getting quantity from database:', error);
+        return 0;
     }
 }
 
 /**
- * Сохраняет количество моделей в sessionStorage
+ * Сохраняет количество модели в базе данных
+ * @param {string} modelName - Имя модели
+ * @param {number} quantity - Новое количество
  */
-export function saveQuantitiesToStorage(modelName, quantity) {
+export async function saveQuantityToDatabase(modelName, quantity) {
     try {
-        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
-        quantities[modelName] = quantity;
-        sessionStorage.setItem(MODELS_QUANTITY_KEY, JSON.stringify(quantities));
-    } catch (error) {
-        console.error('Error saving quantities to sessionStorage:', error);
-    }
-}
+        // Получаем user_id из models.json
+        const response = await fetch('models.json');
+        const data = await response.json();
+        const userId = data.user_id;
 
-/**
- * Восстанавливает количество моделей из localStorage
- */
-export function restoreQuantitiesFromStorage() {
-    try {
-        const quantities = JSON.parse(sessionStorage.getItem(MODELS_QUANTITY_KEY) || '{}');
-        document.querySelectorAll('.item').forEach(item => {
-            const modelName = item.getAttribute('data-model');
-            if (modelName && modelName in quantities) {
-                const storedQuantity = quantities[modelName];
-                updateModelQuantityUI(item, storedQuantity);
+        if (!userId) {
+            throw new Error('No user ID found');
+        }
+
+        // Получаем текущую сессию
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+
+        const { session } = await sessionResponse.json();
+        const sessionData = session || { quantities: {} };
+        
+        // Обновляем количество
+        sessionData.quantities = sessionData.quantities || {};
+        sessionData.quantities[modelName] = quantity;
+
+        // Сохраняем обновленную сессию
+        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+
+        if (!saveResponse.ok) {
+            throw new Error('Failed to save session');
+        }
+
+        // Обновляем кэш
+        modelQuantitiesCache = { ...sessionData.quantities };
+        
+        // Обновляем UI
+        const items = document.querySelectorAll('.item');
+        items.forEach(item => {
+            if (item.getAttribute('data-model') === modelName) {
+                updateModelQuantityUI(item, quantity);
             }
         });
     } catch (error) {
-        console.error('Error restoring quantities from localStorage:', error);
+        console.error('Error saving quantity to database:', error);
+        showNotification('Ошибка при сохранении количества', true);
     }
 }
 
@@ -158,16 +204,17 @@ function removeExistingHandlers() {
  * @param {string} modelName - Имя модели
  * @param {number} newQuantity - Новое количество
  */
-function updateModelQuantity(modelName, newQuantity) {
-    // Обновляем только UI и localStorage, без сохранения в базу
+async function updateModelQuantity(modelName, newQuantity) {
+    // Обновляем UI
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
             updateModelQuantityUI(item, newQuantity);
-            // Сохраняем в localStorage
-            saveQuantitiesToStorage(modelName, newQuantity);
         }
     });
+
+    // Сохраняем в базу данных
+    await saveQuantityToDatabase(modelName, newQuantity);
 }
 
 /**
@@ -377,7 +424,7 @@ function determineDropPosition() {
  * Обновляет количество модели в сайдбаре при удалении объекта
  * @param {string} modelName - Имя модели
  */
-export function updateModelQuantityOnRemove(modelName) {
+export async function updateModelQuantityOnRemove(modelName) {
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
@@ -387,8 +434,8 @@ export function updateModelQuantityOnRemove(modelName) {
             // Обновляем UI
             updateModelQuantityUI(item, newQuantity);
             
-            // Сохраняем новое количество в localStorage
-            saveQuantitiesToStorage(modelName, newQuantity);
+            // Сохраняем новое количество в базу данных
+            saveQuantityToDatabase(modelName, newQuantity);
             
             item.classList.remove('blurred');
         }

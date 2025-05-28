@@ -16,7 +16,7 @@ import {
 import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
 import { initializeNewSession } from '../models.js';
-import { updateModelQuantityUI, saveQuantitiesToStorage } from './dragAndDrop.js';
+import { updateModelQuantityUI, saveQuantityToDatabase } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
 
 /**
@@ -105,7 +105,7 @@ function setupControlHandlers() {
                             items.forEach(item => {
                                 if (item.getAttribute('data-model') === modelName) {
                                     updateModelQuantityUI(item, quantity);
-                                    saveQuantitiesToStorage(modelName, quantity);
+                                    saveQuantityToDatabase(modelName, quantity);
                                 }
                             });
                         });

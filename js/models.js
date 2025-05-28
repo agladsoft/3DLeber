@@ -1,5 +1,5 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
-import { getQuantityFromStorage } from './ui/dragAndDrop.js';
+import { getQuantityFromDatabase } from './ui/dragAndDrop.js';
 import { loadAndPlaceModel } from './modules/objectManager.js';
 import { API_BASE_URL } from './api/serverConfig.js';
 
@@ -225,7 +225,7 @@ async function loadModels() {
     }
 }
 
-function showModelsForCategory(category, models, sidebar) {
+async function showModelsForCategory(category, models, sidebar) {
     // Clear previous content
     sidebar.innerHTML = `<h3>${category}</h3>`;
     
@@ -241,15 +241,15 @@ function showModelsForCategory(category, models, sidebar) {
     itemsContainer.className = 'items-container';
 
     // Create model items
-    models.forEach(model => {
+    for (const model of models) {
         const item = document.createElement('div');
         item.className = 'item';
         item.setAttribute('draggable', 'true');
         item.setAttribute('data-model', model.name);
         item.setAttribute('data-article', model.article);
         
-        // Проверяем количество в localStorage, если нет - используем значение из model
-        const storedQuantity = getQuantityFromStorage(model.name);
+        // Проверяем количество в базе данных
+        const storedQuantity = await getQuantityFromDatabase(model.name);
         const quantity = storedQuantity !== null ? storedQuantity : model.quantity;
         
         item.setAttribute('data-quantity', quantity);
@@ -291,7 +291,7 @@ function showModelsForCategory(category, models, sidebar) {
         item.appendChild(name);
         item.appendChild(cartContainer);
         itemsContainer.appendChild(item);
-    });
+    }
 
     sidebar.appendChild(itemsContainer);
 

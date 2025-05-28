@@ -31,9 +31,10 @@ export function generateObjectId() {
  * Загружает 3D-модель и размещает ее на площадке
  * @param {String} modelName - Имя файла модели
  * @param {Object} position - Позиция для размещения объекта
+ * @param {Boolean} isRestoring - Флаг восстановления объекта из сессии
  */
-export function loadAndPlaceModel(modelName, position) {
-    console.log("loadAndPlaceModel вызван с:", modelName, position);
+export function loadAndPlaceModel(modelName, position, isRestoring = false) {
+    console.log("loadAndPlaceModel вызван с:", modelName, position, "isRestoring:", isRestoring);
     
     const modelPath = `models/${modelName}`;
     console.log("Полный путь к модели:", modelPath);
@@ -276,66 +277,68 @@ export function loadAndPlaceModel(modelName, position) {
                 // После успешной загрузки модели обновляем видимость безопасных зон
                 updateSafetyZonesVisibility();
 
-                // Обновляем сессию в базе данных после размещения модели
-                try {
-                    // Получаем user_id из models.json
-                    const response = await fetch('models.json');
-                    const data = await response.json();
-                    const userId = data.user_id;
+                // Обновляем сессию в базе данных только если это не восстановление
+                if (!isRestoring) {
+                    try {
+                        // Получаем user_id из models.json
+                        const response = await fetch('models.json');
+                        const data = await response.json();
+                        const userId = data.user_id;
 
-                    if (!userId) {
-                        console.error('No user ID found');
-                        return;
-                    }
-
-                    // Получаем текущую сессию
-                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-                    if (!sessionResponse.ok) {
-                        throw new Error('Failed to get session');
-                    }
-
-                    const { session } = await sessionResponse.json();
-                    const sessionData = session || { quantities: {}, placedObjects: [] };
-
-                    // Добавляем информацию о новом объекте
-                    const objectData = {
-                        id: container.userData.id,
-                        modelName: modelName,
-                        coordinates: container.userData.coordinates,
-                        rotation: container.rotation.y.toFixed(2),
-                        dimensions: {
-                            width: container.userData.realWidth.toFixed(2),
-                            height: container.userData.realHeight.toFixed(2),
-                            depth: container.userData.realDepth.toFixed(2)
+                        if (!userId) {
+                            console.error('No user ID found');
+                            return;
                         }
-                    };
 
-                    sessionData.placedObjects.push(objectData);
+                        // Получаем текущую сессию
+                        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                        if (!sessionResponse.ok) {
+                            throw new Error('Failed to get session');
+                        }
 
-                    // Обновляем количество модели в quantities
-                    if (!sessionData.quantities) {
-                        sessionData.quantities = {};
+                        const { session } = await sessionResponse.json();
+                        const sessionData = session || { quantities: {}, placedObjects: [] };
+
+                        // Добавляем информацию о новом объекте
+                        const objectData = {
+                            id: container.userData.id,
+                            modelName: modelName,
+                            coordinates: container.userData.coordinates,
+                            rotation: container.rotation.y.toFixed(2),
+                            dimensions: {
+                                width: container.userData.realWidth.toFixed(2),
+                                height: container.userData.realHeight.toFixed(2),
+                                depth: container.userData.realDepth.toFixed(2)
+                            }
+                        };
+
+                        sessionData.placedObjects.push(objectData);
+
+                        // Обновляем количество модели в quantities
+                        if (!sessionData.quantities) {
+                            sessionData.quantities = {};
+                        }
+                        const currentQuantity = sessionData.quantities[modelName] || 0;
+                        sessionData.quantities[modelName] = Math.max(0, currentQuantity - 1);
+
+                        // Сохраняем обновленную сессию
+                        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ userId, sessionData }),
+                        });
+
+                        if (!saveResponse.ok) {
+                            throw new Error('Failed to save session');
+                        }
+
+                        console.log('Session updated successfully for new object:', objectData);
+                        console.log('Updated quantities:', sessionData.quantities);
+                    } catch (error) {
+                        console.error('Error updating session:', error);
                     }
-                    const currentQuantity = sessionData.quantities[modelName] || 0;
-                    sessionData.quantities[modelName] = Math.max(0, currentQuantity - 1);
-
-                    // Сохраняем обновленную сессию
-                    const saveResponse = await fetch(`${API_BASE_URL}/session`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ userId, sessionData }),
-                    });
-
-                    if (!saveResponse.ok) {
-                        throw new Error('Failed to save session');
-                    }
-
-                    console.log('Session updated successfully for new object:', objectData);
-                    console.log('Updated quantities:', sessionData.quantities);
-                } catch (error) {
-                    console.error('Error updating session:', error);
                 }
             },
             // Обработчик загрузки (прогресс)
