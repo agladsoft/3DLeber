@@ -6,6 +6,7 @@ import { scene, createGrid, isTopViewActive } from '../scene.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
+import { createDimensionGrid, updateDimensionGrid } from '../scene/gridManager.js';
 
 // Глобальные переменные для площадки
 export let playgroundWidth = PLAYGROUND.defaultWidth;
@@ -50,25 +51,7 @@ export function createPlayground(width, length) {
     // Удаляем все желтые элементы
     removeAllYellowElements();
     
-    // Обновляем сетку, если активен вид сверху
-    // Проверяем как локальную переменную, так и глобальное состояние в window.app
-    if (isTopViewActive || (window.app && window.app.isTopViewActive)) {
-        const gridHelper = createGrid(width, length);
-        
-        // Убеждаемся, что сетка фиксирована на площадке
-        if (gridHelper) {
-            gridHelper.matrixAutoUpdate = false;
-            gridHelper.updateMatrix();
-            
-            // Привязываем сетку к площадке по y-координате
-            gridHelper.position.y = 0.01;
-            
-            // Обновляем ссылку в глобальном контексте
-            if (window.app) {
-                window.app.gridHelper = gridHelper;
-            }
-        }
-    }
+    // Код обновления сетки удален - вид сверху работает без сетки
     
     // Удаляем все объекты, которые могут относиться к зонам безопасности
     cleanupSafetyObjects();
@@ -124,6 +107,15 @@ export function resetPlayground(width, length) {
     
     // Проверяем позиции всех объектов после изменения размеров
     checkAllObjectsPositions();
+    
+    // Получаем цвет площадки, если доступен
+    let groundColor = 'серый';
+    if (ground && ground.userData && ground.userData.groundColor) {
+        groundColor = ground.userData.groundColor;
+    }
+    
+    // Обновляем размерную сетку
+    updateDimensionGrid(width, length, groundColor);
     
     // Обновляем сетку, если активен вид сверху
     // Проверяем как локальную переменную, так и глобальное состояние в window.app

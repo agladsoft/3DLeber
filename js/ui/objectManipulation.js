@@ -501,6 +501,15 @@ function handleDoubleClickOnCanvas(event) {
 }
 
 function showDeleteButtonForObject(object, event) {
+    // Проверяем, является ли объект размерной сеткой в режиме вида сверху
+    if (object.name === "dimensionGrid" || 
+        (object.userData && object.userData.isTopViewGrid) || 
+        (object.parent && object.parent.name === "dimensionGrid") ||
+        (object.parent && object.parent.userData && object.parent.userData.isTopViewGrid)) {
+        console.log('Попытка удаления размерной сетки заблокирована');
+        return; // Не показываем кнопку удаления для размерной сетки
+    }
+    
     // Перед созданием новой кнопки всегда удаляем старую
     removeDeleteButton();
     // Получаем 2D позицию центра объекта

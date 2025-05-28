@@ -48,7 +48,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно управления сессией -->
     <div id="sessionModal" class="modal">
         <div class="modal-content session-select-content">
@@ -59,7 +59,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно приложения -->
     <div id="appModal" class="modal">
         <div class="modal-content">
@@ -89,6 +89,24 @@
                             <td align="center" width="25%"><div class="color-square" data-color="коричневый" style="background-color: #5D4037;"></div></td>
                         </tr>
                     </table>
+                    <div class="size-controls">
+                        <div class="size-inputs-row">
+                            <div class="size-input-container">
+                                <input type="text" id="widthInput" value="10" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                            </div>
+                            <div class="size-input-container">
+                                <input type="text" id="lengthInput" value="10" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                            </div>
+                        </div>
+                        <div class="sliders-row">
+                            <div class="slider-container">
+                                <input type="range" id="widthSlider" min="5" max="100" value="10" step="1" class="slider">
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="lengthSlider" min="5" max="100" value="10" step="1" class="slider">
+                            </div>
+                        </div>
+                    </div>
                     <button id="deleteAllModels">🗑️ Удалить все модели</button>
                     <button id="closeAppButton">❌ Закрыть приложение</button>
                     <div id="playgroundStatus" style="margin-top: 10px; font-size: 12px; color: #666;">

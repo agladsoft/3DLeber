@@ -186,12 +186,47 @@ export function setupCamera(rendererInstance) {
  * @param {Number} length - Длина площадки для расчета позиции камеры
  */
 export function resetCameraView(width, length) {
+    // Всегда скрываем размерную сетку при сбросе вида, независимо от режима
+    import('../scene/gridManager.js').then(gridManagerModule => {
+        gridManagerModule.toggleDimensionGridVisibility(false);
+    });
+    
+    // Если активен режим вида сверху, но мы не вызываем disableTopView()
+    // для избежания двойной анимации
+    if (isTopViewActive) {
+        console.log('Сброс вида из режима вида сверху напрямую');
+        
+        // Очищаем обработчики вручную без запуска анимации
+        if (window.topViewLeftClickHandler) {
+            document.removeEventListener('mousedown', window.topViewLeftClickHandler, true);
+            window.topViewLeftClickHandler = null;
+        }
+        
+        // Очищаем обработчики вида сверху
+        cleanupEventListeners();
+        
+        // Обновляем состояние и уведомляем другие модули
+        isTopViewActive = false;
+        if (window.app) {
+            window.app.isTopViewActive = false;
+        }
+        
+        // Обновляем стиль кнопки вида сверху
+        updateTopViewButtonStyle(false);
+    }
+    
     // Восстанавливаем стандартные ограничения камеры
     controls.minDistance = CAMERA_SETTINGS.minDistance;
     controls.maxDistance = CAMERA_SETTINGS.maxDistance;
     controls.minPolarAngle = CAMERA_SETTINGS.minPolarAngle;
     controls.maxPolarAngle = CAMERA_SETTINGS.maxPolarAngle;
     controls.enableRotate = true;
+    
+    // Восстанавливаем стандартный вектор up для камеры
+    camera.up.set(0, 1, 0);
+    
+    // Включаем стандартные элементы управления
+    controls.enabled = true;
     
     // Параметры для анимации
     const targetDistance = width > length ? width * 1.5 : length * 1.5; // Целевое расстояние
@@ -291,12 +326,29 @@ export function toggleTopView(width, length) {
         } else {
             // Выключаем вид сверху
             disableTopView();
+            
+            // Вызываем resetCameraView для перемещения к стандартному виду,
+            // точно так же, как при нажатии кнопки "Сбросить вид"
+            resetCameraView(width, length);
         }
         
         // Обновляем глобальное состояние
         if (window.app) {
             window.app.isTopViewActive = isTopViewActive;
         }
+        
+        // Управляем отображением размерной сетки
+        import('../scene/gridManager.js').then(gridManagerModule => {
+            // Получаем цвет площадки, если доступен
+            let groundColor = 'серый';
+            if (window.app && window.app.ground && window.app.ground.userData && window.app.ground.userData.groundColor) {
+                groundColor = window.app.ground.userData.groundColor;
+            } else if (ground && ground.userData && ground.userData.groundColor) {
+                groundColor = ground.userData.groundColor;
+            }
+            
+            gridManagerModule.handleTopViewToggle(isTopViewActive, width, length, groundColor);
+        });
         
         // Выполняем обновление стиля кнопки после переключения режима
         setTimeout(() => {
@@ -366,20 +418,8 @@ function enableTopView(width, length) {
         enableRotate: controls.enableRotate
     };
     
-    // Используем импортированную функцию createGrid напрямую
-    console.log("Вызываем createGrid для создания сетки");
-    try {
-        // Создаем сетку
-        const gridHelper = createGrid(width, length);
-        
-        // Сохраняем ссылку на сетку
-        if (window.app) {
-            window.app.gridHelper = gridHelper;
-            console.log("Сохранена ссылка на сетку в window.app.gridHelper");
-        }
-    } catch (error) {
-        console.error("Ошибка при создании сетки:", error);
-    }
+    // Код создания сетки удален - теперь вид сверху работает без сетки
+    console.log("Вид сверху активирован без сетки");
     
     // Перемещаем камеру для вида сверху
     const diagonal = Math.sqrt(width * width + length * length);
@@ -398,6 +438,23 @@ function enableTopView(width, length) {
         y: 0,
         z: 0
     }, () => {
+        // Добавляем обработчик для левой кнопки мыши, чтобы блокировать стандартное поведение
+        const leftClickHandler = (event) => {
+            if (event.button === 0) {
+                // Предотвращаем стандартные действия при нажатии левой кнопки мыши
+                // Но разрешаем выделение объектов
+                if (!window.objectBeingDragged) {
+                    event.stopPropagation();
+                }
+            }
+        };
+        
+        // Добавляем обработчик на документ
+        document.addEventListener('mousedown', leftClickHandler, true);
+        
+        // Сохраняем ссылку на обработчик для последующего удаления
+        window.topViewLeftClickHandler = leftClickHandler;
+        
         // Полностью ОТКЛЮЧАЕМ стандартные OrbitControls
         controls.enabled = false;
         
@@ -407,15 +464,49 @@ function enableTopView(width, length) {
         // Активируем контроллер вида сверху
         initTopViewController(canvasElement, camera, targetHeight);
         
-        showNotification("Вид сверху активирован. Используйте мышь для перемещения по площадке и колесико для масштабирования.", false);
+        // Добавляем создание увеличенной размерной сетки
+        import('../scene/gridManager.js').then(gridManagerModule => {
+            // Получаем цвет площадки, если доступен
+            let groundColor = 'серый';
+            if (window.app && window.app.ground && window.app.ground.userData && window.app.ground.userData.groundColor) {
+                groundColor = window.app.ground.userData.groundColor;
+            } else if (ground && ground.userData && ground.userData.groundColor) {
+                groundColor = ground.userData.groundColor;
+            }
+            
+            // Создаем размерную сетку, увеличенную на 10%
+            gridManagerModule.createDimensionGrid(width, length, groundColor, true);
+            
+            // Дополнительно устанавливаем свойства для предотвращения исчезновения сетки
+            if (gridManagerModule.dimensionGrid) {
+                // Устанавливаем дополнительные свойства для сетки
+                gridManagerModule.dimensionGrid.userData.isTopViewGrid = true; // Добавляем пометку
+                gridManagerModule.dimensionGrid.layers.set(1); // Устанавливаем в особый слой
+                
+                // Добавляем фиксацию размерной сетки, чтобы она не вращалась
+                gridManagerModule.dimensionGrid.matrixAutoUpdate = false; // Отключаем автоматическое обновление матрицы
+                
+                // Информируем в консоли, что сетка зафиксирована
+                console.log(`[GRID] Размерная сетка зафиксирована для режима вида сверху`);
+            }
+        });
+        
+        showNotification("Вид сверху активирован. Используйте правую кнопку мыши для перемещения по площадке и колесико для масштабирования.", false);
     });
 }
 
 /**
- * Выключение режима вида сверху
+ * Выключение режима вида сверху (без анимации)
  */
 function disableTopView() {
-    console.log("Выключение режима вида сверху");
+    console.log("Выключение режима вида сверху (без анимации)");
+    
+    // Удаляем обработчик левой кнопки мыши, если он был добавлен
+    if (window.topViewLeftClickHandler) {
+        document.removeEventListener('mousedown', window.topViewLeftClickHandler, true);
+        window.topViewLeftClickHandler = null;
+        console.log("Обработчик левой кнопки мыши удален");
+    }
     
     // Удаляем сетку и очищаем ресурсы
     cleanupGridHelper();
@@ -426,40 +517,34 @@ function disableTopView() {
     // Очищаем обработчики нашего контроллера вида сверху
     cleanupEventListeners();
     
-    // Возвращаемся к предыдущему виду
+    // Восстанавливаем настройки камеры без анимации
+    controls.enabled = true;
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.enableDamping = CAMERA_SETTINGS.enableDamping;
+    
+    // Стандартные настройки кнопок мыши
+    controls.mouseButtons = {
+        LEFT: MOUSE.ROTATE,
+        MIDDLE: MOUSE.DOLLY,
+        RIGHT: MOUSE.PAN
+    };
+    
+    // Восстанавливаем стандартный вектор up для камеры
+    camera.up.set(0, 1, 0);
+    
+    // Восстанавливаем ограничения камеры из сохраненного состояния
     if (previousCameraState) {
-        console.log("Возвращаемся к предыдущему виду камеры");
-        
-        // Анимируем возврат к предыдущему виду
-        animateCameraMove(
-            previousCameraState.position,
-            previousCameraState.target,
-            () => {
-                // Восстанавливаем настройки камеры
-                controls.minDistance = previousCameraState.minDistance;
-                controls.maxDistance = previousCameraState.maxDistance;
-                controls.minPolarAngle = previousCameraState.minPolarAngle;
-                controls.maxPolarAngle = previousCameraState.maxPolarAngle;
-                
-                // Включаем OrbitControls
-                controls.enabled = true;
-                controls.enableRotate = true;
-                controls.enablePan = true;
-                controls.enableDamping = CAMERA_SETTINGS.enableDamping;
-                
-                // Стандартные настройки кнопок мыши
-                controls.mouseButtons = {
-                    LEFT: MOUSE.ROTATE,
-                    MIDDLE: MOUSE.DOLLY,
-                    RIGHT: MOUSE.PAN
-                };
-                
-                console.log("Восстановлены настройки камеры");
-                showNotification("Вид сверху деактивирован.", false);
-            }
-        );
+        controls.minDistance = previousCameraState.minDistance;
+        controls.maxDistance = previousCameraState.maxDistance;
+        controls.minPolarAngle = previousCameraState.minPolarAngle;
+        controls.maxPolarAngle = previousCameraState.maxPolarAngle;
     } else {
-        console.log("Предыдущее состояние камеры не найдено");
+        // Если нет сохраненного состояния, используем стандартные настройки
+        controls.minDistance = CAMERA_SETTINGS.minDistance;
+        controls.maxDistance = CAMERA_SETTINGS.maxDistance;
+        controls.minPolarAngle = CAMERA_SETTINGS.minPolarAngle;
+        controls.maxPolarAngle = CAMERA_SETTINGS.maxPolarAngle;
     }
 }
 
@@ -469,64 +554,6 @@ function disableTopView() {
  * Очищает сетку и связанные с ней ресурсы
  */
 function cleanupGridHelper() {
-    console.log("Начинаем очистку сетки...");
-    
-    if (window.app && window.app.gridHelper) {
-        console.log("Сетка найдена в window.app.gridHelper:", window.app.gridHelper);
-        
-        // Удаляем центральную ось, если она существует
-        if (window.app.gridHelper.userData && window.app.gridHelper.userData.centerAxis) {
-            console.log("Удаляем центральную ось");
-            scene.remove(window.app.gridHelper.userData.centerAxis);
-            window.app.gridHelper.userData.centerAxis = null;
-        }
-        
-        // Удаляем саму сетку
-        console.log("Удаляем сетку из сцены");
-        scene.remove(window.app.gridHelper);
-        
-        // Освобождаем ресурсы
-        if (window.app.gridHelper.geometry) {
-            window.app.gridHelper.geometry.dispose();
-        }
-        
-        if (window.app.gridHelper.material) {
-            if (Array.isArray(window.app.gridHelper.material)) {
-                window.app.gridHelper.material.forEach(mat => {
-                    if (mat) mat.dispose();
-                });
-            } else {
-                window.app.gridHelper.material.dispose();
-            }
-        }
-        
-        // Очищаем ссылку
-        window.app.gridHelper = null;
-        console.log("Сетка успешно удалена");
-        
-        // Проверяем, не осталось ли сеток на сцене
-        let remainingGrids = 0;
-        scene.traverse(obj => {
-            if (obj.userData && obj.userData.isGridHelper) {
-                remainingGrids++;
-                console.log("Найдена оставшаяся сетка:", obj);
-                // Удаляем найденные сетки
-                scene.remove(obj);
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material.dispose();
-                    }
-                }
-            }
-        });
-        
-        if (remainingGrids > 0) {
-            console.log(`Удалено еще ${remainingGrids} оставшихся сеток`);
-        }
-    } else {
-        console.log("Сетка не найдена в window.app.gridHelper");
-    }
+    // Функция оставлена для совместимости, но больше не удаляет сетку
+    console.log("cleanupGridHelper вызвана, но сетка не удаляется (функционал отключен)");
 }

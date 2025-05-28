@@ -121,16 +121,7 @@ function finalizeResize(newWidth, newLength) {
     // Удаляем все желтые элементы после обновления
     removeAllYellowElements();
     
-    // Обновляем сетку, если активен вид сверху
-    if (isTopViewActive || (window.app && window.app.isTopViewActive)) {
-        const gridHelper = createGrid(newWidth, newLength);
-        
-        // Убеждаемся, что сетка фиксирована
-        if (gridHelper) {
-            gridHelper.matrixAutoUpdate = false;
-            gridHelper.updateMatrix();
-        }
-    }
+    // Код обновления сетки удален - вид сверху работает без сетки
     
     // Показываем уведомление
     showNotification("Размеры площадки успешно обновлены", false);

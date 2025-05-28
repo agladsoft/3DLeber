@@ -314,6 +314,232 @@ th, td {
     transform: none;
 }
 
+/* Стили для цветных квадратиков выбора цвета */
+.color-picker {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 5px; /* Маленький отступ между элементами */
+    margin: 5px 0;
+    padding: 0;
+    width: 100%; /* Ширина на всю доступную область */
+}
+
+.color-table {
+    width: 100%;
+    margin: 5px 0;
+    border-collapse: collapse;
+    background-color: rgba(240, 240, 240, 0.8);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.color-table td {
+    border: none;
+    padding: 5px;
+    text-align: center;
+    width: 25%; /* Каждый элемент занимает ровно 25% от ширины таблицы */
+}
+
+.color-picker.hidden,
+.horizontal-color-picker.hidden,
+.color-table.hidden,
+.inline-colors.hidden {
+    display: none;
+}
+
+.inline-colors {
+    text-align: center;
+    white-space: nowrap;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 5px 0;
+}
+
+/* Стили для таблицы с цветами */
+.color-table {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin: 5px 0;
+    box-sizing: border-box;
+    border-collapse: separate;
+    border-spacing: 5px;
+}
+
+.color-table.hidden {
+    display: none;
+}
+
+.color-table td {
+    padding: 5px;
+    text-align: center;
+    border: none;
+}
+
+.playground-control button {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.color-square {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    display: inline-block;
+    transition: border-color 0.2s ease;
+    margin: 2px;
+}
+
+.color-square:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Стили для панели настроек площадки */
+.playground-settings {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin: 5px 0;
+    padding: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.playground-settings.hidden {
+    display: none;
+}
+
+/* Горизонтальное расположение полей ввода */
+#playgroundSettings .size-inputs-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 10px;
+}
+
+#playgroundSettings .size-input-container {
+    flex: 1 !important;
+    margin-bottom: 5px;
+}
+
+#playgroundSettings .size-input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 6px 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 5px !important;
+    text-align: center !important;
+    font-size: 0.93rem !important;
+}
+
+/* Стили для ползунков */
+.size-sliders {
+    margin-top: 10px;
+}
+
+#playgroundSettings .sliders-row {
+    display: flex !important;
+    flex-direction: column !important; /* Располагаем ползунки друг под другом */
+    width: 100% !important; /* Занимают всю ширину */
+    gap: 10px !important; /* Отступ между ползунками */
+}
+
+#playgroundSettings .slider-container {
+    width: 100% !important; /* Каждый контейнер занимает всю ширину */
+    margin-bottom: 10px !important;
+}
+
+#playgroundSettings .slider {
+    width: 100% !important; /* Ползунок занимает всю ширину контейнера */
+}
+
+.slider-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.slider {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #ddd;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.slider:hover {
+    background: #ccc;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4f8cff;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4f8cff;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    border: none;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    background: #2355d6;
+    transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb:hover {
+    background: #2355d6;
+    transform: scale(1.1);
+}
+
+.apply-button {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+}
+
+.apply-button:hover {
+    background: linear-gradient(90deg, #45a049 0%, #4CAF50 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.apply-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(76, 175, 80, 0.2);
+}
+
+.color-square.selected {
+    border: 2px solid #444;
+    transform: none;
+}
+
 .control-group {
     display: flex;
     justify-content: space-between;
@@ -1032,6 +1258,142 @@ button:disabled, .modern-button:disabled {
 .toggle-panel-button.panel-hidden {
     right: 10px;
     background: linear-gradient(135deg, #2355d6 0%, #4f8cff 100%);
+}
+
+/* Стили для контейнера управления размерами */
+.size-controls {
+    width: 100%;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Контейнер для полей ввода */
+.size-inputs-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    width: auto;
+}
+
+/* Контейнер для поля ввода */
+.size-input-container {
+    position: relative;
+    width: 60px;
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+}
+
+/* Стили для полей ввода */
+.size-input {
+    width: 60px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+    background-color: #fff;
+    transition: all 0.3s;
+    box-sizing: border-box;
+}
+
+/* Контейнер для ползунков */
+.sliders-row {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+}
+
+/* Контейнер для каждого слайдера */
+.slider-container {
+    flex: 1;
+}
+
+.size-input:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    outline: none;
+}
+
+/* Скрываем стрелки у числового ввода */
+.size-input::-webkit-outer-spin-button,
+.size-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+.size-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Стиль для единиц измерения */
+.unit {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* Стили для ползунков */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: #d9d9d9;
+    outline: none;
+    margin: 0;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1890ff;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1890ff;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider:active::-webkit-slider-thumb,
+.slider:active::-moz-range-thumb {
+    transform: scale(1.1);
+    background: #0c7cd5;
+}
+
+.slider:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.2);
+}
+
+.slider:focus {
+    outline: none;
 }
 
 /* Стили для кнопки переключения сайдбара */

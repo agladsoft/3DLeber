@@ -43,6 +43,7 @@ function setupControlHandlers() {
     setupResetViewButton();
     setupTopViewButton();
     setupPlaygroundButton();
+    setupDimensionsButton();
 
     // Обработчик для кнопки удаления всех моделей
     const deleteAllBtn = document.getElementById('deleteAllModels');
@@ -87,7 +88,7 @@ function setupControlHandlers() {
             const module = await import('../objects.js');
             // Копируем массив, чтобы не было проблем при изменении во время итерации
             const objectsToDelete = [...module.placedObjects];
-            
+
                 // Удаляем все объекты с площадки, передавая флаг массового удаления
             for (const obj of objectsToDelete) {
                     module.removeObject(obj, true);
@@ -97,7 +98,7 @@ function setupControlHandlers() {
                 if (data.models && Array.isArray(data.models)) {
                     console.log('Reinitializing session with models:', data.models);
                     const newSessionData = await initializeNewSession(userId, data.models);
-                    
+
                     // Обновляем количества в sessionStorage
                     if (newSessionData && newSessionData.quantities) {
                         Object.entries(newSessionData.quantities).forEach(([modelName, quantity]) => {
@@ -321,16 +322,41 @@ function isValidSize(size) {
 /**
  * Настраивает кнопку изменения параметров площадки
  */
+function setupDimensionsButton() {
+    const dimensionsButton = document.getElementById('toggleDimensions');
+    if (!dimensionsButton) return;
+
+    // Устанавливаем начальное состояние
+    if (typeof window.dimensionsVisible === 'undefined') {
+        window.dimensionsVisible = false;
+    }
+
+    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
+
+    dimensionsButton.onclick = async function() {
+        window.dimensionsVisible = !window.dimensionsVisible;
+
+        if (window.dimensionsVisible) {
+            // Для всех объектов на сцене добавляем размеры, если их нет
+            if (Array.isArray(placedObjects)) {
+                placedObjects.forEach(obj => addDimensionsToModel(obj));
+            }
+            showAllDimensions();
+        } else {
+            hideAllDimensions();
+        }
+
+        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
 function setupPlaygroundButton() {
     const playgroundButton = document.getElementById('playgroundButton');
     const colorPicker = document.getElementById('playgroundColorPicker');
     const colorSquares = colorPicker ? colorPicker.querySelectorAll('.color-square') : [];
-    
+
     if (!playgroundButton || !colorPicker) return;
-    
+
     // Отмечаем текущий выбранный цвет
     updateSelectedColorSquare();
-    
+
     // Обработчик нажатия на кнопку площадки
     playgroundButton.onclick = function() {
         // Просто показываем/скрываем цветовой набор
@@ -343,16 +369,16 @@ function setupPlaygroundButton() {
         square.addEventListener('click', async function() {
             // Получаем выбранный цвет
             const selectedColor = this.getAttribute('data-color');
-            
+
             // Снимаем выделение с других квадратиков
             colorSquares.forEach(s => s.classList.remove('selected'));
-            
+
             // Выделяем выбранный квадратик
             this.classList.add('selected');
-            
+
             // Сохраняем выбранный цвет в глобальной переменной
             window.selectedPlaygroundColor = selectedColor;
-            
+
             // Показываем индикатор загрузки
             const loadingOverlay = document.getElementById('loadingOverlay');
             if (loadingOverlay) {
@@ -363,19 +389,19 @@ function setupPlaygroundButton() {
             try {
                 // Импортируем модуль загрузки площадки
                 const playgroundModule = await import('../playground.js');
-                
+
                 // Получаем текущие размеры площадки
                 const width = window.selectedPlaygroundWidth || playgroundModule.playgroundWidth || 10;
                 const length = window.selectedPlaygroundLength || playgroundModule.playgroundLength || 10;
-                
+
                 // Сохраняем параметры площадки в сессии
                 await playgroundModule.savePlaygroundParameters('basketball_court.glb', width, length, selectedColor);
-                
+
                 // Загружаем новую площадку с теми же размерами, но с новым цветом
                 await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
-                
+
                 console.log('Цвет площадки изменен на:', selectedColor);
-                
+
                 // Скрываем выбор цвета после выбора
                 colorPicker.classList.add('hidden');
             } catch (error) {
@@ -388,6 +414,226 @@ function setupPlaygroundButton() {
                         window.isLoading = false;
                     }, 500);
                 }
+            }
+        });
+    });
+
+/**
+ * Настраивает кнопку изменения параметров площадки
+ */
+function setupPlaygroundButton() {
+    const playgroundButton = document.getElementById('playgroundButton');
+    const playgroundSettings = document.getElementById('playgroundSettings');
+    const colorPicker = document.getElementById('playgroundColorPicker');
+    const colorSquares = colorPicker ? colorPicker.querySelectorAll('.color-square') : [];
+
+    // Элементы управления размерами
+    const widthSlider = document.getElementById('widthSlider');
+    const lengthSlider = document.getElementById('lengthSlider');
+    const widthInput = document.getElementById('widthInput');
+    const lengthInput = document.getElementById('lengthInput');
+    const applyButton = document.getElementById('applyPlaygroundSize');
+
+    // Функция для валидации и форматирования ввода
+    const validateAndFormatInput = (value) => {
+        // Удаляем все нецифровые символы
+        let num = value.replace(/\D/g, '');
+        // Ограничиваем значение от 5 до 100
+        num = Math.min(Math.max(parseInt(num) || 5, 5), 100);
+        return num;
+    };
+
+    if (!playgroundButton || !playgroundSettings) return;
+
+    // Скрываем панель настроек по умолчанию
+    playgroundSettings.classList.add('hidden');
+    // Добавляем также inline стиль для гарантии скрытия
+    playgroundSettings.style.display = 'none';
+
+    console.log('Элементы управления площадкой скрыты по умолчанию');
+
+    // Инициализация текущих значений размеров площадки
+    window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 10;
+    window.selectedPlaygroundLength = window.selectedPlaygroundLength || 10;
+
+    // Установка начальных значений для полей ввода и ползунков
+    if (widthSlider && widthInput) {
+        widthSlider.value = window.selectedPlaygroundWidth;
+        widthInput.value = window.selectedPlaygroundWidth;
+    }
+
+    if (lengthSlider && lengthInput) {
+        lengthSlider.value = window.selectedPlaygroundLength;
+        lengthInput.value = window.selectedPlaygroundLength;
+    }
+
+    // Отмечаем текущий выбранный цвет
+    updateSelectedColorSquare();
+
+    // Обработчик нажатия на кнопку площадки
+    playgroundButton.onclick = function() {
+        // Показываем/скрываем панель настроек площадки
+        playgroundSettings.classList.toggle('hidden');
+
+        // Переключаем стиль display
+        if (playgroundSettings.classList.contains('hidden')) {
+            playgroundSettings.style.display = 'none';
+        } else {
+            playgroundSettings.style.display = 'block';
+        }
+
+        // Обновляем значения полей ввода при открытии панели
+        if (!playgroundSettings.classList.contains('hidden')) {
+            if (widthInput) widthInput.value = widthSlider ? widthSlider.value : window.selectedPlaygroundWidth;
+            if (lengthInput) lengthInput.value = lengthSlider ? lengthSlider.value : window.selectedPlaygroundLength;
+        }
+
+        console.log('Элементы управления площадкой показаны');
+    };
+
+    // Функция для применения новых размеров площадки
+    const applyPlaygroundSize = async (newWidth, newLength) => {
+        // Проверка на изменение размеров
+        if (window.selectedPlaygroundWidth === newWidth && window.selectedPlaygroundLength === newLength) {
+            return; // Размеры не изменились, ничего не делаем
+        }
+
+        // Сохраняем новые размеры
+        window.selectedPlaygroundWidth = newWidth;
+        window.selectedPlaygroundLength = newLength;
+
+        // Получаем текущий цвет
+        const currentColor = window.selectedPlaygroundColor || 'серый';
+
+        try {
+            // Импортируем модуль загрузки площадки
+            const playgroundModule = await import('../playground.js');
+
+            // Загружаем новую площадку с новыми размерами
+            await playgroundModule.loadPlayground('basketball_court.glb', newWidth, newLength, currentColor);
+
+            console.log(`Размеры площадки изменены: ширина=${newWidth}м, длина=${newLength}м`);
+        } catch (error) {
+            console.error('Ошибка при изменении размеров площадки:', error);
+        }
+    };
+
+    // Функция для обновления значений и синхронизации полей
+    function updateSizeValues(width, length) {
+        // Валидируем значения
+        const validWidth = Math.min(Math.max(parseInt(width) || 5, 5), 100);
+        const validLength = Math.min(Math.max(parseInt(length) || 5, 5), 100);
+
+        // Обновляем значения полей ввода
+        if (widthInput) widthInput.value = validWidth;
+        if (lengthInput) lengthInput.value = validLength;
+
+        // Обновляем значения ползунков
+        if (widthSlider) widthSlider.value = validWidth;
+        if (lengthSlider) lengthSlider.value = validLength;
+
+        // Возвращаем обновленные значения
+        return { width: validWidth, length: validLength };
+    }
+
+    // Обработчики для полей ввода ширины
+    if (widthInput) {
+        // При изменении значения в поле ввода
+        widthInput.addEventListener('input', function() {
+            // Валидируем ввод в реальном времени
+            const value = validateAndFormatInput(this.value);
+            this.value = value;
+            if (widthSlider) widthSlider.value = value;
+        });
+
+        // При потере фокуса или нажатии Enter применяем изменения
+        widthInput.addEventListener('change', function() {
+            const newWidth = validateAndFormatInput(this.value);
+            const newLength = lengthInput ? validateAndFormatInput(lengthInput.value) : 10;
+            const values = updateSizeValues(newWidth, newLength);
+            applyPlaygroundSize(values.width, values.length);
+        });
+    }
+
+    // Обработчики для полей ввода длины
+    if (lengthInput) {
+        // При изменении значения в поле ввода
+        lengthInput.addEventListener('input', function() {
+            // Валидируем ввод в реальном времени
+            const value = validateAndFormatInput(this.value);
+            this.value = value;
+            if (lengthSlider) lengthSlider.value = value;
+        });
+
+        // При потере фокуса или нажатии Enter применяем изменения
+        lengthInput.addEventListener('change', function() {
+            const newWidth = widthInput ? validateAndFormatInput(widthInput.value) : 10;
+            const newLength = validateAndFormatInput(this.value);
+            const values = updateSizeValues(newWidth, newLength);
+            applyPlaygroundSize(values.width, values.length);
+        });
+    }
+
+    // Обработчики для ползунков
+    if (widthSlider) {
+        // Обновляем значение в поле ввода при перемещении ползунка
+        widthSlider.addEventListener('input', function() {
+            if (widthInput) widthInput.value = this.value;
+        });
+
+        // Применяем новый размер при отпускании ползунка
+        widthSlider.addEventListener('change', function() {
+            const newWidth = parseInt(this.value);
+            const newLength = lengthSlider ? parseInt(lengthSlider.value) : 10;
+            updateSizeValues(newWidth, newLength);
+            applyPlaygroundSize(newWidth, newLength);
+        });
+    }
+
+    if (lengthSlider) {
+        // Обновляем значение в поле ввода при перемещении ползунка
+        lengthSlider.addEventListener('input', function() {
+            if (lengthInput) lengthInput.value = this.value;
+        });
+
+        // Применяем новый размер при отпускании ползунка
+        lengthSlider.addEventListener('change', function() {
+            const newWidth = widthSlider ? parseInt(widthSlider.value) : 10;
+            const newLength = parseInt(this.value);
+            updateSizeValues(newWidth, newLength);
+            applyPlaygroundSize(newWidth, newLength);
+        });
+    }
+
+    // Обработчики нажатия на цветные квадратики
+    colorSquares.forEach(square => {
+        square.addEventListener('click', async function() {
+            // Получаем выбранный цвет
+            const selectedColor = this.getAttribute('data-color');
+
+            // Снимаем выделение с других квадратиков
+            colorSquares.forEach(s => s.classList.remove('selected'));
+
+            // Выделяем выбранный квадратик
+            this.classList.add('selected');
+
+            // Сохраняем выбранный цвет в глобальной переменной
+            window.selectedPlaygroundColor = selectedColor;
+
+            try {
+                // Импортируем модуль загрузки площадки
+                const playgroundModule = await import('../playground.js');
+
+                // Получаем текущие размеры площадки
+                const width = window.selectedPlaygroundWidth || 10;
+                const length = window.selectedPlaygroundLength || 10;
+
+                // Загружаем новую площадку с теми же размерами, но с новым цветом
+                await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
+
+                console.log('Цвет площадки изменен на:', selectedColor);
+            } catch (error) {
+                console.error('Ошибка при изменении цвета площадки:', error);
             }
         });
     });

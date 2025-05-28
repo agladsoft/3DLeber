@@ -164,6 +164,32 @@ export function createEmergencyGround() {
             console.log('Создаем аварийную площадку серого цвета по умолчанию');
         }
         
+        // Определяем цвет площадки в зависимости от выбранного пользователем
+        let groundColor = 0xAAAAAA; // Серый по умолчанию
+        
+        // Если есть выбранный цвет пользователем, используем его
+        if (window.selectedPlaygroundColor) {
+            switch(window.selectedPlaygroundColor.toLowerCase()) {
+                case 'черный':
+                    groundColor = 0x222222; // Чёрный
+                    break;
+                case 'зеленый':
+                    groundColor = 0x2E7D32; // Зелёный
+                    break;
+                case 'коричневый':
+                    groundColor = 0x5D4037; // Коричневый
+                    break;
+                case 'серый':
+                    groundColor = 0xAAAAAA; // Серый
+                    break;
+                default:
+                    groundColor = 0xAAAAAA; // Серый по умолчанию
+            }
+            console.log('Используем выбранный цвет площадки для аварийной площадки:', window.selectedPlaygroundColor);
+        } else {
+            console.log('Создаем аварийную площадку серого цвета по умолчанию');
+        }
+        
         // Создаем материал для плоскости
         const planeMaterial = new THREE.MeshStandardMaterial({
             color: groundColor,
@@ -177,6 +203,9 @@ export function createEmergencyGround() {
         
         // Поворачиваем плоскость так, чтобы она была горизонтальной
         plane.rotation.x = -Math.PI / 2;
+        
+        // Размещаем плоскость немного ниже, чтобы избежать Z-fighting
+        plane.position.y = -0.01;
         
         // Разрешаем плоскости принимать тени
         plane.receiveShadow = true;
