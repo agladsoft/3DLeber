@@ -5,6 +5,7 @@
 import { startSceneChecks } from './sceneCheck.js';
 import { initializeNewSession } from './models.js';
 import { API_BASE_URL } from './api/serverConfig.js';
+import { loadModels } from './models.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export function showPlatformSelectModal() {
@@ -105,6 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Запуск модального окна выбора площадки
     launchButton.addEventListener('click', async () => {
         try {
+            // Загружаем модели
+            await loadModels();
+            
             // Получаем user_id из models.json
             const response = await fetch('models.json');
             const data = await response.json();

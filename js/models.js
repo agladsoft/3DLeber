@@ -302,4 +302,7 @@ async function showModelsForCategory(category, models, sidebar) {
 }
 
 // Load models when the page loads
-document.addEventListener('DOMContentLoaded', loadModels);
+// document.addEventListener('DOMContentLoaded', loadModels);
+
+// Export the loadModels function
+export { loadModels };
