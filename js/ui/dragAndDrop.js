@@ -29,10 +29,8 @@ let modelQuantitiesCache = {};
  */
 export async function getQuantityFromDatabase(modelName) {
     try {
-        // Получаем user_id из models.json
-        const response = await fetch('models.json');
-        const data = await response.json();
-        const userId = data.user_id;
+        // Получаем user_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
 
         if (!userId) {
             throw new Error('No user ID found');
@@ -65,10 +63,8 @@ export async function getQuantityFromDatabase(modelName) {
  */
 export async function saveQuantityToDatabase(modelName, quantity) {
     try {
-        // Получаем user_id из models.json
-        const response = await fetch('models.json');
-        const data = await response.json();
-        const userId = data.user_id;
+        // Получаем user_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
 
         if (!userId) {
             throw new Error('No user ID found');

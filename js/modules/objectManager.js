@@ -280,10 +280,8 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
                     try {
-                        // Получаем user_id из models.json
-                        const response = await fetch('models.json');
-                        const data = await response.json();
-                        const userId = data.user_id;
+                        // Получаем user_id из sessionStorage
+                        const userId = sessionStorage.getItem('userId');
 
                         if (!userId) {
                             console.error('No user ID found');
@@ -385,10 +383,8 @@ export function removeObject(container, isMassRemoval = false) {
 
         // Обновляем сессию в базе данных после удаления объекта
         try {
-            // Получаем user_id из models.json
-            const response = await fetch('models.json');
-            const data = await response.json();
-            const userId = data.user_id;
+            // Получаем user_id из sessionStorage
+            const userId = sessionStorage.getItem('userId');
 
             if (!userId) {
                 console.error('No user ID found');

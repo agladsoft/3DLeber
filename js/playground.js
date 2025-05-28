@@ -35,10 +35,8 @@ export {
  */
 export async function savePlaygroundParameters(modelName, width, length, color) {
     try {
-        // Получаем user_id из models.json
-        const response = await fetch('models.json');
-        const data = await response.json();
-        const userId = data.user_id;
+        // Получаем user_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
 
         if (!userId) {
             throw new Error('No user ID found');

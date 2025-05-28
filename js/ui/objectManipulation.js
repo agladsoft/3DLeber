@@ -40,10 +40,8 @@ import { API_BASE_URL } from '../api/serverConfig.js'
  */
 async function updateSessionInDatabase(object) {
     try {
-        // Получаем user_id из models.json
-        const response = await fetch('models.json');
-        const data = await response.json();
-        const userId = data.user_id;
+        // Получаем user_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
 
         if (!userId) {
             console.error('No user ID found');

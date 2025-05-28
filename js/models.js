@@ -119,21 +119,14 @@ export async function initializeNewSession(userId, models) {
     }
 }
 
-async function loadModels() {
+async function loadModels(modelsData) {
     try {
-        console.log(API_BASE_URL);
-        // Загружаем JSON файл
-        const jsonResponse = await fetch('models.json');
-        if (!jsonResponse.ok) {
-            throw new Error('Failed to fetch JSON data');
-        }
-        const jsonData = await jsonResponse.json();
-        console.log('Loaded JSON data:', jsonData);
+        console.log('Loaded JSON data:', modelsData);
         
         // Получаем сессию из БД
         let sessionData = null;
-        if (jsonData.user_id) {
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${jsonData.user_id}`);
+        if (modelsData.user_id) {
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
             if (sessionResponse.ok) {
                 const { session } = await sessionResponse.json();
                 sessionData = session;
@@ -147,7 +140,7 @@ async function loadModels() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ models: jsonData.models }),
+            body: JSON.stringify({ models: modelsData.models }),
         });
         
         if (!matchResponse.ok) {
@@ -169,7 +162,7 @@ async function loadModels() {
 
         // Get the sidebar element
         const sidebar = document.getElementById('sidebar');
-        sidebar.innerHTML = `<h3>Выберите категорию (User: ${jsonData.user_id || 'default'})</h3>`;
+        sidebar.innerHTML = `<h3>Выберите категорию (User: ${modelsData.user_id || 'default'})</h3>`;
 
         // Group models by category
         const categories = {};
@@ -190,7 +183,7 @@ async function loadModels() {
                 quantity = sessionData.quantities[modelName] || 0;
             } else {
                 // Если сессии нет, ищем количество в JSON по article
-                const jsonModel = jsonData.models.find(m => m.article === model.article);
+                const jsonModel = modelsData.models.find(m => m.article === model.article);
                 if (jsonModel) {
                     quantity = jsonModel.quantity || 0;
                 }
@@ -212,7 +205,7 @@ async function loadModels() {
             const categoryButton = document.createElement('button');
             categoryButton.className = 'category-button';
             categoryButton.textContent = category;
-            categoryButton.onclick = () => showModelsForCategory(category, categories[category], sidebar);
+            categoryButton.onclick = () => showModelsForCategory(modelsData, category, categories[category], sidebar);
             categoriesContainer.appendChild(categoryButton);
         });
 
@@ -225,7 +218,7 @@ async function loadModels() {
     }
 }
 
-async function showModelsForCategory(category, models, sidebar) {
+async function showModelsForCategory(modelsData, category, models, sidebar) {
     // Clear previous content
     sidebar.innerHTML = `<h3>${category}</h3>`;
     
@@ -233,7 +226,7 @@ async function showModelsForCategory(category, models, sidebar) {
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
     backButton.textContent = '← Назад к категориям';
-    backButton.onclick = () => loadModels();
+    backButton.onclick = () => loadModels(modelsData);
     sidebar.appendChild(backButton);
 
     // Create models container

@@ -106,20 +106,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // Запуск модального окна выбора площадки
     launchButton.addEventListener('click', async () => {
         try {
-            // Загружаем модели
-            await loadModels();
-            
-            // Получаем user_id из models.json
-            const response = await fetch('models.json');
-            const data = await response.json();
-            const userId = data.user_id;
+            // Подготавливаем данные для отправки
+            const modelsData = {
+                "user_id": "id_12345678",
+                "models": [
+                    {"article": "ЛГД-19", "quantity": 2},
+                    {"article": "ЛГК-24.7","quantity": 1},
+                    {"article": "ЛГИК-7.26","quantity": 1},
+                    {"article": "ЛГИК-7.03","quantity": 1},
+                    {"article": "ЛГИК-7.01","quantity": 1},
+                    {"article": "ЛГД-29","quantity": 1},
+                    {"article": "ЛГД-25","quantity": 1},
+                    {"article": "ЛГД-23","quantity": 1},
+                    {"article": "ЛГД-14","quantity": 1},
+                    {"article": "ЛГВО-421","quantity": 1}
+                ]
+            };
 
-            if (!userId) {
-                throw new Error('No user ID found');
-            }
+            // Сохраняем userId в sessionStorage
+            sessionStorage.setItem('userId', modelsData.user_id);
+            sessionStorage.setItem('models', JSON.stringify(modelsData.models));
+
+            // Загружаем модели
+            await loadModels(modelsData);
 
             // Проверяем наличие сессии
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
             if (!sessionResponse.ok) {
                 throw new Error('Failed to get session');
             }
@@ -150,10 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error checking session:', error);
             // В случае ошибки показываем окно выбора площадки
-        launchContainer.style.display = 'none';
+            launchContainer.style.display = 'none';
             const platformSelectModal = document.getElementById('platformSelectModal');
             if (platformSelectModal) {
-        platformSelectModal.style.display = 'block';
+                platformSelectModal.style.display = 'block';
             }
         }
     });
@@ -190,19 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
             window.selectedPlaygroundLength = parseFloat(selectedLength);
             window.selectedPlaygroundColor = selectedColor;
                 
-            // Получаем user_id и модели из models.json
-            const response = await fetch('models.json');
-            const data = await response.json();
-            const userId = data.user_id;
+            // Получаем user_id из sessionStorage
+            const userId = sessionStorage.getItem('userId');
+            const models = JSON.parse(sessionStorage.getItem('models'));
 
             if (!userId) {
                 throw new Error('No user ID found');
             }
 
             // Инициализируем новую сессию с моделями из JSON
-            if (data.models && Array.isArray(data.models)) {
-                console.log('Initializing new session with models:', data.models);
-                const newSessionData = await initializeNewSession(userId, data.models);
+            if (models && Array.isArray(models)) {
+                console.log('Initializing new session with models:', models);
+                const newSessionData = await initializeNewSession(userId, models);
                 
                 // Добавляем параметры площадки в сессию
                 if (newSessionData) {
@@ -267,11 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newSessionButton) {
         newSessionButton.addEventListener('click', async () => {
             try {
-                // Получаем user_id и модели из models.json
-                const response = await fetch('models.json');
-                const data = await response.json();
-                console.log('Data from models.json:', data);
-                const userId = data.user_id;
+                // Получаем user_id из sessionStorage
+                const userId = sessionStorage.getItem('userId');
+                const models = JSON.parse(sessionStorage.getItem('models'))
 
                 if (userId) {
                     // Очищаем сессию в базе данных
@@ -284,12 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Инициализируем новую сессию данными из JSON
-                    if (data.models && Array.isArray(data.models)) {
-                        console.log('Initializing new session with models:', data.models);
-                        await initializeNewSession(userId, data.models);
+                    if (models && Array.isArray(models)) {
+                        console.log('Initializing new session with models:', models);
+                        await initializeNewSession(userId, models);
                     } else {
-                        console.error('No models found in models.json');
-                        throw new Error('No models found in models.json');
+                        console.error('No models found in request');
+                        throw new Error('No models found in request');
                     }
                 }
                 
@@ -325,10 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (continueSessionButton) {
         continueSessionButton.addEventListener('click', async () => {
             try {
-                // Получаем user_id из models.json
-                const response = await fetch('models.json');
-                const data = await response.json();
-                const userId = data.user_id;
+                // Получаем user_id из sessionStorage
+                const userId = sessionStorage.getItem('userId');
 
                 if (!userId) {
                     throw new Error('No user ID found');

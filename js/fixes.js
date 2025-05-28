@@ -404,24 +404,20 @@ export function applyAllFixes() {
     
     // Восстанавливаем размещенные объекты, если есть сессия
     try {
-        // Получаем user_id из models.json
-        fetch('models.json')
-            .then(response => response.json())
-            .then(async data => {
-                if (data.user_id) {
-                    // Получаем данные сессии
-                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${data.user_id}`);
-                    if (sessionResponse.ok) {
-                        const { session } = await sessionResponse.json();
-                        if (session) {
-                            await restorePlacedObjects(session);
-                        }
+        // Получаем user_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
+        if (userId) {
+            // Получаем данные сессии
+            (async () => {
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                if (sessionResponse.ok) {
+                    const { session } = await sessionResponse.json();
+                    if (session) {
+                        await restorePlacedObjects(session);
                     }
                 }
-            })
-            .catch(error => {
-                console.error("Ошибка при получении данных сессии:", error);
-            });
+            })();
+        }
     } catch (error) {
         console.error("Ошибка при восстановлении сессии:", error);
     }
