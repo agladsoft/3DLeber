@@ -191,66 +191,26 @@ function createMainSurface(width, length, color) {
 function createGroundMaterial(width, length, color = 'серый') {
     console.log(`[PLAYGROUND] Создаем материал для площадки: цвет ${color}, размер ${width}x${length}м`);
 
-    // Определяем цвет площадки в зависимости от выбранного варианта
-    let groundColor;
-    switch(color) {
-        case 'черный':
-            groundColor = 0x222222; // Черный
-            break;
-        case 'зеленый':
-            groundColor = 0x2E7D32; // Зелёный
-            break;
-        case 'коричневый':
-            groundColor = 0x5D4037; // Коричневый
-            break;
-        case 'серый':
-        default:
-            groundColor = 0xAAAAAA; // Серый (по умолчанию)
-            break;
-    }
-
-    // Создаем базовый материал с выбранным цветом
     const material = new THREE.MeshStandardMaterial({
-        color: groundColor,
-        roughness: 0.85,
-        metalness: 0.05,
-        side: THREE.DoubleSide,
-        transparent: false, // Убираем прозрачность
-        opacity: 1.0 // Полная непрозрачность
+        color: 0x7F7F7F, // Серый цвет по умолчанию
+        roughness: 0.7,
+        metalness: 0.1,
+        side: THREE.DoubleSide
     });
 
-    // Только для зеленой площадки пробуем загрузить текстуры травы
-    // (так как только они есть в проекте)
-    if (color === 'зеленый') {
-        console.log('[PLAYGROUND] Загружаем текстуры травы для зеленой площадки');
+    // Загружаем текстуру резиновой крошки
+    const textureLoader = new THREE.TextureLoader();
+    const rubberTexture = textureLoader.load('textures/crumb-rubber-2.jpg');
+    
+    // Настраиваем повторение текстуры
+    const repeats = Math.max(width, length) / 2;
+    rubberTexture.wrapS = THREE.RepeatWrapping;
+    rubberTexture.wrapT = THREE.RepeatWrapping;
+    rubberTexture.repeat.set(repeats, repeats);
+    rubberTexture.anisotropy = 16; // Улучшает качество при наклонных углах
 
-        try {
-            const textureLoader = new THREE.TextureLoader();
-            const baseTexture = textureLoader.load('textures/grass/grass_texture.jpg');
-            const normalTexture = textureLoader.load('textures/grass/grass_normal.jpg');
-
-            // Настраиваем повторение текстур
-            const repeats = Math.max(width, length) / 2;
-            [baseTexture, normalTexture].forEach(texture => {
-                if (texture) {
-                    texture.wrapS = THREE.RepeatWrapping;
-                    texture.wrapT = THREE.RepeatWrapping;
-                    texture.repeat.set(repeats, repeats);
-                    texture.anisotropy = 16; // Улучшает качество при наклонных углах
-                }
-            });
-
-            // Добавляем текстуры в материал
-            material.map = baseTexture;
-            material.normalMap = normalTexture;
-            console.log('[PLAYGROUND] Текстуры травы успешно загружены');
-        } catch (error) {
-            console.error('[PLAYGROUND] Ошибка при загрузке текстур травы:', error);
-            // Продолжаем использовать материал только с цветом
-        }
-    } else {
-        console.log(`[PLAYGROUND] Для цвета ${color} используем только цветовой материал без текстур`);
-    }
+    // Применяем текстуру к материалу
+    material.map = rubberTexture;
 
     console.log(`[PLAYGROUND] Материал успешно создан для цвета ${color}`);
     return material;
