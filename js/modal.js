@@ -41,16 +41,16 @@ function updateModalValuesFromCurrent() {
     const currentWidth = window.selectedPlaygroundWidth || 10;
     const currentLength = window.selectedPlaygroundLength || 10;
     const currentColor = window.selectedPlaygroundColor || 'серый';
-
+    
     // Обновляем значения в модальном окне
     const modalPlaygroundWidth = document.getElementById('modalPlaygroundWidth');
     const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
     const modalPlaygroundColor = document.getElementById('modalPlaygroundColor');
-
+    
     if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
     if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
     if (modalPlaygroundColor) modalPlaygroundColor.value = currentColor;
-
+    
     // Обновляем выделение цветного квадратика
     const colorSquares = document.querySelectorAll('.color-square');
     colorSquares.forEach(square => {
@@ -59,7 +59,7 @@ function updateModalValuesFromCurrent() {
             square.classList.add('selected');
         }
     });
-
+    
     console.log('Обновлены значения в модальном окне из текущей площадки:', {
         ширина: currentWidth,
         длина: currentLength,
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPlaygroundType = document.getElementById('modalPlaygroundType');
     const modalPlaygroundColorField = document.getElementById('modalPlaygroundColor');
     const colorSquares = document.querySelectorAll('.color-square');
-
+    
     // Инициализация превью площадки
     initializePlaygroundPreview();
 
@@ -89,26 +89,26 @@ document.addEventListener('DOMContentLoaded', () => {
         square.addEventListener('click', function() {
             // Снимаем выделение с ранее выбранного квадратика
             colorSquares.forEach(s => s.classList.remove('selected'));
-
+            
             // Выделяем новый выбранный квадратик
             this.classList.add('selected');
-
+            
             // Получаем значение цвета из атрибута data-color
             const selectedColor = this.getAttribute('data-color');
-
+            
             // Устанавливаем значение в скрытое поле
             modalPlaygroundColorField.value = selectedColor;
-
+            
             console.log('Выбран цвет:', selectedColor);
         });
     });
-
+    
     // Запуск модального окна выбора площадки
     launchButton.addEventListener('click', async () => {
         try {
             // Загружаем модели
             await loadModels();
-
+            
             // Получаем user_id из models.json
             const response = await fetch('models.json');
             const data = await response.json();
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const { session } = await sessionResponse.json();
-
+            
             if (session) {
                 // Если есть сессия, показываем модальное окно управления сессией
                 launchContainer.style.display = 'none';
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lengthInput = document.getElementById('modalPlaygroundLength');
                     if (widthInput) widthInput.value = '10';
                     if (lengthInput) lengthInput.value = '10';
-
+                    
                     platformSelectModal.style.display = 'block';
                 }
             }
@@ -178,18 +178,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Показываем индикатор загрузки на кнопке
             startAppButton.innerHTML = 'Загрузка...';
             startAppButton.disabled = true;
-
+            
             // Получаем выбранные значения
             const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
             const selectedLength = document.getElementById('modalPlaygroundLength').value;
             const selectedColor = document.getElementById('modalPlaygroundColor').value;
-
+            
             // Сохраняем выбранные значения в глобальных переменных для использования в приложении
             window.selectedPlaygroundType = 'basketball_court.glb';
             window.selectedPlaygroundWidth = parseFloat(selectedWidth);
             window.selectedPlaygroundLength = parseFloat(selectedLength);
             window.selectedPlaygroundColor = selectedColor;
-
+                
             // Получаем user_id и модели из models.json
             const response = await fetch('models.json');
             const data = await response.json();
@@ -203,12 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.models && Array.isArray(data.models)) {
                 console.log('Initializing new session with models:', data.models);
                 const newSessionData = await initializeNewSession(userId, data.models);
-
+                
                 // Добавляем параметры площадки в сессию
                 if (newSessionData) {
                     // Импортируем модуль playground
                     const playgroundModule = await import('./playground.js');
-
+                    
                     // Сохраняем параметры площадки
                     await playgroundModule.savePlaygroundParameters(
                         window.selectedPlaygroundType,
@@ -226,10 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 длина: selectedLength,
                 цвет: selectedColor
             });
-
+            
             // Скрываем модальное окно выбора площадки
             platformSelectModal.style.display = 'none';
-
+            
             // Показываем приложение
             appModal.style.display = 'block';
             
@@ -240,57 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.isLoading = true;
             }
             
-            try {
-                // Импортируем модуль загрузки площадки
-                import('./playground.js').then(module => {
-                    // Загружаем новую площадку с выбранным цветом
-                    module.loadPlayground('basketball_court.glb', null, null, window.selectedPlaygroundColor).then(() => {
-                        console.log('Площадка успешно изменена');
-                        
-                        // Восстанавливаем состояние кнопки
-                        startAppButton.innerHTML = 'Запустить';
-                        startAppButton.disabled = false;
-                    });
-                });
-            } catch (error) {
-                console.error('Ошибка при загрузке новой площадки:', error);
-                
-                // Восстанавливаем состояние кнопки в случае ошибки
-                startAppButton.innerHTML = 'Запустить';
-                startAppButton.disabled = false;
-            }
-        } else {
-            // Показываем основное приложение для первого запуска
-            appModal.style.display = 'block';
-            
-            // Показываем индикатор загрузки
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                window.isLoading = true;
-            }
-            
-            // Вызываем функцию инициализации приложения
-            if (window.initApp) {
-                window.initApp();
-                
-                // Отложенная инициализация кнопки "Вид сверху" после открытия модального окна
-                setTimeout(initializeTopViewButtonWithDelay, 1000);
-                
-                // Запускаем проверку сцены после открытия модального окна
-                setTimeout(() => {
-                    console.log("Запуск проверки сцены после открытия модального окна");
-                    startSceneChecks();
-                }, 3000);
-            }
-            
-            // Восстанавливаем состояние кнопки после задержки
-            setTimeout(() => {
-                startAppButton.innerHTML = 'Запустить';
-                startAppButton.disabled = false;
-            }, 2000);
-        }
-    });
             // Запускаем приложение
             if (window.initApp) {
                 window.initApp();
@@ -300,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     startSceneChecks();
                 }, 3000);
             }
-
+            
             // Восстанавливаем состояние кнопки после задержки
             setTimeout(() => {
                 startAppButton.innerHTML = 'Запустить';
@@ -312,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startAppButton.disabled = false;
         }
     });
-
+    
     // Обработчик для кнопки "Начать новую сессию"
     const newSessionButton = document.getElementById('newSessionButton');
     if (newSessionButton) {
@@ -343,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error('No models found in models.json');
                     }
                 }
-
+                
                 // Скрываем модальное окно управления сессией
                 const sessionModal = document.getElementById('sessionModal');
                 if (sessionModal) {
@@ -358,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lengthInput = document.getElementById('modalPlaygroundLength');
                     if (widthInput) widthInput.value = '10';
                     if (lengthInput) lengthInput.value = '10';
-
+                    
                     // Показываем модальное окно
                     platformSelectModal.style.display = 'block';
                     console.log('Showing platform selection modal');
@@ -370,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    
     // Обработчик для кнопки "Продолжить сессию"
     const continueSessionButton = document.getElementById('continueSessionButton');
     if (continueSessionButton) {
@@ -400,10 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sessionModal) {
                     sessionModal.style.display = 'none';
                 }
-
+                
                 // Показываем приложение
                 appModal.style.display = 'block';
-
+                
                 // Восстанавливаем параметры площадки из сессии
                 if (session.playground) {
                     window.selectedPlaygroundType = session.playground.type;
@@ -417,14 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.selectedPlaygroundLength = 10;
                     window.selectedPlaygroundColor = 'серый';
                 }
-
+                
                 // Показываем индикатор загрузки
                 const loadingOverlay = document.getElementById('loadingOverlay');
                 if (loadingOverlay) {
                     loadingOverlay.classList.remove('hidden');
                     window.isLoading = true;
                 }
-
+                
                 // Запускаем приложение
                 if (window.returnToApp) {
                     try {
@@ -462,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    
     // Обработчик нажатия на кнопку закрытия приложения
     closeAppButton.addEventListener('click', () => {
         // Скрываем модальное окно
@@ -527,7 +476,7 @@ function cleanupResources() {
     
     // Очищаем modelQuantities из sessionStorage
     sessionStorage.removeItem('modelQuantities');
-
+    
     // Очистка сетки, если режим вида сверху был активен
     if (window.app && window.app.gridHelper) {
         console.log("Удаляем сетку при закрытии");
