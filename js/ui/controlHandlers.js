@@ -453,6 +453,52 @@ function setupPlaygroundButton() {
             await playgroundModule.loadPlayground('basketball_court.glb', newWidth, newLength, currentColor);
             
             console.log(`Размеры площадки изменены: ширина=${newWidth}м, длина=${newLength}м`);
+
+            // Обновляем сессию в базе данных
+            try {
+                // Получаем user_id из models.json
+                const response = await fetch('models.json');
+                const data = await response.json();
+                const userId = data.user_id;
+
+                if (!userId) {
+                    console.error('No user ID found');
+                    return;
+                }
+
+                // Получаем текущую сессию
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                if (!sessionResponse.ok) {
+                    throw new Error('Failed to get session');
+                }
+
+                const { session } = await sessionResponse.json();
+                const sessionData = session || { quantities: {}, placedObjects: [] };
+
+                // Обновляем информацию о площадке в сессии
+                sessionData.playground = {
+                    width: newWidth,
+                    length: newLength,
+                    color: currentColor
+                };
+
+                // Сохраняем обновленную сессию
+                const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId, sessionData }),
+                });
+
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save session');
+                }
+
+                console.log('Session updated successfully with new playground size:', sessionData.playground);
+            } catch (error) {
+                console.error('Error updating session with playground size:', error);
+            }
         } catch (error) {
             console.error('Ошибка при изменении размеров площадки:', error);
         }
@@ -572,6 +618,52 @@ function setupPlaygroundButton() {
                 await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
                 
                 console.log('Цвет площадки изменен на:', selectedColor);
+
+                // Обновляем сессию в базе данных
+                try {
+                    // Получаем user_id из models.json
+                    const response = await fetch('models.json');
+                    const data = await response.json();
+                    const userId = data.user_id;
+
+                    if (!userId) {
+                        console.error('No user ID found');
+                        return;
+                    }
+
+                    // Получаем текущую сессию
+                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                    if (!sessionResponse.ok) {
+                        throw new Error('Failed to get session');
+                    }
+
+                    const { session } = await sessionResponse.json();
+                    const sessionData = session || { quantities: {}, placedObjects: [] };
+
+                    // Обновляем информацию о площадке в сессии
+                    sessionData.playground = {
+                        width: width,
+                        length: length,
+                        color: selectedColor
+                    };
+
+                    // Сохраняем обновленную сессию
+                    const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userId, sessionData }),
+                    });
+
+                    if (!saveResponse.ok) {
+                        throw new Error('Failed to save session');
+                    }
+
+                    console.log('Session updated successfully with new playground color:', sessionData.playground);
+                } catch (error) {
+                    console.error('Error updating session with playground color:', error);
+                }
             } catch (error) {
                 console.error('Ошибка при изменении цвета площадки:', error);
             }
