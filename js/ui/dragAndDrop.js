@@ -212,9 +212,6 @@ async function updateModelQuantity(modelName, newQuantity) {
             updateModelQuantityUI(item, newQuantity);
         }
     });
-
-    // Сохраняем в базу данных
-    await saveQuantityToDatabase(modelName, newQuantity);
 }
 
 /**

@@ -368,6 +368,9 @@ function setupPlaygroundButton() {
                 const width = window.selectedPlaygroundWidth || playgroundModule.playgroundWidth || 10;
                 const length = window.selectedPlaygroundLength || playgroundModule.playgroundLength || 10;
                 
+                // Сохраняем параметры площадки в сессии
+                await playgroundModule.savePlaygroundParameters('basketball_court.glb', width, length, selectedColor);
+                
                 // Загружаем новую площадку с теми же размерами, но с новым цветом
                 await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
                 

@@ -171,21 +171,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
     startAppButton.addEventListener('click', async () => {
         try {
-        // Показываем индикатор загрузки на кнопке
-        startAppButton.innerHTML = 'Загрузка...';
-        startAppButton.disabled = true;
-        
-        // Получаем выбранные значения
-        const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
-        const selectedLength = document.getElementById('modalPlaygroundLength').value;
-        const selectedColor = document.getElementById('modalPlaygroundColor').value;
-        
-        // Сохраняем выбранные значения в глобальных переменных для использования в приложении
-        window.selectedPlaygroundType = 'basketball_court.glb'; // всегда площадка 3
-        window.selectedPlaygroundWidth = parseFloat(selectedWidth);
-        window.selectedPlaygroundLength = parseFloat(selectedLength);
-        window.selectedPlaygroundColor = selectedColor;
+            // Показываем индикатор загрузки на кнопке
+            startAppButton.innerHTML = 'Загрузка...';
+            startAppButton.disabled = true;
             
+            // Получаем выбранные значения
+            const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
+            const selectedLength = document.getElementById('modalPlaygroundLength').value;
+            const selectedColor = document.getElementById('modalPlaygroundColor').value;
+            
+            // Сохраняем выбранные значения в глобальных переменных для использования в приложении
+            window.selectedPlaygroundType = 'basketball_court.glb';
+            window.selectedPlaygroundWidth = parseFloat(selectedWidth);
+            window.selectedPlaygroundLength = parseFloat(selectedLength);
+            window.selectedPlaygroundColor = selectedColor;
+                
             // Получаем user_id и модели из models.json
             const response = await fetch('models.json');
             const data = await response.json();
@@ -198,20 +198,34 @@ document.addEventListener('DOMContentLoaded', () => {
             // Инициализируем новую сессию с моделями из JSON
             if (data.models && Array.isArray(data.models)) {
                 console.log('Initializing new session with models:', data.models);
-                await initializeNewSession(userId, data.models);
+                const newSessionData = await initializeNewSession(userId, data.models);
+                
+                // Добавляем параметры площадки в сессию
+                if (newSessionData) {
+                    // Импортируем модуль playground
+                    const playgroundModule = await import('./playground.js');
+                    
+                    // Сохраняем параметры площадки
+                    await playgroundModule.savePlaygroundParameters(
+                        window.selectedPlaygroundType,
+                        window.selectedPlaygroundWidth,
+                        window.selectedPlaygroundLength,
+                        window.selectedPlaygroundColor
+                    );
+                }
             }
         
-        // Выводим информацию в консоль для отладки
-        console.log('Настройки площадки из модального окна:', {
-            тип: 'basketball_court.glb',
-            ширина: selectedWidth,
-            длина: selectedLength,
-            цвет: selectedColor
-        });
-        
-        // Скрываем модальное окно выбора площадки
-        platformSelectModal.style.display = 'none';
-        
+            // Выводим информацию в консоль для отладки
+            console.log('Настройки площадки из модального окна:', {
+                тип: 'basketball_court.glb',
+                ширина: selectedWidth,
+                длина: selectedLength,
+                цвет: selectedColor
+            });
+            
+            // Скрываем модальное окно выбора площадки
+            platformSelectModal.style.display = 'none';
+            
             // Показываем приложение
             appModal.style.display = 'block';
             
@@ -332,13 +346,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionModal.style.display = 'none';
                 }
                 
-                // Показываем приложение с дефолтными настройками площадки
+                // Показываем приложение
                 appModal.style.display = 'block';
                 
-                // Устанавливаем дефолтные значения для площадки
-                window.selectedPlaygroundType = 'basketball_court.glb';
-                window.selectedPlaygroundWidth = 10;
-                window.selectedPlaygroundLength = 10;
+                // Восстанавливаем параметры площадки из сессии
+                if (session.playground) {
+                    window.selectedPlaygroundType = session.playground.type;
+                    window.selectedPlaygroundWidth = session.playground.width;
+                    window.selectedPlaygroundLength = session.playground.length;
+                    window.selectedPlaygroundColor = session.playground.color;
+                } else {
+                    // Если параметры не найдены, используем дефолтные значения
+                    window.selectedPlaygroundType = 'basketball_court.glb';
+                    window.selectedPlaygroundWidth = 10;
+                    window.selectedPlaygroundLength = 10;
+                    window.selectedPlaygroundColor = 'серый';
+                }
                 
                 // Показываем индикатор загрузки
                 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -351,13 +374,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.returnToApp) {
                     try {
                         import('./playground.js').then(module => {
-                            // Загружаем новую площадку с выбранным цветом
-                            module.loadPlayground('basketball_court.glb', null, null, window.selectedPlaygroundColor).then(() => {
-                                console.log('Площадка успешно изменена');
+                            // Загружаем площадку с сохраненными параметрами
+                            module.loadPlayground(
+                                window.selectedPlaygroundType,
+                                window.selectedPlaygroundWidth,
+                                window.selectedPlaygroundLength,
+                                window.selectedPlaygroundColor
+                            ).then(() => {
+                                console.log('Площадка успешно восстановлена');
                             });
                         });
                     } catch (error) {
-                        console.error('Ошибка при загрузке новой площадки:', error);
+                        console.error('Ошибка при загрузке площадки:', error);
                     }
                 } else {
                     if (window.initApp) {
