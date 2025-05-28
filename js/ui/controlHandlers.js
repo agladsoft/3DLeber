@@ -349,7 +349,7 @@ function setupDimensionsButton() {
 function updateDimensionsButtonStyle(button, isActive) {
     if (isActive) {
         button.classList.add('active');
-        button.textContent = '📏 Размеры ON';
+        button.textContent = '📏 Показать размеры';
     } else {
         button.classList.remove('active');
         button.textContent = '📏 Скрыть размеры';
