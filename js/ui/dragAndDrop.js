@@ -427,9 +427,6 @@ export async function updateModelQuantityOnRemove(modelName) {
             // Обновляем UI
             updateModelQuantityUI(item, newQuantity);
             
-            // Сохраняем новое количество в базу данных
-            saveQuantityToDatabase(modelName, newQuantity);
-            
             item.classList.remove('blurred');
         }
     });
