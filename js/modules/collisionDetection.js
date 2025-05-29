@@ -38,8 +38,8 @@ export function isWithinPlayground(object) {
     if (!object) return true;
     
     // Получаем текущие размеры площадки из глобальных переменных
-    const playgroundWidth = window.selectedPlaygroundWidth || 10;
-    const playgroundLength = window.selectedPlaygroundLength || 10;
+    const playgroundWidth = window.selectedPlaygroundWidth || 40;
+    const playgroundLength = window.selectedPlaygroundLength || 30;
     
     // Вычисляем границы площадки
     const halfWidth = playgroundWidth / 2;

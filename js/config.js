@@ -6,10 +6,10 @@
 
 // Размеры площадки
 export const PLAYGROUND = {
-    defaultWidth: 10,
-    defaultLength: 10,
-    minSize: 5,
-    maxSize: 50
+    defaultWidth: 40,
+    defaultLength: 30,
+    minSize: 10,
+    maxSize: 100
 };
 
 // Настройки конвертации размеров

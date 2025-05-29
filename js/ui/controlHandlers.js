@@ -350,8 +350,8 @@ function setupPlaygroundButton() {
     console.log('Элементы управления площадкой скрыты по умолчанию');
     
     // Инициализация текущих значений размеров площадки
-    window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 10;
-    window.selectedPlaygroundLength = window.selectedPlaygroundLength || 10;
+    window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 40;
+    window.selectedPlaygroundLength = window.selectedPlaygroundLength || 30;
     
     // Установка начальных значений для полей ввода и ползунков
     if (widthSlider && widthInput) {
@@ -566,8 +566,8 @@ function setupPlaygroundButton() {
                 const playgroundModule = await import('../playground.js');
                 
                 // Получаем текущие размеры площадки
-                const width = window.selectedPlaygroundWidth || 10;
-                const length = window.selectedPlaygroundLength || 10;
+                const width = window.selectedPlaygroundWidth || 40;
+                const length = window.selectedPlaygroundLength || 30;
                 
                 // Загружаем новую площадку с теми же размерами, но с новым цветом
                 await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);

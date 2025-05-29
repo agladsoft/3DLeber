@@ -136,7 +136,7 @@ export function createEmergencyGround() {
     
     try {
         // Создаем геометрию плоскости
-        const planeGeometry = new THREE.PlaneGeometry(10, 10);
+        const planeGeometry = new THREE.PlaneGeometry(40, 30);
 
         // Определяем цвет площадки в зависимости от выбранного пользователем
         let groundColor = 0xAAAAAA; // Серый по умолчанию
@@ -189,9 +189,9 @@ export function createEmergencyGround() {
         
         // Добавляем данные для идентификации
         plane.userData = {
-            originalWidth: 10,
+            originalWidth: 40,
             originalHeight: 0.1,
-            originalDepth: 10,
+            originalDepth: 30,
             modelName: 'emergency_playground',
             isPlayground: true,  // Маркер, что это площадка
             groundColor: window.selectedPlaygroundColor || 'серый' // Сохраняем информацию о цвете
@@ -206,8 +206,8 @@ export function createEmergencyGround() {
         
         // Сохраняем размеры площадки в приложении
         if (window.app) {
-            window.app.playgroundWidth = 10;
-            window.app.playgroundLength = 10;
+            window.app.playgroundWidth = 40;
+            window.app.playgroundLength = 30;
         }
         
         // Обновляем глобальный ground через модуль playground

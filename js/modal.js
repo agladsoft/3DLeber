@@ -38,8 +38,8 @@ export function showPlatformSelectModal() {
 // Функция для обновления значений в модальном окне из текущей площадки
 function updateModalValuesFromCurrent() {
     // Получаем текущие параметры площадки
-    const currentWidth = window.selectedPlaygroundWidth || 10;
-    const currentLength = window.selectedPlaygroundLength || 10;
+    const currentWidth = window.selectedPlaygroundWidth || 40;
+    const currentLength = window.selectedPlaygroundLength || 30;
     const currentColor = window.selectedPlaygroundColor || 'серый';
     
     // Обновляем значения в модальном окне
@@ -153,8 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Сбрасываем значения в полях ввода
                     const widthInput = document.getElementById('modalPlaygroundWidth');
                     const lengthInput = document.getElementById('modalPlaygroundLength');
-                    if (widthInput) widthInput.value = '10';
-                    if (lengthInput) lengthInput.value = '10';
+                    if (widthInput) widthInput.value = '40';
+                    if (lengthInput) lengthInput.value = '30';
                     
                     platformSelectModal.style.display = 'block';
                 }
@@ -314,8 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Сбрасываем значения в полях ввода
                     const widthInput = document.getElementById('modalPlaygroundWidth');
                     const lengthInput = document.getElementById('modalPlaygroundLength');
-                    if (widthInput) widthInput.value = '10';
-                    if (lengthInput) lengthInput.value = '10';
+                    if (widthInput) widthInput.value = '40';
+                    if (lengthInput) lengthInput.value = '30';
                     
                     // Показываем модальное окно
                     platformSelectModal.style.display = 'block';
@@ -369,8 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // Если параметры не найдены, используем дефолтные значения
                     window.selectedPlaygroundType = 'basketball_court.glb';
-                    window.selectedPlaygroundWidth = 10;
-                    window.selectedPlaygroundLength = 10;
+                    window.selectedPlaygroundWidth = 40;
+                    window.selectedPlaygroundLength = 30;
                     window.selectedPlaygroundColor = 'серый';
                 }
                 

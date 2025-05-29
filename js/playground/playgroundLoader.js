@@ -38,8 +38,8 @@ let lastProgressValue = 0;
  * @returns {Promise} Промис, который разрешается, когда площадка загружена
  */
 export function loadPlayground(modelName = 'playground.glb', width = null, length = null, color = null) {
-    let userWidth = 10;
-    let userLength = 10;
+    let userWidth = 40;
+    let userLength = 30;
     let userColor = 'серый'; // Добавляем переменную с цветом по умолчанию
     
     // Получаем размеры площадки
@@ -53,8 +53,8 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
         const widthInput = document.getElementById("playgroundWidth");
         const lengthInput = document.getElementById("playgroundLength");
         if (widthInput && lengthInput) {
-            userWidth = parseFloat(widthInput.value) || 10;
-            userLength = parseFloat(lengthInput.value) || 10;
+            userWidth = parseFloat(widthInput.value) || 40;
+            userLength = parseFloat(lengthInput.value) || 30;
         }
     }
     
@@ -161,8 +161,8 @@ function processLoadedModel(gltf, modelName, resolve, width = null, length = nul
     
     // --- Новый блок: ищем основной меш и масштабируем по форме ---
     // Определяем нужные размеры
-    let userWidth = 10;
-    let userLength = 10;
+    let userWidth = 40;
+    let userLength = 30;
     if (width && length) {
         userWidth = width;
         userLength = length;
@@ -173,8 +173,8 @@ function processLoadedModel(gltf, modelName, resolve, width = null, length = nul
         const widthInput = document.getElementById("playgroundWidth");
         const lengthInput = document.getElementById("playgroundLength");
         if (widthInput && lengthInput) {
-            userWidth = parseFloat(widthInput.value) || 10;
-            userLength = parseFloat(lengthInput.value) || 10;
+            userWidth = parseFloat(widthInput.value) || 40;
+            userLength = parseFloat(lengthInput.value) || 30;
         }
     }
 

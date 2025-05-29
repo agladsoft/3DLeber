@@ -54,8 +54,8 @@ export async function savePlaygroundParameters(modelName, width, length, color) 
         // Обновляем параметры площадки в сессии
         sessionData.playground = {
             type: modelName,
-            width: width || 10,
-            length: length || 10,
+            width: width || 40,
+            length: length || 30,
             color: color || 'серый'
         };
 

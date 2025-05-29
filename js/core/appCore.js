@@ -64,8 +64,8 @@ export async function initializeApp() {
         
         // Получаем тип площадки из глобальных переменных, установленных в модальном окне
         let playgroundType = 'playground.glb'; // По умолчанию
-        let userWidth = 10; // По умолчанию
-        let userLength = 10; // По умолчанию
+        let userWidth = 40; // По умолчанию
+        let userLength = 30; // По умолчанию
         let userColor = 'серый'; // Цвет по умолчанию
         
         // Если есть выбранный тип площадки из модального окна, используем его
