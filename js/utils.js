@@ -5,51 +5,6 @@
 import * as THREE from 'three';
 
 /**
- * Показывает уведомление
- * @param {String} message - Сообщение для отображения
- * @param {Boolean} isWarning - Флаг, является ли уведомление предупреждением
- */
-export function showNotification(message, isWarning = true) {
-    // Функция отключена, уведомления не показываются
-    /*
-    const notification = document.getElementById('notification');
-    const notificationMessage = document.querySelector('.notification-message');
-    
-    if (notification && notificationMessage) {
-        notificationMessage.textContent = message;
-        notification.className = isWarning ? 'notification warning' : 'notification info';
-        notification.classList.remove('hidden');
-        
-        // Автоматически скрываем уведомление через указанное время
-        setTimeout(() => {
-            notification.classList.add('hidden');
-        }, ANIMATION.notificationDuration);
-        
-        // Обработчик для кнопки закрытия
-        const closeButton = notification.querySelector('.notification-close');
-        if (closeButton) {
-            closeButton.onclick = function() {
-                notification.classList.add('hidden');
-            };
-        }
-    }
-    */
-}
-
-/**
- * Обновляет статус позиции объекта в интерфейсе
- * @param {Boolean} isValid - Находится ли объект в пределах площадки
- */
-export function updatePositionStatus(isValid) {
-    const statusElement = document.getElementById("positionStatus");
-    
-    if (!statusElement) return;
-    
-    // Полностью скрываем элемент статуса, не показывая никаких сообщений
-    statusElement.style.display = "none";
-}
-
-/**
  * Функция плавной анимации
  * @param {Number} t - Прогресс анимации от 0 до 1
  * @returns {Number} Преобразованный прогресс с эффектом замедления

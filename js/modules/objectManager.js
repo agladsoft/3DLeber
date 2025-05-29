@@ -3,7 +3,6 @@
  */
 import * as THREE from 'three';
 import { scene } from '../scene.js';
-import { showNotification } from '../utils.js';
 import { getLoaderByExtension } from './loaders.js';
 import { saveInitialPosition } from './positionHelpers.js';
 import { autoConvertUnits } from './objectOperations.js';
@@ -71,7 +70,6 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
         console.log("Позиция не указана, размещаем в центре (0,0,0)");
         container.position.set(0, 0, 0);
         container.userData.coordinates = { x: "0.00", y: "0.00", z: "0.00" };
-        showNotification("Объект помещен в центр площадки", false);
     }
     
     try {
@@ -194,7 +192,6 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
                 // Проверяем, есть ли в контейнере хотя бы один дочерний объект
                 if (container.children.length === 0) {
                     console.error("Ошибка: контейнер пуст, нет дочерних объектов");
-                    showNotification(`Ошибка загрузки модели ${modelName}: контейнер пуст`, true);
                     return;
                 }
                 
@@ -254,11 +251,6 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
                 
                 // Проверяем все объекты на коллизии
                 checkAllObjectsPositions();
-                
-                // Показываем уведомление, если есть коллизия
-                if (container.userData.hasCollision) {
-                    showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
-                }
                 
                 // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
                 if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
@@ -338,12 +330,10 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
             // Обработчик ошибок
             (error) => {
                 console.error(`Ошибка при загрузке модели ${modelName}:`, error);
-                showNotification(`Ошибка загрузки модели ${modelName}`, true);
             }
         );
     } catch (error) {
         console.error(error.message);
-        showNotification(error.message, true);
     }
 }
 

@@ -8,7 +8,6 @@ import {
     checkAndHighlightObject, 
     checkAllObjectsPositions 
 } from '../objects.js';
-import { showNotification } from '../utils.js';
 import { 
     canvas, 
     selectedObject, 
@@ -436,11 +435,6 @@ function finishObjectManipulation() {
     
     // Проверяем все объекты на коллизии
     checkAllObjectsPositions();
-    
-    // Если у выбранного объекта обнаружена коллизия, показываем уведомление
-    if (selectedObject && selectedObject.userData && selectedObject.userData.hasCollision) {
-        showNotification("Внимание! Обнаружено пересечение с другим объектом.", true);
-    }
     
     // Логируем финальные координаты после завершения манипуляций
     if (selectedObject) {

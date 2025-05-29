@@ -9,8 +9,7 @@ export {
     scene, 
     initializeRenderer, 
     createScene,
-    setupResizeHandler,
-    easeInOutCubic
+    setupResizeHandler
 } from './sceneCore.js';
 
 // Импортируем компоненты камеры

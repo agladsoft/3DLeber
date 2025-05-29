@@ -2,7 +2,6 @@
  * Модуль для операций с 3D-объектами (масштабирование, вращение)
  */
 import * as THREE from 'three';
-import { showNotification } from '../utils.js';
 import { checkAndHighlightObject } from './collisionDetection.js';
 import { SIZE_CONVERSION } from '../config.js';
 
@@ -147,11 +146,6 @@ export function changeModelSize(container, step) {
     
     // Проверяем на коллизии после изменения размера
     checkAndHighlightObject(container);
-    
-    // Если после изменения размера появилась коллизия, показываем уведомление
-    if (container.userData.hasCollision) {
-        showNotification("Внимание! После изменения размера обнаружено пересечение с другим объектом.", true);
-    }
     
     // Здесь мы просто возвращаем новый размер, а обновление UI произойдет в вызывающем коде
     

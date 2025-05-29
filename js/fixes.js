@@ -3,7 +3,6 @@
  */
 
 import * as THREE from 'three';
-import { showNotification } from './utils.js';
 import { API_BASE_URL } from './api/serverConfig.js'
 
 /**
@@ -13,14 +12,8 @@ import { API_BASE_URL } from './api/serverConfig.js'
 export function validateSceneIntegrity() {
     console.log("Проверка целостности сцены");
     
-    // Проверяем наличие window.app
-    if (!window.app) {
-        console.error("window.app не инициализирован");
-        return false;
-    }
-    
     // Проверяем наличие основных компонентов
-    if (!window.app.scene || !window.app.camera || !window.app.renderer) {
+    if (!window.app?.scene || !window.app?.camera || !window.app?.renderer) {
         console.error("Основные компоненты сцены не инициализированы");
         return false;
     }
@@ -30,65 +23,17 @@ export function validateSceneIntegrity() {
     let groundObject = null;
     
     window.app.scene.traverse((object) => {
-        if (object.userData && object.userData.isPlayground) {
+        if (object.userData?.isPlayground) {
             groundFound = true;
             groundObject = object;
         }
     });
     
-    // Проверяем модуль playground напрямую
-    try {
-        // Асинхронно проверяем ground в модуле playground
-        setTimeout(() => {
-            import('./playground.js').then(module => {
-                console.log("Состояние ground в модуле playground:", module.ground);
-                
-                // Если ground в модуле пуст, но мы нашли площадку в сцене
-                if (!module.ground && groundObject) {
-                    console.log("Ground в модуле пуст, но объект площадки найден в сцене");
-                    
-                    // Обновляем ссылки
-                    if (module.updateGroundReferences) {
-                        module.updateGroundReferences(groundObject, groundObject);
-                        console.log("Обновлены ссылки на существующую площадку");
-                    }
-                }
-            }).catch(error => {
-                console.error("Ошибка при импорте playground:", error);
-            });
-        }, 500);
-    } catch (error) {
-        console.error("Ошибка при проверке модуля playground:", error);
-    }
-    
+    // Если площадка не найдена, создаем аварийную
     if (!groundFound) {
-        console.error("Площадка (ground) не найдена в сцене");
-        
-        // Создаем аварийную площадку и получаем её
+        console.log("Площадка не найдена, создаем аварийную");
         const emergencyGround = createEmergencyGround();
-        
-        // Если удалось создать аварийную площадку
-        if (emergencyGround) {
-            groundFound = true;
-        }
-    }
-    
-    // Если площадка все равно не найдена, попробуем через явный вызов createSimplePlayground
-    if (!groundFound) {
-        console.log("Последняя попытка создать площадку через createSimplePlayground");
-        
-        try {
-            import('./playground/playgroundCreator.js').then(module => {
-                if (module.createSimplePlayground) {
-                    const simplePlane = module.createSimplePlayground();
-                    console.log("Создана простая площадка через explicit createSimplePlayground:", simplePlane);
-                }
-            }).catch(error => {
-                console.error("Ошибка при импорте playgroundCreator:", error);
-            });
-        } catch (error) {
-            console.error("Ошибка при вызове createSimplePlayground:", error);
-        }
+        groundFound = !!emergencyGround;
     }
     
     return groundFound;
@@ -235,7 +180,7 @@ export function createEmergencyGround() {
             console.error("Ошибка при обновлении ground:", error);
         }
         
-        showNotification("Создана аварийная площадка из-за ошибки загрузки", true);
+        console.log("Создана аварийная площадка из-за ошибки загрузки");
         console.log("Аварийная площадка создана");
         
         return plane;
@@ -383,7 +328,7 @@ export async function restorePlacedObjects(session) {
         console.log("Размещенные объекты успешно восстановлены");
     } catch (error) {
         console.error("Ошибка при восстановлении размещенных объектов:", error);
-        showNotification("Ошибка при восстановлении объектов", true);
+        console.log("Ошибка при восстановлении объектов");
     }
 }
 

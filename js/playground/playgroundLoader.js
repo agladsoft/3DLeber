@@ -2,12 +2,12 @@
  * Модуль для загрузки моделей площадки
  */
 import { scene } from '../scene.js';
-import { showNotification } from '../utils.js';
 import { ground, updateGroundReferences, updatePlaygroundDimensions } from './playgroundCore.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import * as THREE from 'three';
+import { PLAYGROUND } from '../config.js';
 
 
 /**
@@ -19,8 +19,8 @@ import * as THREE from 'three';
  * @returns {Promise} Промис, который разрешается, когда площадка загружена
  */
 export function loadPlayground(modelName = 'playground.glb', width = null, length = null, color = null) {
-    let userWidth = 40;
-    let userLength = 30;
+    let userWidth = PLAYGROUND.defaultWidth;
+    let userLength = PLAYGROUND.defaultLength;
     let userColor = 'серый'; // Добавляем переменную с цветом по умолчанию
     
     // Получаем размеры площадки
@@ -34,8 +34,8 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
         const widthInput = document.getElementById("playgroundWidth");
         const lengthInput = document.getElementById("playgroundLength");
         if (widthInput && lengthInput) {
-            userWidth = parseFloat(widthInput.value) || 40;
-            userLength = parseFloat(lengthInput.value) || 30;
+            userWidth = parseFloat(widthInput.value) || PLAYGROUND.defaultWidth;
+            userLength = parseFloat(lengthInput.value) || PLAYGROUND.defaultLength;
         }
     }
     
@@ -142,8 +142,8 @@ function processLoadedModel(gltf, modelName, resolve, width = null, length = nul
     
     // --- Новый блок: ищем основной меш и масштабируем по форме ---
     // Определяем нужные размеры
-    let userWidth = 40;
-    let userLength = 30;
+    let userWidth = PLAYGROUND.defaultWidth;
+    let userLength = PLAYGROUND.defaultLength;
     if (width && length) {
         userWidth = width;
         userLength = length;
@@ -154,8 +154,8 @@ function processLoadedModel(gltf, modelName, resolve, width = null, length = nul
         const widthInput = document.getElementById("playgroundWidth");
         const lengthInput = document.getElementById("playgroundLength");
         if (widthInput && lengthInput) {
-            userWidth = parseFloat(widthInput.value) || 40;
-            userLength = parseFloat(lengthInput.value) || 30;
+            userWidth = parseFloat(widthInput.value) || PLAYGROUND.defaultWidth;
+            userLength = parseFloat(lengthInput.value) || PLAYGROUND.defaultLength;
         }
     }
 
@@ -323,7 +323,7 @@ function handleLoadError(error, modelName, resolve) {
             }
         }, 1000);
         
-        // Разрешаем промис с null в случае ошибки
+        // Разрешаем промис с null в случае критической ошибки
         console.log('Возвращаем null в resolve из-за критической ошибки');
         resolve(null);
     }

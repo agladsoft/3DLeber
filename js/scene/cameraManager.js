@@ -2,8 +2,7 @@
  * Модуль для управления камерой, её анимациями и режимами просмотра
  */
 import { CAMERA_SETTINGS, TOP_VIEW_SETTINGS } from '../config.js';
-import { showNotification } from '../utils.js';
-import { easeInOutCubic } from './sceneCore.js';
+import { easeInOutCubic } from '../utils.js';
 import { initTopViewController, cleanupEventListeners } from './topViewController.js';
 import * as THREE from 'three';
 import { MOUSE } from 'three';
@@ -227,7 +226,7 @@ export function resetCameraView(width, length) {
     
     // Анимируем перемещение камеры к целевой позиции
     animateCameraMove(targetPosition, targetLookAt, () => {
-        showNotification("Вид камеры сброшен", false);
+        console.log("Вид камеры сброшен")
     });
 }
 
@@ -479,7 +478,6 @@ function enableTopView(width, length) {
             }
         });
         
-        showNotification("Вид сверху активирован. Используйте правую кнопку мыши для перемещения по площадке и колесико для масштабирования.", false);
     });
 }
 

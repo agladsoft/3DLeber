@@ -1,7 +1,7 @@
 /**
  * Модуль для создания и сохранения скриншотов сцены
  */
-import { showNotification } from '../utils.js';
+
 
 /**
  * Создание скриншота сцены с анимацией вспышки
@@ -21,7 +21,6 @@ export function takeScreenshot() {
             // Убеждаемся, что все компоненты доступны
             if (!window.app || !window.app.renderer || !window.app.scene || !window.app.camera || !window.app.canvas) {
                 console.error('Не удалось создать скриншот: компоненты сцены недоступны');
-                showNotification("Ошибка при создании скриншота", true);
                 return;
             }
             
@@ -35,9 +34,6 @@ export function takeScreenshot() {
                 
                 // Сохраняем скриншот
                 saveScreenshot(blob);
-                
-                // Показываем уведомление
-                showNotification("Фотография успешно сохранена!", false);
             });
         }, 100);
     }, 50);

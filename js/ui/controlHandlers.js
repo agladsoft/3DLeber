@@ -10,7 +10,6 @@ import {
     playgroundWidth, 
     playgroundLength 
 } from '../playground.js';
-import { showNotification } from '../utils.js';
 import { updateModelQuantityUI } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
 
@@ -114,7 +113,6 @@ function setupControlHandlers() {
                 console.log('All models removed and session updated with new quantities:', updatedQuantities);
             } catch (error) {
                 console.error('Error removing all models:', error);
-                showNotification('Ошибка при удалении всех моделей', true);
             }
         };
     }
@@ -196,15 +194,12 @@ function setupChangePlaygroundButton() {
                         modalModule.showPlatformSelectModal();
                     } else {
                         console.error("Функция showPlatformSelectModal не найдена в модуле");
-                        showNotification("Ошибка при открытии окна выбора площадки", true);
                     }
                 }).catch(error => {
                     console.error("Ошибка при импорте модуля modal.js:", error);
-                    showNotification("Ошибка при открытии окна выбора площадки", true);
                 });
             } catch (error) {
                 console.error("Ошибка при открытии модального окна:", error);
-                showNotification("Не удалось открыть окно выбора площадки", true);
             }
         });
     }
@@ -278,7 +273,6 @@ function initializeTopViewButton(button) {
             });
         } catch (error) {
             console.error("Ошибка при переключении режима вида сверху:", error);
-            showNotification("Ошибка при активации вида сверху", true);
         }
     });
     
@@ -295,13 +289,11 @@ function updateTopViewButtonStyle(button, isActive) {
         // Устанавливаем красный стиль для активного режима
         console.log("Устанавливаем красный стиль кнопки");
         button.textContent = "Выйти из вида сверху";
-        button.setAttribute("style", activeStyles);
         button.classList.add("active");
     } else {
         // Устанавливаем зеленый стиль для неактивного режима
         console.log("Устанавливаем зеленый стиль кнопки");
         button.textContent = "🔝 Вид сверху (сетка 1×1м)";
-        button.setAttribute("style", inactiveStyles);
         button.classList.remove("active");
     }
     

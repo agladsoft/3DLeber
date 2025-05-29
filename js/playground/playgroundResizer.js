@@ -2,8 +2,8 @@
  * Модуль для изменения размеров площадки
  */
 import { PLAYGROUND, ANIMATION } from '../config.js';
-import { showNotification } from '../utils.js';
 import { checkAllObjectsPositions } from '../objects.js';
+import {easeInOutCubic} from '../utils.js'
 import { ground, playgroundWidth, playgroundLength, createPlayground, resetPlayground } from './playgroundCore.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updateLabelsDuringAnimation } from './playgroundUI.js';
@@ -16,12 +16,10 @@ import { updateLabelsDuringAnimation } from './playgroundUI.js';
 export function resizePlaygroundWithAnimation(newWidth, newLength) {
     // Если площадка — не simple_playground, запрещаем изменение размеров
     if (ground && ground.userData.modelName !== 'simple_playground') {
-        showNotification("Изменение размеров доступно только для стандартной (плоской) площадки", true);
         return;
     }
     // Проверяем, что размеры в допустимых пределах
     if (!areValidDimensions(newWidth, newLength)) {
-        showNotification("Размеры должны быть в диапазоне от 5 до 50 метров", true);
         return;
     }
 
@@ -121,16 +119,4 @@ function finalizeResize(newWidth, newLength) {
     removeAllYellowElements();
     
     // Код обновления сетки удален - вид сверху работает без сетки
-    
-    // Показываем уведомление
-    showNotification("Размеры площадки успешно обновлены", false);
-}
-
-/**
- * Функция для плавной анимации
- * @param {Number} t - Прогресс анимации от 0 до 1
- * @returns {Number} Преобразованный прогресс с эффектом замедления
- */
-function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }

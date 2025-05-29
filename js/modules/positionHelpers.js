@@ -1,7 +1,6 @@
 /**
  * Вспомогательные функции для позиционирования и перемещения объектов
  */
-import { showNotification } from '../utils.js';
 import { highlightPlaygroundBoundary } from './collisionDetection.js';
 
 /**
@@ -73,8 +72,6 @@ export function resetToInitialPosition(object) {
         } else {
             // Снимаем подсветку ошибки после возврата на исходную позицию
             highlightPlaygroundBoundary(object, false);
-            // Показываем уведомление
-            showNotification("Объект возвращен на исходную позицию", true);
         }
     };
     

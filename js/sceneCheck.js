@@ -2,7 +2,6 @@
  * Модуль для проверки и восстановления сцены после загрузки страницы
  */
 import { createEmergencyGround } from './fixes.js';
-import { showNotification } from './utils.js';
 
 // Таймер для периодической проверки сцены
 let sceneCheckInterval = null;
@@ -64,7 +63,6 @@ function checkScene() {
             if (emergencyGround) {
                 // Если успешно создали площадку, останавливаем проверки
                 stopSceneChecks();
-                showNotification("Площадка восстановлена", false);
             }
         } catch (error) {
             console.error("Ошибка при создании аварийной площадки:", error);

@@ -4,7 +4,6 @@
 import { canvas, scene } from '../scene.js';
 import { ground } from '../playground.js';
 import { loadAndPlaceModel, placedObjects, removeObject } from '../objects.js';
-import { showNotification } from '../utils.js';
 import { 
     raycaster, 
     updateMousePosition, 
@@ -105,7 +104,6 @@ export async function saveQuantityToDatabase(modelName, quantity) {
         });
     } catch (error) {
         console.error('Error saving quantity to database:', error);
-        showNotification('Ошибка при сохранении количества', true);
     }
 }
 
@@ -286,14 +284,12 @@ function handleDrop(event) {
         // Проверка инициализации сцены и площадки
         if (!scene) {
             console.error("Scene not initialized");
-            showNotification("Ошибка: сцена не инициализирована", true);
             isDropProcessing = false;
             return;
         }
         
         if (!ground) {
             console.error("Ground not initialized");
-            showNotification("Ошибка: площадка не инициализирована", true);
             isDropProcessing = false;
             return;
         }
@@ -404,7 +400,6 @@ function determineDropPosition() {
         } else {
             // Если совсем ничего не нашли, используем фиксированную точку
             console.log("Fallback to fixed position (0,0,0)");
-            showNotification("Не удалось определить точку размещения. Объект помещен в центр.", true);
             return new THREE.Vector3(0, 0, 0);
         }
     }

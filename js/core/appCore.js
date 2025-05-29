@@ -240,8 +240,24 @@ export function startRenderLoop() {
                     }
                 }
                 
+                // Перед рендером временно подавляем ошибку NaN boundingSphere
+                const originalConsoleError = console.error;
+                console.error = function (...args) {
+                    if (
+                        typeof args[0] === 'string' &&
+                        args[0].includes('THREE.BufferGeometry.computeBoundingSphere(): Computed radius is NaN')
+                    ) {
+                        // подавляем только это сообщение
+                        return;
+                    }
+                    originalConsoleError.apply(console, args);
+                };
+
                 // Рендерим сцену
                 window.app.renderer.render(window.app.scene, window.app.camera);
+
+                // Восстанавливаем console.error
+                console.error = originalConsoleError;
             } else {
                 if (frameCount % FPS_REPORT_INTERVAL === 0) {
                     console.warn("Не все компоненты доступны для рендеринга:", {

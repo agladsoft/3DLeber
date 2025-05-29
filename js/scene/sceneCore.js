@@ -155,12 +155,3 @@ export function setupResizeHandler(renderer, camera) {
         }
     });
 }
-
-/**
- * Функция плавной анимации для использования в различных анимациях
- * @param {Number} t - Прогресс анимации от 0 до 1
- * @returns {Number} Преобразованный прогресс с эффектом замедления
- */
-export function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
