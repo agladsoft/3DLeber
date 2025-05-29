@@ -14,8 +14,14 @@ export const fbxLoader = new FBXLoader();
 
 // Настройка DRACOLoader для поддержки сжатых моделей
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/jsm/libs/draco/'); // Путь к декодеру Draco (папка с файлами draco_decoder.js/wasm)
-dracoLoader.setDecoderConfig({type: 'js'}); // (Optional) Override detection of WASM support.
+dracoLoader.setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/'); // Путь к декодеру Draco из node_modules
+dracoLoader.setDecoderConfig({
+    type: 'js', // Используем JavaScript декодер для лучшей совместимости
+    useWebWorkers: true, // Используем веб-воркеры для декодирования
+    useWebAssembly: true // Используем WebAssembly для лучшей производительности
+});
+
+// Применяем Draco загрузчик к GLTF загрузчику
 gltfLoader.setDRACOLoader(dracoLoader);
 
 /**
