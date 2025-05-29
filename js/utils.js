@@ -2,7 +2,6 @@
  * Вспомогательные функции проекта
  * Адаптированы для работы с Three.js
  */
-import { ANIMATION } from './config.js';
 import * as THREE from 'three';
 
 /**

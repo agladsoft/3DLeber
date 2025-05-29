@@ -2,13 +2,12 @@
  * Основной модуль для управления объектами на площадке
  */
 import * as THREE from 'three';
-import { MODEL_ROTATIONS, ELEMENT_INFO } from '../config.js';
 import { scene } from '../scene.js';
 import { showNotification } from '../utils.js';
 import { getLoaderByExtension } from './loaders.js';
 import { saveInitialPosition } from './positionHelpers.js';
-import { scaleModelToSize, changeModelSize, autoConvertUnits } from './objectOperations.js';
-import { checkAndHighlightObject, checkAllObjectsPositions } from './collisionDetection.js';
+import { autoConvertUnits } from './objectOperations.js';
+import { checkAllObjectsPositions } from './collisionDetection.js';
 import { showModelDimensions } from './dimensionDisplay/index.js';
 import { updateSafetyZonesVisibility } from '../core/safetyManager.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
@@ -203,14 +202,6 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
                 scene.add(container);
                 console.log("Контейнер добавлен в сцену, scene.children.length:", scene.children.length);
                 console.log("Дочерних объектов в контейнере:", container.children.length);
-                
-                // Применяем особые повороты для определенных моделей
-                if (MODEL_ROTATIONS[modelName]) {
-                    const rotation = MODEL_ROTATIONS[modelName];
-                    container.rotation.x = rotation.x;
-                    container.rotation.y = rotation.y;
-                    container.rotation.z = rotation.z;
-                }
                 
                 // Вычисляем размеры объекта для правильного масштабирования
                 const box = new THREE.Box3().setFromObject(container);

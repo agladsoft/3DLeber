@@ -1,6 +1,5 @@
 import { initDragAndDrop } from './ui/dragAndDrop.js';
 import { getQuantityFromDatabase } from './ui/dragAndDrop.js';
-import { loadAndPlaceModel } from './modules/objectManager.js';
 import { API_BASE_URL } from './api/serverConfig.js';
 
 /**

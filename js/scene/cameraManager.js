@@ -3,8 +3,7 @@
  */
 import { CAMERA_SETTINGS, TOP_VIEW_SETTINGS } from '../config.js';
 import { showNotification } from '../utils.js';
-import { createGrid } from './gridManager.js';
-import { scene, easeInOutCubic } from './sceneCore.js';
+import { easeInOutCubic } from './sceneCore.js';
 import { initTopViewController, cleanupEventListeners } from './topViewController.js';
 import * as THREE from 'three';
 import { MOUSE } from 'three';
@@ -17,17 +16,6 @@ export let controls;
 export let isTopViewActive = false;
 export let previousCameraState = null;
 export let renderer;
-
-// Храним ссылку на функцию-обработчик
-let cameraChangeHandler = null;
-
-// Переменные для пользовательского управления камерой в режиме вида сверху
-let isDragging = false;
-let previousMousePosition = { x: 0, y: 0 };
-let canvasElement = null;
-let mouseMoveHandler = null;
-let mouseDownHandler = null;
-let mouseUpHandler = null;
 
 /**
  * Создает и настраивает камеру и её элементы управления

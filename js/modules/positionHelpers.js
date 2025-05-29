@@ -1,7 +1,6 @@
 /**
  * Вспомогательные функции для позиционирования и перемещения объектов
  */
-import * as THREE from 'three';
 import { showNotification } from '../utils.js';
 import { highlightPlaygroundBoundary } from './collisionDetection.js';
 

@@ -3,31 +3,12 @@
  */
 import { scene } from '../scene.js';
 import { showNotification } from '../utils.js';
-import { ground, groundMesh, playgroundWidth, playgroundLength, updateGroundReferences, updatePlaygroundDimensions } from './playgroundCore.js';
+import { ground, updateGroundReferences, updatePlaygroundDimensions } from './playgroundCore.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// Создаем загрузчик GLTF для загрузки модели площадки
-let gltfLoader;
-try {
-    gltfLoader = new GLTFLoader();
-    console.log('GLTFLoader успешно создан');
-} catch (error) {
-    console.error('Ошибка при создании GLTFLoader:', error);
-    // Создаем заглушку для loader, чтобы избежать ошибок
-    gltfLoader = {
-        load: function(url, onLoad, onProgress, onError) {
-            console.error('GLTFLoader не доступен, не могу загрузить:', url);
-            if (onError) onError(new Error('GLTFLoader не доступен'));
-        }
-    };
-}
-
-// Храним последнее значение прогресса для плавного обновления
-let lastProgressValue = 0;
 
 /**
  * Загрузка модели площадки

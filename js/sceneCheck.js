@@ -1,7 +1,7 @@
 /**
  * Модуль для проверки и восстановления сцены после загрузки страницы
  */
-import { createEmergencyGround, validateSceneIntegrity } from './fixes.js';
+import { createEmergencyGround } from './fixes.js';
 import { showNotification } from './utils.js';
 
 // Таймер для периодической проверки сцены

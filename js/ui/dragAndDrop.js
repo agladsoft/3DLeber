@@ -1,19 +1,16 @@
 /**
  * Модуль для управления drag and drop элементов
  */
-import { canvas, scene, camera } from '../scene.js';
+import { canvas, scene } from '../scene.js';
 import { ground } from '../playground.js';
 import { loadAndPlaceModel, placedObjects, removeObject } from '../objects.js';
 import { showNotification } from '../utils.js';
 import { 
-    mouse, 
     raycaster, 
-    dragPlane, 
     updateMousePosition, 
     updateRaycaster 
 } from './uiCore.js';
 import * as THREE from 'three';
-import { saveModelQuantity } from '../models.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
 
 // Флаг для предотвращения множественных запусков обработчика drop

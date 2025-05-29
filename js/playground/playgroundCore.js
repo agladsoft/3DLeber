@@ -6,7 +6,7 @@ import { scene, createGrid, isTopViewActive } from '../scene.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { removeAllYellowElements } from './playgroundSafetyManager.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
-import { createDimensionGrid, updateDimensionGrid } from '../scene/gridManager.js';
+import { updateDimensionGrid } from '../scene/gridManager.js';
 
 // Глобальные переменные для площадки
 export let playgroundWidth = PLAYGROUND.defaultWidth;

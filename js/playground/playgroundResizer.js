@@ -2,7 +2,6 @@
  * Модуль для изменения размеров площадки
  */
 import { PLAYGROUND, ANIMATION } from '../config.js';
-import { createGrid, isTopViewActive } from '../scene.js';
 import { showNotification } from '../utils.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { ground, playgroundWidth, playgroundLength, createPlayground, resetPlayground } from './playgroundCore.js';

@@ -1,10 +1,9 @@
 /**
  * Модуль для обработки событий приложения
  */
-import { ensureSingleInit, updateRendererSize } from './appCore.js';
+import { updateRendererSize } from './appCore.js';
 import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from './safetyManager.js';
-import { handleAppError } from './errorHandler.js';
-import { hideAllDimensions, showAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
+import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 
 /**
  * Устанавливает обработчики событий DOM

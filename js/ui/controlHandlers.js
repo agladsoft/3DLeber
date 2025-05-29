@@ -1,25 +1,18 @@
 /**
  * Модуль для управления элементами интерфейса
  */
-import { PLAYGROUND } from '../config.js';
 import { 
     resetCameraView, 
     takeScreenshot, 
     toggleTopView 
 } from '../scene.js';
-import { 
-    loadPlayground, 
-    resizePlaygroundWithAnimation, 
+import {
     playgroundWidth, 
     playgroundLength 
 } from '../playground.js';
-import { checkAllObjectsPositions } from '../objects.js';
 import { showNotification } from '../utils.js';
-import { initializeNewSession } from '../models.js';
-import { updateModelQuantityUI, saveQuantityToDatabase } from './dragAndDrop.js';
+import { updateModelQuantityUI } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
-import { showAllDimensions, hideAllDimensions, addDimensionsToModel } from '../modules/dimensionDisplay/index.js';
-import { placedObjects } from '../objects.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе

@@ -3,11 +3,10 @@
  * 1. Зеленый фон с окружностью
  * 2. Основная площадка с возможностью выбора из 4 цветов (серый, черный, зеленый, коричневый)
  */
-import { PLAYGROUND } from '../config.js';
-import { scene } from '../scene.js';
-import { ground, groundMesh, playgroundWidth, playgroundLength, updateGroundReferences } from './playgroundCore.js';
-import { updatePlaygroundLabels } from './playgroundUI.js';
 import * as THREE from 'three';
+import { scene } from '../scene.js';
+import { updateGroundReferences } from './playgroundCore.js';
+import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createDimensionGrid } from '../scene/gridManager.js';
 
 /**

@@ -2,7 +2,7 @@
  * Главный модуль приложения, собирающий все компоненты
  * Адаптирован для работы с Three.js
  */
-import { initializeApp, startRenderLoop, setupDOMEventListeners, handleAppError, handleCriticalError } from './core/index.js';
+import { initializeApp, setupDOMEventListeners, handleAppError, handleCriticalError } from './core/index.js';
 import { applyAllFixes } from './fixes.js';
 import { startSceneChecks } from './sceneCheck.js';
 

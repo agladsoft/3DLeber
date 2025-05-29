@@ -6,7 +6,6 @@ import {
     LIGHTING 
 } from '../config.js';
 import * as THREE from 'three';
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { PMREMGenerator } from 'three';
 // CubeTextureLoader уже включен в импорт THREE
 

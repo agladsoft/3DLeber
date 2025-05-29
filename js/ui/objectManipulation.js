@@ -16,7 +16,6 @@ import {
     isRotating, 
     dragPlane, 
     initialMousePosition, 
-    initialObjectPosition, 
     initialRotationY, 
     raycaster, 
     mouse, 

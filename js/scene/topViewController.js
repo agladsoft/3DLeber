@@ -2,7 +2,7 @@
  * Контроллер для управления камерой в режиме вида сверху
  */
 import * as THREE from 'three';
-import { CAMERA_SETTINGS, TOP_VIEW_SETTINGS } from '../config.js';
+import { TOP_VIEW_SETTINGS } from '../config.js';
 
 // Переменные для управления камерой в режиме вида сверху
 let isDragging = false;
