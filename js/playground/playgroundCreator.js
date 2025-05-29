@@ -188,11 +188,25 @@ function createMainSurface(width, length, color) {
  * @param {String} color - Цвет площадки (серый, черный, зеленый, коричневый)
  * @returns {THREE.Material} Материал для площадки
  */
+function getPlaygroundColorHex(color) {
+    switch (color) {
+        case 'черный':
+            return 0x222222;
+        case 'зеленый':
+            return 0x2e7031;
+        case 'коричневый':
+            return 0x7c5c36;
+        case 'серый':
+        default:
+            return 0x7F7F7F;
+    }
+}
+
 function createGroundMaterial(width, length, color = 'серый') {
     console.log(`[PLAYGROUND] Создаем материал для площадки: цвет ${color}, размер ${width}x${length}м`);
 
     const material = new THREE.MeshStandardMaterial({
-        color: 0x7F7F7F, // Серый цвет по умолчанию
+        color: getPlaygroundColorHex(color),
         roughness: 0.7,
         metalness: 0.1,
         side: THREE.DoubleSide
@@ -201,7 +215,6 @@ function createGroundMaterial(width, length, color = 'серый') {
     // Загружаем текстуру резиновой крошки
     const textureLoader = new THREE.TextureLoader();
     const rubberTexture = textureLoader.load('textures/crumb-rubber-2.jpg');
-    
     // Настраиваем повторение текстуры
     const repeats = Math.max(width, length) / 2;
     rubberTexture.wrapS = THREE.RepeatWrapping;
@@ -211,6 +224,7 @@ function createGroundMaterial(width, length, color = 'серый') {
 
     // Применяем текстуру к материалу
     material.map = rubberTexture;
+    material.needsUpdate = true;
 
     console.log(`[PLAYGROUND] Материал успешно создан для цвета ${color}`);
     return material;
