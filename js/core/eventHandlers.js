@@ -131,13 +131,21 @@ function setupToggleDimensionsButton() {
             dimensionLabels.style.display = 'none';
             toggleButton.textContent = '📏 Показать размеры';
             hideAllDimensions();
+        } else {
+            dimensionLabels.style.display = '';
+            toggleButton.textContent = '📏 Скрыть размеры';
+            // Показываем размеры для всех объектов
+            if (Array.isArray(placedObjects)) {
+                placedObjects.forEach(obj => showModelDimensions(obj));
+            }
         }
+
         toggleButton.addEventListener('click', function() {
             const isCurrentlyHidden = dimensionLabels.style.display === 'none';
             if (isCurrentlyHidden) {
                 dimensionLabels.style.display = '';
                 toggleButton.textContent = '📏 Скрыть размеры';
-                // Показываем размеры для всех объектов, даже если они не были созданы
+                // Показываем размеры для всех объектов
                 if (Array.isArray(placedObjects)) {
                     placedObjects.forEach(obj => showModelDimensions(obj));
                 }

@@ -44,7 +44,6 @@ function setupControlHandlers() {
     setupChangePlaygroundButton();
     setupResetViewButton();
     setupTopViewButton();
-    setupDimensionsButton();
     setupPlaygroundButton();
 
     // Обработчик для кнопки удаления всех моделей
@@ -308,52 +307,6 @@ function updateTopViewButtonStyle(button, isActive) {
     }
     
     console.log("Стиль кнопки обновлен:", button.style.backgroundColor);
-}
-
-/**
- * Настраивает кнопку "Размеры"
- */
-function setupDimensionsButton() {
-    const dimensionsButton = document.getElementById('toggleDimensions');
-    if (!dimensionsButton) return;
-
-    // Устанавливаем начальное состояние
-    if (typeof window.dimensionsVisible === 'undefined') {
-        window.dimensionsVisible = false;
-    }
-
-    updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-
-    dimensionsButton.onclick = async function() {
-        window.dimensionsVisible = !window.dimensionsVisible;
-        
-        if (window.dimensionsVisible) {
-            // Для всех объектов на сцене добавляем размеры, если их нет
-            if (Array.isArray(placedObjects)) {
-                placedObjects.forEach(obj => addDimensionsToModel(obj));
-            }
-            showAllDimensions();
-        } else {
-            hideAllDimensions();
-        }
-        
-        updateDimensionsButtonStyle(dimensionsButton, window.dimensionsVisible);
-    };
-}
-
-/**
- * Обновляет стиль кнопки "Размеры"
- * @param {HTMLElement} button - Кнопка
- * @param {Boolean} isActive - Активен ли режим отображения размеров
- */
-function updateDimensionsButtonStyle(button, isActive) {
-    if (isActive) {
-        button.classList.add('active');
-        button.textContent = '📏 Показать размеры';
-    } else {
-        button.classList.remove('active');
-        button.textContent = '📏 Скрыть размеры';
-    }
 }
 
 /**
