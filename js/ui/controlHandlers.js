@@ -67,8 +67,24 @@ function setupControlHandlers() {
                 const { session } = await sessionResponse.json();
                 const sessionData = session || { quantities: {}, placedObjects: [] };
 
+                // Создаем копию текущих количеств для обновления
+                const updatedQuantities = { ...sessionData.quantities };
+
+                // Увеличиваем количество для каждой удаляемой модели
+                if (Array.isArray(sessionData.placedObjects)) {
+                    sessionData.placedObjects.forEach(obj => {
+                        const modelName = obj.modelName;
+                        if (modelName) {
+                            const currentQuantity = updatedQuantities[modelName] || 0;
+                            updatedQuantities[modelName] = currentQuantity + 1;
+                        }
+                    });
+                }
+
                 // Очищаем placedObjects в текущей сессии
                 sessionData.placedObjects = [];
+                // Обновляем количества
+                sessionData.quantities = updatedQuantities;
 
                 // Сохраняем обновленную сессию перед удалением объектов
                 const saveResponse = await fetch(`${API_BASE_URL}/session`, {
@@ -93,26 +109,16 @@ function setupControlHandlers() {
                     module.removeObject(obj, true);
                 }
 
-                // Инициализируем новую сессию с моделями из JSON
-                if (data.models && Array.isArray(data.models)) {
-                    console.log('Reinitializing session with models:', data.models);
-                    const newSessionData = await initializeNewSession(userId, data.models);
-                    
-                    // Обновляем количества в sessionStorage
-                    if (newSessionData && newSessionData.quantities) {
-                        Object.entries(newSessionData.quantities).forEach(([modelName, quantity]) => {
-                            const items = document.querySelectorAll('.item');
-                            items.forEach(item => {
-                                if (item.getAttribute('data-model') === modelName) {
-                                    updateModelQuantityUI(item, quantity);
-                                    saveQuantityToDatabase(modelName, quantity);
-                                }
-                            });
-                        });
+                // Обновляем UI для отображения новых количеств
+                const items = document.querySelectorAll('.item');
+                items.forEach(item => {
+                    const modelName = item.getAttribute('data-model');
+                    if (modelName && updatedQuantities[modelName] !== undefined) {
+                        updateModelQuantityUI(item, updatedQuantities[modelName]);
                     }
-                }
+                });
 
-                console.log('All models removed and session reinitialized');
+                console.log('All models removed and session updated with new quantities:', updatedQuantities);
             } catch (error) {
                 console.error('Error removing all models:', error);
                 showNotification('Ошибка при удалении всех моделей', true);
