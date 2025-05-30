@@ -13,7 +13,7 @@ if [ ! -d "${path}/certbot/conf" ] || [ ! -d "${path}/certbot/www" ]; then
 fi
 
 # Проверяем статус сайта
-status_code=$(curl --write-out '%{http_code}' --silent --output /dev/null "https://${SERVER_IP}/health_check/")
+status_code=$(curl --write-out '%{http_code}' --silent --output /dev/null "https://3d.leber.ru/health_check/")
 
 if [[ "${status_code}" == "200" ]] ; then
     echo "Site is healthy, status code: ${status_code}"
