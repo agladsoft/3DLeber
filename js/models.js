@@ -232,6 +232,8 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'items-container';
 
+    const all_models = JSON.parse(sessionStorage.getItem('models'))
+
     // Create model items
     for (const model of models) {
         const item = document.createElement('div');
@@ -254,18 +256,21 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
             item.style.pointerEvents = 'none';
         }
 
-        const modelViewer = document.createElement('model-viewer');
-        modelViewer.setAttribute('src', `models/${model.name}`);
-        modelViewer.setAttribute('auto-rotate', '');
-        modelViewer.setAttribute('camera-controls', '');
-        modelViewer.setAttribute('disable-zoom', '');
-        modelViewer.setAttribute('ar-status', 'not-presenting');
-        modelViewer.setAttribute('rotation-per-second', '30deg');
-        modelViewer.setAttribute('alt', model.name);
+        // Создаем изображение вместо model-viewer
+        const modelImage = document.createElement('img');
+        // Заменяем расширение .glb на .png
+        const imageName = model.name.replace('.glb', '.png');
+        modelImage.src = `textures/${imageName}`;
+        modelImage.alt = model.name;
+        modelImage.className = 'model-image';
 
-        const name = document.createElement('p');
-        name.className = 'model-name';
-        name.textContent = model.name;
+        const article = document.createElement('p');
+        article.className = 'model-article';
+        article.textContent = model.article;
+
+        const description = document.createElement('p');
+        description.className = 'model-description';
+        description.textContent = model.description;
 
         // Создаем отдельный контейнер для корзины и количества
         const cartContainer = document.createElement('div');
@@ -279,8 +284,9 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
         cartContainer.appendChild(cartIcon);
         cartContainer.appendChild(quantityElement);
 
-        item.appendChild(modelViewer);
-        item.appendChild(name);
+        item.appendChild(modelImage);
+        item.appendChild(article);
+        item.appendChild(description);
         item.appendChild(cartContainer);
         itemsContainer.appendChild(item);
     }
