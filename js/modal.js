@@ -6,6 +6,7 @@ import { startSceneChecks } from './sceneCheck.js';
 import { initializeNewSession } from './models.js';
 import { API_BASE_URL } from './api/serverConfig.js';
 import { loadModels } from './models.js';
+import { clearModelCache } from './modules/objectManager.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export function showPlatformSelectModal() {
@@ -483,6 +484,9 @@ function cleanupResources() {
     
     // Очищаем modelQuantities из sessionStorage
     sessionStorage.removeItem('modelQuantities');
+    
+    // Очищаем кэш моделей
+    clearModelCache();
     
     // Очистка сетки, если режим вида сверху был активен
     if (window.app && window.app.gridHelper) {
