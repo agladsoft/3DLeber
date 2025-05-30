@@ -3,10 +3,10 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import https from 'https';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
 import { SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
-
 
 const { Pool } = pg;
 
@@ -24,6 +24,12 @@ app.use(cors());
 app.use(express.json());
 
 const modelsDir = path.join(__dirname, '..', 'models');
+
+// SSL configuration
+const sslOptions = {
+    key: fs.readFileSync('/etc/letsencrypt/live/3d.leber.ru/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/3d.leber.ru/fullchain.pem')
+};
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -213,6 +219,9 @@ app.delete('/api/session/:userId', async (req, res) => {
 
 app.use('/models', express.static(modelsDir));
 
-app.listen(PORT, () => {
+// Create HTTPS server
+const server = https.createServer(sslOptions, app);
+
+server.listen(PORT, () => {
     console.log(`API сервер запущен на ${API_BASE_URL}`);
 });
