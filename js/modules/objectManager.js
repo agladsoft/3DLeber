@@ -126,67 +126,6 @@ export function loadAndPlaceModel(modelName, position, isRestoring = false) {
                     
                     container.add(modelObject);
                     console.log("GLTF модель добавлена в контейнер");
-                } 
-                else if (method === 'stl') {
-                    console.log("Обрабатываем STL модель");
-                    // Для STL создаем новый меш с загруженной геометрией
-                    const material = new THREE.MeshStandardMaterial({ 
-                        color: 0x7F7F7F,
-                        metalness: 0.2,
-                        roughness: 0.8
-                    });
-                    const mesh = new THREE.Mesh(result, material);
-                    mesh.castShadow = true;
-                    mesh.receiveShadow = true;
-
-                    // Если это зона безопасности, меняем цвет на белый
-                    if (mesh.name && mesh.name.endsWith('safety_zone')) {
-                        const newMaterial = new THREE.MeshStandardMaterial({
-                            color: 0xFFFFFF,
-                            transparent: false,
-                            opacity: 1.0,
-                            metalness: 0,
-                            roughness: 0.5,
-                            emissive: 0xFFFFFF,
-                            emissiveIntensity: 0.2
-                        });
-                        mesh.material = newMaterial;
-                        // Проверяем состояние из localStorage и устанавливаем видимость
-                        mesh.visible = localStorage.getItem('safetyZoneHidden') !== 'true';
-                    }
-
-                    container.add(mesh);
-                    console.log("STL модель добавлена в контейнер");
-                }
-                else if (method === 'fbx') {
-                    console.log("Обрабатываем FBX модель");
-                    // Для FBX добавляем загруженный объект напрямую
-                    result.traverse((child) => {
-                        if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-
-                            // Если это зона безопасности, меняем цвет на белый
-                            if (child.name && child.name.endsWith('safety_zone')) {
-                                if (child.material) {
-                                    const newMaterial = new THREE.MeshStandardMaterial({
-                                        color: 0xFFFFFF,
-                                        transparent: false,
-                                        opacity: 1.0,
-                                        metalness: 0,
-                                        roughness: 0.5,
-                                        emissive: 0xFFFFFF,
-                                        emissiveIntensity: 0.2
-                                    });
-                                    child.material = newMaterial;
-                                    // Проверяем состояние из localStorage и устанавливаем видимость
-                                    child.visible = localStorage.getItem('safetyZoneHidden') !== 'true';
-                                }
-                            }
-                        }
-                    });
-                    container.add(result);
-                    console.log("FBX модель добавлена в контейнер");
                 }
                 
                 // Проверяем, есть ли в контейнере хотя бы один дочерний объект
