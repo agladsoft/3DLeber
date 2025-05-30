@@ -31,7 +31,7 @@ services:
   
   certbot:
     # Получение первого сертификата ⬇
-    # sudo docker compose run --rm certbot certbot certonly --dry-run --webroot -w /var/www/certbot \
+    # sudo docker compose run --rm certbot certbot certonly --webroot -w /var/www/certbot \
     #   --email timurka.zavyalov@mail.ru \
     #   -d 3d.leber.ru \
     #   --rsa-key-size 2048 \
