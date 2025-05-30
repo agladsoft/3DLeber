@@ -24,7 +24,6 @@ app.use(cors());
 app.use(express.json());
 
 const modelsDir = path.join(__dirname, '..', 'models');
-console.log(modelsDir)
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
