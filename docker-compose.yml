@@ -10,6 +10,7 @@ services:
         - SERVER_PORT=${SERVER_PORT}
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./models:/usr/share/nginx/html/models
       - ./js:/usr/share/nginx/html/js
@@ -30,13 +31,12 @@ services:
   
   certbot:
     # Получение первого сертификата ⬇
-    # sudo docker compose run --rm --entrypoint " \
-    # certbot certonly --dry-run --webroot -w /var/www/certbot \
-    # --email timurka.zavyalov@mail.ru \
-    # -d 3d.leber.ru \
-    # --rsa-key-size 2048 \
-    # --agree-tos \
-    # --force-renewal" certbot
+    # sudo docker compose run --rm certbot certbot certonly --dry-run --webroot -w /var/www/certbot \
+    #   --email timurka.zavyalov@mail.ru \
+    #   -d 3d.leber.ru \
+    #   --rsa-key-size 2048 \
+    #   --agree-tos \
+    #   --force-renewal
 
     container_name: certbot
     image: certbot/certbot:v2.6.0
