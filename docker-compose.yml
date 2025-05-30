@@ -54,6 +54,7 @@ services:
       - ./models:/app/js/models
     environment:
       - SERVER_IP=${SERVER_IP}
+      - SERVER_PORT=${SERVER_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
