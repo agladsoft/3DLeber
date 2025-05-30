@@ -38,26 +38,26 @@ else
     echo "### Reloading nginx ..."
 
     echo "### Step 1: Update the image (if necessary) ..."
-    if ! docker-compose -f ${path}/docker-compose.yml pull app; then
-        echo "Failed to pull app image"
+    if ! docker-compose -f ${path}/docker-compose.yml pull nginx; then
+        echo "Failed to pull nginx image"
         exit 1
     fi
 
-    echo "### Step 2: Stopping and deleting the app container ..."
-    if ! docker-compose -f ${path}/docker-compose.yml stop app; then
-        echo "Failed to stop app container"
+    echo "### Step 2: Stopping and deleting the nginx container ..."
+    if ! docker-compose -f ${path}/docker-compose.yml stop nginx; then
+        echo "Failed to stop nginx container"
         exit 1
     fi
-    if ! docker-compose -f ${path}/docker-compose.yml rm -f app; then
-        echo "Failed to remove app container"
-        exit 1
-    fi
-
-    echo "### Step 3: Recreate and launch the app container ..."
-    if ! docker-compose -f ${path}/docker-compose.yml up -d --build app; then
-        echo "Failed to start app container"
+    if ! docker-compose -f ${path}/docker-compose.yml rm -f nginx; then
+        echo "Failed to remove nginx container"
         exit 1
     fi
 
-    echo "App has been reloaded with the new certificate."
+    echo "### Step 3: Recreate and launch the nginx container ..."
+    if ! docker-compose -f ${path}/docker-compose.yml up -d --build nginx; then
+        echo "Failed to start nginx container"
+        exit 1
+    fi
+
+    echo "nginx has been reloaded with the new certificate."
 fi

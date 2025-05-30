@@ -3,7 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   define: {
-    'process.env.SERVER_IP': JSON.stringify(process.env.SERVER_IP || 'localhost'),
+    'process.env.SERVER_NAME': JSON.stringify(process.env.SERVER_NAME || 'localhost'),
     'process.env.SERVER_PORT': JSON.stringify(process.env.SERVER_PORT || '3000'),
     'process.env.POSTGRES_HOST': JSON.stringify(process.env.POSTGRES_HOST || 'postgres'),
     'process.env.POSTGRES_DB': JSON.stringify(process.env.POSTGRES_DB || 'admin'),

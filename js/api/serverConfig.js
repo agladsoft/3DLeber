@@ -1,7 +1,7 @@
 // Server configuration
-const SERVER_IP = process.env.SERVER_IP || 'localhost';
+const SERVER_NAME = process.env.SERVER_NAME || 'localhost';
 const SERVER_PORT = process.env.SERVER_PORT || '3000';
-const API_BASE_URL = `https://${SERVER_IP}/api`;
+const API_BASE_URL = `https://${SERVER_NAME}/api`;
 const POSTGRES_HOST = process.env.POSTGRES_HOST || 'postgres';
 const POSTGRES_DB = process.env.POSTGRES_DB || 'admin';
 const POSTGRES_USER = process.env.POSTGRES_USER || 'admin';
@@ -17,7 +17,7 @@ const DB_CONFIG = {
 };
 
 export {
-    SERVER_IP,
+    SERVER_NAME,
     SERVER_PORT,
     API_BASE_URL,
     POSTGRES_HOST,

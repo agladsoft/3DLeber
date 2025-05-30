@@ -13,8 +13,8 @@ RUN npm install
 COPY . .
 
 # Build the app with environment variables
-ARG SERVER_IP
-ENV SERVER_IP=${SERVER_IP}
+ARG SERVER_NAME
+ENV SERVER_NAME=${SERVER_NAME}
 ARG SERVER_PORT
 ENV SERVER_PORT=${SERVER_PORT}
 ARG POSTGRES_HOST
@@ -33,16 +33,13 @@ RUN npm run build -- --mode development
 FROM nginx:alpine
 
 # Create directories for SSL certificates
-RUN mkdir -p /etc/letsencrypt/live/3d.leber.ru
+RUN mkdir -p /etc/letsencrypt/live/${SERVER_NAME}
 
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy Draco files
 COPY --from=build /app/public/draco /usr/share/nginx/html/draco
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
