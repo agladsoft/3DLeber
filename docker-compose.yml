@@ -29,9 +29,20 @@ services:
       - app-network
   
   certbot:
+    # Получение первого сертификата ⬇
+    # sudo docker compose run --rm --entrypoint " \
+    # certbot certonly --dry-run --webroot -w /var/www/certbot \
+    # --email timurka.zavyalov@mail.ru \
+    # -d 3d.leber.ru \
+    # --rsa-key-size 2048 \
+    # --agree-tos \
+    # --force-renewal" certbot
+
     container_name: certbot
     image: certbot/certbot:v2.6.0
-    command: certbot renew --webroot --webroot-path /var/www/certbot
+    command:
+      sh -c "certbot renew --webroot --webroot-path /var/www/certbot; echo 'renew done';"
+    entrypoint: ""
     volumes:
       - ./certbot/conf:/etc/letsencrypt:rw
       - ./certbot/www:/var/www/certbot:rw
