@@ -16,6 +16,8 @@ services:
       - ./css:/usr/share/nginx/html/css
       - ./textures:/usr/share/nginx/html/textures
       - ./models.json:/usr/share/nginx/html/models.json
+      - ./certbot/conf:/etc/letsencrypt:rw
+      - ./certbot/www:/var/www/certbot:rw
     environment:
       - SERVER_IP=${SERVER_IP}
     depends_on:
@@ -23,6 +25,20 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    networks:
+      - app-network
+  
+  certbot:
+    container_name: certbot
+    image: certbot/certbot:v2.6.0
+    command:
+      sh -c "certbot renew --webroot --webroot-path /var/www/certbot; echo 'renew done';"
+    entrypoint: ""
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt:rw
+      - ./certbot/www:/var/www/certbot:rw
+    depends_on:
+      - app
     networks:
       - app-network
 

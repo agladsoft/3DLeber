@@ -32,6 +32,9 @@ RUN npm run build -- --mode development
 # Production stage
 FROM nginx:alpine
 
+# Create directories for SSL certificates
+RUN mkdir -p /etc/letsencrypt/live/3d.leber.ru
+
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
