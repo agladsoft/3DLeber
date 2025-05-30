@@ -13,7 +13,7 @@ export const fbxLoader = new FBXLoader();
 
 // Настройка DRACOLoader для поддержки сжатых моделей
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/'); // Путь к декодеру Draco из node_modules
+dracoLoader.setDecoderPath('/draco/');
 dracoLoader.setDecoderConfig({
     type: 'js', // Используем JavaScript декодер для лучшей совместимости
     useWebWorkers: true, // Используем веб-воркеры для декодирования

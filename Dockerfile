@@ -38,6 +38,9 @@ RUN mkdir -p /etc/letsencrypt/live/3d.leber.ru
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy Draco files
+COPY --from=build /app/public/draco /usr/share/nginx/html/draco
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
