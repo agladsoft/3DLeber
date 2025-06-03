@@ -113,15 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 "models": [
                     {
                         "article": "ЛГИК-02.01",
-                        "quantity": 1
+                        "quantity": 2
                     },
                     {
                         "article": "ЛГИК-02.18",
-                        "quantity": 1
+                        "quantity": 2
                     },
                     {
                         "article": "ЛГИК-02.17-1",
-                        "quantity": 1
+                        "quantity": 2
                     },
                     {
                         "article": "ЛГИК-02.17",
@@ -160,16 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         "quantity": 1
                     },
                     {
-                        "article": "ЛГД-16.06",
-                        "quantity": 1
-                    },
-                    {
                         "article": "ЛГИК-16.01",
-                        "quantity": 1
+                        "quantity": 2
                     },
                     {
                         "article": "ЛГИК-16.02",
-                        "quantity": 1
+                        "quantity": 2
                     },
                     {
                         "article": "ЛГИК-16.03",
