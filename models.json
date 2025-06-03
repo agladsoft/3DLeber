@@ -2,43 +2,99 @@
     "user_id": "id_12345678",
     "models": [
         {
-            "article": "ЛГД-19",
-            "quantity": 2
-        },
-        {
-            "article": "ЛГК-24.7",
+            "article": "ЛГИК-02.01",
             "quantity": 1
         },
         {
-            "article": "ЛГИК-7.26",
+            "article": "ЛГИК-02.18",
             "quantity": 1
         },
         {
-            "article": "ЛГИК-7.03",
+            "article": "ЛГИК-02.17-1",
             "quantity": 1
         },
         {
-            "article": "ЛГИК-7.01",
+            "article": "ЛГИК-02.17",
             "quantity": 1
         },
         {
-            "article": "ЛГД-29",
+            "article": "ЛГИК-02.16",
             "quantity": 1
         },
         {
-            "article": "ЛГД-25",
+            "article": "ЛГИК-02.14",
             "quantity": 1
         },
         {
-            "article": "ЛГД-23",
+            "article": "ЛГИК-02.13",
             "quantity": 1
         },
         {
-            "article": "ЛГД-14",
+            "article": "ЛГИК-02.12",
             "quantity": 1
         },
         {
-            "article": "ЛГВО-421",
+            "article": "ЛГИК-02.11",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-02.04",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-02.03",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-02.02",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГД-16.06",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.01",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.02",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.03",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.04",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.05",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.10",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.11",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.12",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.13",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.14",
+            "quantity": 1
+        },
+        {
+            "article": "ЛГИК-16.15",
             "quantity": 1
         }
     ]
