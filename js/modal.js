@@ -159,10 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         "quantity": 1
                     },
                     {
-                        "article": "ЛГД-16.06",
-                        "quantity": 1
-                    },
-                    {
                         "article": "ЛГИК-16.01",
                         "quantity": 1
                     },
