@@ -318,23 +318,23 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                 }
                             }
 
-                            // Оптимизация материалов
-                            if (child.material) {
-                                // Если материал в массиве, обрабатываем каждый
-                                const materials = Array.isArray(child.material) ? child.material : [child.material];
-                                materials.forEach(material => {
-                                    // Отключаем ненужные свойства материалов
-                                    material.flatShading = true;
-                                    material.needsUpdate = true;
+                            // // Оптимизация материалов
+                            // if (child.material) {
+                            //     // Если материал в массиве, обрабатываем каждый
+                            //     const materials = Array.isArray(child.material) ? child.material : [child.material];
+                            //     materials.forEach(material => {
+                            //         // Отключаем ненужные свойства материалов
+                            //         material.flatShading = true;
+                            //         material.needsUpdate = true;
                                     
-                                    // Оптимизация текстур
-                                    if (material.map) {
-                                        material.map.minFilter = THREE.LinearFilter;
-                                        material.map.magFilter = THREE.LinearFilter;
-                                        material.map.anisotropy = 1;
-                                    }
-                                });
-                            }
+                            //         // Оптимизация текстур
+                            //         if (material.map) {
+                            //             material.map.minFilter = THREE.LinearFilter;
+                            //             material.map.magFilter = THREE.LinearFilter;
+                            //             material.map.anisotropy = 1;
+                            //         }
+                            //     });
+                            // }
 
                             child.castShadow = true;
                             child.receiveShadow = true;
