@@ -1,0 +1,68 @@
+/* Стили для обновленной правой панели инструментов */
+#controlPanel {
+    position: absolute !important;
+    top: 50px !important;
+    right: 20px !important;
+    z-index: 100 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+/* Общий стиль для кнопок инструментов */
+.tool-button-new {
+    width: 50px !important;
+    height: 50px !important;
+    background-color: white !important;
+    border: none !important;
+    border-radius: 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.2s ease !important;
+    padding: 0 !important;
+    outline: none !important;
+}
+
+.tool-button-new:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.tool-button-new:active {
+    transform: scale(0.95) !important;
+}
+
+/* Стиль для иконок внутри кнопок */
+.tool-button-new svg, 
+.tool-button-new span {
+    width: 24px !important;
+    height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Специальные стили для некоторых кнопок */
+.tool-button-new.reset {
+    background-color: white !important;
+}
+
+.tool-button-new.delete {
+    color: #f44336 !important;
+}
+
+.tool-button-new.close {
+    color: #333 !important;
+}
+
+/* Стиль для контейнера с кнопками */
+.panel-tools-new {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 10px 0 !important;
+}

@@ -4,6 +4,7 @@
 import { updateRendererSize } from './appCore.js';
 import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from './safetyManager.js';
 import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
+import { initializeControlPanelHandlers } from '../ui/controlPanel.js';
 
 /**
  * Устанавливает обработчики событий DOM
@@ -36,6 +37,9 @@ function handleDOMContentLoaded() {
 
     // Инициализация кнопки скрытия размеров
     setupToggleSafetyZoneButton();
+    
+    // Инициализация обработчиков новой панели управления
+    initializeControlPanelHandlers();
 }
 
 /**
@@ -62,22 +66,18 @@ function setupTogglePanelButton() {
         console.log('Инициализация кнопки переключения панели управления');
         
         // Восстанавливаем состояние из localStorage (если есть)
-        const isPanelHidden = localStorage.getItem('controlPanelHidden') === 'true';
-        if (isPanelHidden) {
-            controlPanel.classList.add('hidden');
-            toggleButton.classList.add('panel-hidden');
+        const isPanelExpanded = localStorage.getItem('controlPanelExpanded') === 'true';
+        if (isPanelExpanded) {
+            controlPanel.classList.add('expanded');
         }
         
         toggleButton.addEventListener('click', function() {
             // Переключаем класс для панели
-            controlPanel.classList.toggle('hidden');
-            
-            // Переключаем класс для кнопки
-            toggleButton.classList.toggle('panel-hidden');
+            controlPanel.classList.toggle('expanded');
             
             // Сохраняем состояние в localStorage
-            const isNowHidden = controlPanel.classList.contains('hidden');
-            localStorage.setItem('controlPanelHidden', isNowHidden);
+            const isNowExpanded = controlPanel.classList.contains('expanded');
+            localStorage.setItem('controlPanelExpanded', isNowExpanded);
         });
     } else {
         console.log('Кнопка переключения панели управления или сама панель не найдена');

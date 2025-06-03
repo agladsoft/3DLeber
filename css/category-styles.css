@@ -1,0 +1,71 @@
+/* Дополнительные стили для улучшенной панели категорий */
+.category-container {
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.category-items-list {
+    display: none;
+    padding-left: 20px;
+    margin-top: 5px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.category-container.open .category-items-list {
+    display: block;
+}
+
+.category-container.open .category-arrow svg {
+    transform: rotate(90deg);
+}
+
+.subcategory-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 15px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.subcategory-item:hover {
+    background: #f5f5f5;
+}
+
+.subcategory-item.active {
+    background: #F5F5F5;
+    border-left: 3px solid #F05323;
+}
+
+.subcategory-item.empty {
+    color: #999;
+    cursor: default;
+}
+
+/* Анимация стрелок */
+.category-arrow svg {
+    transition: transform 0.3s ease;
+}
+
+/* Убедимся, что категории имеют корректные отступы и стили */
+#categoriesList {
+    padding: 0 15px;
+    overflow-y: auto;
+    max-height: calc(100% - 100px);
+}
+
+/* Исправление высоты списка категорий при прокрутке */
+#sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.categories-header {
+    flex-shrink: 0;
+}

@@ -1,0 +1,212 @@
+/* Сброс стилей для сайдбара */
+#sidebar.categories-sidebar {
+    position: absolute !important;
+    width: 310px !important;
+    height: 920px !important;
+    background-color: #EEF0F5 !important;
+    border-top-right-radius: 50px !important;
+    border-bottom-right-radius: 50px !important;
+    overflow-y: scroll !important;
+    top: 50px !important;
+    left: 0 !important;
+    z-index: 100 !important;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent !important;
+    transition: width 0.3s ease-in-out !important;
+    padding: 10px !important;
+}
+
+/* Заголовок */
+#sidebar.categories-sidebar .sidebar-header {
+    position: sticky !important;
+    top: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 15px 20px !important;
+    background-color: #EEF0F5 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    z-index: 10 !important;
+}
+
+#sidebar.categories-sidebar .back-button {
+    width: 32px !important;
+    height: 32px !important;
+    background-color: white !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 15px !important;
+    cursor: pointer !important;
+}
+
+#sidebar.categories-sidebar .sidebar-title {
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+/* Список категорий */
+#sidebar.categories-sidebar .categories-list {
+    padding: 15px !important;
+    padding-bottom: 100px !important; /* Добавляем отступ снизу для лучшей прокрутки */
+    gap: 30px !important; /* Добавляем отступ между категориями */
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Категория */
+#sidebar.categories-sidebar .category {
+    margin-bottom: 15px !important;
+}
+
+#sidebar.categories-sidebar .category-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 15px 20px !important;
+    background-color: white !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s !important;
+}#sidebar.categories-sidebar .category.active .category-header {
+    background-color: #FF7E3D !important;
+    color: white !important;
+}
+
+#sidebar.categories-sidebar .category-name {
+    font-weight: 500 !important;
+    font-size: 16px !important;
+}
+
+#sidebar.categories-sidebar .category-arrow {
+    transition: transform 0.3s !important;
+}
+
+#sidebar.categories-sidebar .category.active .category-arrow {
+    transform: rotate(90deg) !important;
+}
+
+#sidebar.categories-sidebar .category-arrow path {
+    stroke: #FF7E3D !important;
+}
+
+#sidebar.categories-sidebar .category.active .category-arrow path {
+    stroke: white !important;
+}
+
+/* Контейнер моделей */
+#sidebar.categories-sidebar .models-container {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease-out !important;
+}
+
+#sidebar.categories-sidebar .category.active .models-container {
+    max-height: 1000px !important;
+    padding-top: 15px !important;
+}
+
+/* Модель */
+#sidebar.categories-sidebar .model {
+    background-color: white !important;
+    border-radius: 12px !important;
+    margin-bottom: 15px !important;
+    padding: 15px !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+}
+
+#sidebar.categories-sidebar .model-image {
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    margin-bottom: 15px !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+#sidebar.categories-sidebar .model-image img {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+#sidebar.categories-sidebar .model-article {
+    color: #999 !important;
+    font-size: 12px !important;
+    margin-bottom: 5px !important;
+}
+
+#sidebar.categories-sidebar .model-title {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+}
+
+#sidebar.categories-sidebar .model-placement {
+    color: #999 !important;
+    font-size: 12px !important;
+    margin-bottom: 15px !important;
+}
+
+#sidebar.categories-sidebar .model-specs {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+#sidebar.categories-sidebar .model-spec {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 12px !important;
+    color: #666 !important;
+}
+
+#sidebar.categories-sidebar .model-spec-icon {
+    margin-right: 5px !important;
+}
+
+#sidebar.categories-sidebar .availability-indicator {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background-color: #4CAF50 !important;
+}/* Стилизация скроллбара для WebKit (Chrome, Safari, новые версии Edge) */
+#sidebar.categories-sidebar::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+#sidebar.categories-sidebar::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+#sidebar.categories-sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+#sidebar.categories-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Убедимся, что категории не скрываются под заголовком при прокрутке */
+#sidebar.categories-sidebar .sidebar-header {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: #EEF0F5 !important;
+    z-index: 100 !important;
+    padding: 15px 20px !important;
+    margin-bottom: 10px !important;
+}
+
+/* Стиль для активной категории, чтобы она выделялась при прокрутке */
+#sidebar.categories-sidebar .category.active {
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Увеличиваем пространство между категориями для лучшей читаемости при прокрутке */
+#sidebar.categories-sidebar .category {
+    margin-bottom: 20px !important;
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Площадка</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <!-- Кнопка запуска приложения -->
+    <div id="launchContainer">
+        <button id="launchApp">🚀 Запустить приложение</button>
+    </div>
+    
+    <!-- Модальное окно выбора площадки -->
+    <div id="platformSelectModal" class="modal">
+        <div class="modal-content platform-select-content">
+            <h3>Выберите параметры площадки</h3>
+            
+            <div class="platform-settings">
+                <div class="control-group">
+                    <label for="modalPlaygroundWidth">Ширина (м):</label>
+                    <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="40" step="1">
+                </div>
+                <div class="control-group">
+                    <label for="modalPlaygroundLength">Длина (м):</label>
+                    <input type="number" id="modalPlaygroundLength" min="10" max="100" value="30" step="1">
+                </div>
+                <div class="control-group">
+                    <label>Цвет площадки:</label>
+                    <div class="horizontal-color-picker modal-color-picker">
+                        <span class="color-square" data-color="серый" style="background-color: #AAAAAA;"></span>
+                        <span class="color-square" data-color="черный" style="background-color: #222222;"></span>
+                        <span class="color-square" data-color="зеленый" style="background-color: #2E7D32;"></span>
+                        <span class="color-square" data-color="коричневый" style="background-color: #5D4037;"></span>
+                    </div>
+                    <input type="hidden" id="modalPlaygroundColor" value="серый">
+                </div>
+            </div>
+            <div class="platform-buttons">
+                <button id="startAppButton" class="action-button">🚀 Запустить</button>
+                <button id="cancelAppButton" class="action-button">❌ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно управления сессией -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-content session-select-content">
+            <h3>Управление сессией</h3>
+            <div class="session-buttons">
+                <button id="continueSessionButton" class="action-button">🔄 Продолжить сессию</button>
+                <button id="newSessionButton" class="action-button">🆕 Начать новую сессию</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно приложения -->
+    <div id="appModal" class="modal">
+        <div class="modal-content">
+            <button id="toggleSidebar" class="toggle-sidebar-button">
+                <span class="toggle-icon">🎮</span>
+            </button>
+            <div id="sidebar">
+                <h3>Выберите элемент</h3>
+            </div>
+            <canvas id="renderCanvas"></canvas>
+            <button id="toggleControlPanel" class="toggle-panel-button">
+                <span class="toggle-icon">⚙️</span>
+            </button>
+            <div id="controlPanel">
+                <div class="control-panel">
+                    <button id="resetView">👁️‍🗨️ Сбросить вид</button>
+                    <button id="topView">🔝 Вид сверху (сетка 1×1м)</button>
+                    <button id="toggleDimensions">📏 Скрыть размеры</button>
+                    <button id="toggleSafetyZone">🛡️ Скрыть безопасную зону</button>
+                    <button id="saveScreenshot">📸 Сделать скриншот</button>
+                    <button id="playgroundButton">🏞️ Площадка</button>
+                    <div id="playgroundSettings" class="playground-settings hidden">
+                        <table id="playgroundColorPicker" class="color-table" width="100%" cellspacing="0" cellpadding="5">
+                            <tr>
+                                <td align="center" width="25%"><div class="color-square" data-color="серый" style="background-color: #AAAAAA;"></div></td>
+                                <td align="center" width="25%"><div class="color-square" data-color="черный" style="background-color: #222222;"></div></td>
+                                <td align="center" width="25%"><div class="color-square" data-color="зеленый" style="background-color: #2E7D32;"></div></td>
+                                <td align="center" width="25%"><div class="color-square" data-color="коричневый" style="background-color: #5D4037;"></div></td>
+                            </tr>
+                        </table>
+                        
+                        <div class="size-controls">
+                            <div class="size-inputs-row">
+                                <div class="size-input-container">
+                                    <input type="text" id="widthInput" value="40" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                                </div>
+                                <div class="size-input-container">
+                                    <input type="text" id="lengthInput" value="30" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                                </div>
+                            </div>
+                            <div class="sliders-row">
+                                <div class="slider-container">
+                                    <input type="range" id="widthSlider" min="10" max="100" value="40" step="1" class="slider">
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" id="lengthSlider" min="10" max="100" value="30" step="1" class="slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="deleteAllModels">🗑️ Удалить все модели</button>
+                    <button id="closeAppButton">❌ Закрыть приложение</button>
+                    <div id="playgroundStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Информация о размерах площадки
+                    </div>
+                </div>
+            </div>
+            <div id="dimensionLabels">
+                <div id="widthLabel" class="dimension-label">10м</div>
+                <div id="lengthLabel" class="dimension-label">10м</div>
+            </div>
+            <!-- Удаляем элемент позиционного статуса -->
+            <div id="notification" class="notification hidden">
+                <div class="notification-content">
+                    <span class="notification-message">Объект не может быть размещен в этой позиции!</span>
+                    <span class="notification-close" onclick="document.getElementById('notification').classList.add('hidden')">&times;</span>
+                </div>
+            </div>
+            <!-- Добавляем оверлей с индикатором загрузки -->
+            <div id="loadingOverlay" class="loading-overlay hidden">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Загрузка площадки...</div>
+            </div>
+            <!-- Подключаем модули JavaScript с указанием type="module" -->
+            <script type="module" src="js/models.js"></script>
+            <script type="module" src="js/app.js"></script>
+        </div>
+    </div>
+    
+    <!-- Подключаем модуль для управления модальным окном -->
+    <script type="module" src="js/modal.js"></script>
+</body>
+</html>

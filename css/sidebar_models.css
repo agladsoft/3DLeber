@@ -1,0 +1,183 @@
+/* Новые стили для сайдбара с категориями */
+
+/* Основной контейнер сайдбара */
+.sidebar-new {
+    position: absolute !important;
+    top: 50px !important;
+    left: 0 !important;
+    width: 310px !important;
+    height: 920px !important;
+    background-color: #EEF0F5 !important;
+    border-top-right-radius: 30px !important;
+    border-bottom-right-radius: 30px !important;
+    overflow-y: auto !important;
+    z-index: 100 !important;
+    padding-bottom: 20px !important;
+}
+
+/* Заголовок категорий */
+.sidebar-new .categories-header {
+    display: flex !important;
+    align-items: center !important;
+    padding: 15px 20px !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    background-color: #EEF0F5 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+}
+
+.sidebar-new .categories-title {
+    margin: 0 !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+}
+
+/* Список категорий */
+.categories-list-new {
+    padding: 15px !important;
+}
+
+/* Контейнер категории */
+.category-container-new {
+    margin-bottom: 15px !important;
+}
+
+/* Заголовок категории */
+.category-item-new {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 15px 20px !important;
+    cursor: pointer !important;
+    transition: all 0.3s !important;
+    border-radius: 12px !important;
+    background-color: white !important;
+    position: relative !important;
+}
+
+/* Активная категория (выбранная) */
+.category-container-new.active .category-item-new {
+    background-color: #FF7E3D !important;
+    color: white !important;
+}
+
+/* Стрелка категории */
+.category-arrow-new svg path {
+    stroke: #FF7E3D !important;
+    transition: all 0.3s !important;
+}
+
+/* Стрелка для активной категории */
+.category-container-new.active .category-arrow-new svg path {
+    stroke: white !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Контейнер для моделей категории */
+.models-container-new {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.5s ease-out !important;
+    padding: 0 15px !important;
+}
+
+/* Отображение моделей для активной категории */
+.category-container-new.active .models-container-new {
+    max-height: 5000px !important;
+    padding: 15px !important;
+}
+
+/* Стиль для карточки модели */
+.model-item-new {
+    background-color: white !important;
+    border-radius: 12px !important;
+    margin-bottom: 15px !important;
+    padding: 15px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Контейнер для изображения модели */
+.model-image-container-new {
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Изображение модели */
+.model-image-new {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Артикул модели */
+.model-article-new {
+    color: #999 !important;
+    font-size: 12px !important;
+    margin-bottom: 5px !important;
+}
+
+/* Название модели */
+.model-title-new {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+}
+
+/* Информация о размещении */
+.model-placement-new {
+    color: #999 !important;
+    font-size: 12px !important;
+    margin-bottom: 10px !important;
+}
+
+/* Контейнер для характеристик */
+.model-specs-new {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 10px !important;
+}
+
+/* Характеристика с иконкой */
+.model-spec-new {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 12px !important;
+    color: #666 !important;
+}
+
+/* Иконка характеристики */
+.model-spec-icon-new {
+    margin-right: 5px !important;
+    width: 16px !important;
+    height: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Кнопка возврата */
+.sidebar-new .toggle-categories {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    background-color: white !important;
+    border-radius: 50% !important;
+    margin-right: 15px !important;
+    cursor: pointer !important;
+}
+
+/* Индикатор наличия */
+.availability-indicator-new {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background-color: #4CAF50 !important;
+}

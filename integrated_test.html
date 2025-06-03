@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Площадка - Интегрированная версия</title>
+    
+    <!-- Подключаем базовые стили -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f4f6f8;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 20px;
+            margin-left: 310px;
+        }
+        
+        .header {
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+    
+    <!-- Подключаем стили для категорий -->
+    <link rel="stylesheet" href="css/categories_v2.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Сайдбар для категорий -->
+        <div id="sidebar"></div>
+        
+        <!-- Основной контент -->
+        <div class="content">
+            <div class="header">
+                <h1>3D Площадка - Конфигуратор</h1>
+                <p>Выберите категорию и перетащите объекты на площадку.</p>
+            </div>
+            
+            <div class="playground">
+                <p>Здесь будет располагаться 3D площадка</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Подключаем скрипт для категорий -->
+    <script src="js/categories_v2.js"></script>
+</body>
+</html>

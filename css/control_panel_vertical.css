@@ -1,0 +1,175 @@
+/* Стили для вертикальной панели управления (обновленная версия) */
+
+.control-panel-new {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    width: 80px;
+    background-color: transparent;
+}
+
+/* Круглая кнопка настроек */
+.tool-circle {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    position: relative;
+    left: -10px;
+}
+
+/* Контейнер для кнопок инструментов */
+.tool-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: white;
+    border-radius: 40px;
+    padding: 15px 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    left: -10px;
+}
+
+/* Стили для кнопок инструментов */
+.tool-button-new {
+    width: 45px;
+    height: 45px;
+    border: none;
+    background: white;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    margin: 0 auto;
+}
+
+.tool-button-new:hover {
+    background: #f5f5f5;
+}
+
+.tool-button-new:active {
+    transform: scale(0.95);
+}
+
+.tool-button-new.active {
+    background: #f0f0f0;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Специальные стили для отображения подсказок */
+.tool-button-new[title]::after {
+    content: attr(title);
+    position: absolute;
+    left: -150px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.tool-button-new[title]:hover::after {
+    opacity: 0; /* Скрываем подсказки, так как на макете их нет */
+}
+
+/* Переопределение предыдущих стилей для корректной работы новой панели */
+#controlPanel {
+    width: 70px !important;
+    height: 100% !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    position: fixed !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+}
+
+#controlPanel.collapsed {
+    height: 100% !important;
+}
+
+.panel-tools, .panel-tools-new {
+    display: none !important;
+}
+
+/* Стили для лучшей визуальной согласованности с фото 2 */
+.tool-buttons-container {
+    max-width: 60px;
+    border-top-left-radius: 30px;
+    border-bottom-left-radius: 30px;
+}
+
+/* Скрытие текстовых подписей */
+#toggleDimensions::after,
+#toggleSafetyZone::after,
+#viewGallery::after,
+#saveScreenshot::after,
+#deleteAllModels::after,
+#closeAppButton::after,
+#resetView::after,
+#exportModel::after,
+#settingsButton::after {
+    display: none !important;
+}
+
+/* Финальные настройки для точного соответствия фото 2 */
+.control-panel-new {
+    width: 60px;
+}
+
+.tool-circle {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+    left: 0;
+}
+
+.tool-buttons-container {
+    width: 60px;
+    left: 0;
+    padding: 15px 0;
+    gap: 15px;
+}
+
+.tool-button-new {
+    width: 40px;
+    height: 40px;
+}
+
+/* Создаем эффект "прилипания" к правому краю как на фото 2 */
+.control-panel-new {
+    clip-path: inset(0 0 0 15px);
+    padding-left: 15px;
+}
+
+/* Точная настройка расположения */
+@media (min-height: 800px) {
+    .control-panel-new {
+        justify-content: center;
+    }
+}
+
+/* Скрытие любых других элементов управления на панели */
+#controlPanel > :not(.tool-circle):not(.tool-buttons-container) {
+    display: none !important;
+}
