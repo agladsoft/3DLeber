@@ -118,6 +118,46 @@ export async function initializeNewSession(userId, models) {
     }
 }
 
+// Кэш для изображений
+const imageCache = new Map();
+
+/**
+ * Предварительно загружает изображение и кэширует его
+ * @param {string} imageName - Имя файла изображения
+ * @returns {Promise<HTMLImageElement>} - Promise с загруженным изображением
+ */
+function preloadImage(imageName) {
+    if (imageCache.has(imageName)) {
+        return Promise.resolve(imageCache.get(imageName));
+    }
+
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(imageName, img);
+            resolve(img);
+        };
+        img.onerror = reject;
+        img.src = `textures/${imageName}`;
+    });
+}
+
+/**
+ * Предварительно загружает все изображения для категории
+ * @param {Array} models - Массив моделей
+ */
+async function preloadCategoryImages(models) {
+    const imagePromises = models.map(model => {
+        const imageName = model.name.replace('.glb', '.png');
+        return preloadImage(imageName).catch(error => {
+            console.warn(`Failed to preload image for ${imageName}:`, error);
+            return null;
+        });
+    });
+
+    await Promise.all(imagePromises);
+}
+
 async function loadModels(modelsData) {
     try {
         console.log('Loaded JSON data:', modelsData);
@@ -232,6 +272,16 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'items-container';
 
+    // Показываем индикатор загрузки
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.textContent = 'Загрузка моделей...';
+    sidebar.appendChild(loadingIndicator);
+
+    try {
+        // Предварительно загружаем все изображения
+        await preloadCategoryImages(models);
+
     // Create model items
     for (const model of models) {
         const item = document.createElement('div');
@@ -254,9 +304,8 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
             item.style.pointerEvents = 'none';
         }
 
-        // Создаем изображение вместо model-viewer
+            // Создаем изображение
         const modelImage = document.createElement('img');
-        // Заменяем расширение .glb на .png
         const imageName = model.name.replace('.glb', '.png');
         modelImage.src = `textures/${imageName}`;
         modelImage.alt = model.name;
@@ -289,11 +338,19 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
         itemsContainer.appendChild(item);
     }
 
+        // Удаляем индикатор загрузки
+        loadingIndicator.remove();
+        
+        // Добавляем контейнер с моделями
     sidebar.appendChild(itemsContainer);
 
     // Reinitialize drag and drop handlers after creating new items
     if (typeof initDragAndDrop === 'function') {
         initDragAndDrop();
+        }
+    } catch (error) {
+        console.error('Error loading models:', error);
+        loadingIndicator.textContent = 'Ошибка загрузки моделей';
     }
 }
 

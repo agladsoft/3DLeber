@@ -1451,3 +1451,16 @@ button:disabled, .modern-button:disabled {
     font-weight: 600;
     color: #2355d6;
 }
+
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    font-size: 16px;
+    color: #666;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
