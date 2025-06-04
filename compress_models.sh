@@ -10,8 +10,8 @@ for model in models/*.glb; do
         filename=$(basename "$model")
         echo "Сжимаем модель: $filename"
         
-        # Сжимаем модель с помощью gltf-pipeline
-        gltf-pipeline -i "$model" -o "models_compressed/$filename" -d
+        # Сжимаем модель с помощью gltf-transform
+        gltf-transform optimize "$model" "models_compressed/$filename" --compress draco --texture-size 1024
         
         # Выводим размеры оригинального и сжатого файлов
         original_size=$(du -h "$model" | cut -f1)

@@ -232,8 +232,6 @@ async function showModelsForCategory(modelsData, category, models, sidebar) {
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'items-container';
 
-    const all_models = JSON.parse(sessionStorage.getItem('models'))
-
     // Create model items
     for (const model of models) {
         const item = document.createElement('div');
