@@ -1813,9 +1813,10 @@ model-viewer::part(default-progress-mask) {
     gap: 15px !important;
     width: 60px !important;
     padding: 10px 0 !important;
-    background-color: white !important;
+    background-color: transparent !important;
     border-radius: 15px !important;
     overflow: hidden !important;
+    box-shadow: none !important;
 }
 
 /* Общий стиль для кнопок инструментов */
@@ -1879,9 +1880,10 @@ model-viewer::part(default-progress-mask) {
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
-    margin-bottom: 15px !important;
-    position: relative !important;
-    z-index: 2 !important;
+    position: absolute !important;
+    top: 20px !important;
+    right: 10px !important;
+    z-index: 2100 !important;
 }
 
 /* Стиль для иконки в круглой кнопке */
@@ -1898,13 +1900,9 @@ model-viewer::part(default-progress-mask) {
     right: 0;
     top: 0;
     bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
     width: 80px;
     background-color: transparent;
+    z-index: 2000;
 }
 
 /* Круглая кнопка настроек */
@@ -1918,8 +1916,10 @@ model-viewer::part(default-progress-mask) {
     justify-content: center;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     margin-bottom: 15px;
-    position: relative;
-    left: -10px;
+    position: absolute;
+    top: 20px;
+    right: 10px;
+    z-index: 2100;
 }
 
 /* Контейнер для кнопок инструментов */
@@ -1927,12 +1927,18 @@ model-viewer::part(default-progress-mask) {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: white;
+    background: transparent;
     border-radius: 40px;
     padding: 15px 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    position: relative;
-    left: -10px;
+    box-shadow: none;
+    position: absolute;
+    top: 95px; /* 20px (top of tool-circle) + 60px (height of tool-circle) + 15px (margin) */
+    right: 10px;
+}
+
+/* Скрытие контейнера с кнопками */
+.tool-buttons-container.hidden {
+    display: none !important;
 }
 
 /* Стили для кнопок инструментов */
@@ -1949,6 +1955,7 @@ model-viewer::part(default-progress-mask) {
     transition: all 0.2s ease;
     padding: 0;
     margin: 0 auto;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .tool-button-new:hover {
@@ -2010,6 +2017,8 @@ model-viewer::part(default-progress-mask) {
     max-width: 60px;
     border-top-left-radius: 30px;
     border-bottom-left-radius: 30px;
+    background-color: transparent;
+    box-shadow: none;
 }
 
 /* Скрытие текстовых подписей */
@@ -2028,20 +2037,27 @@ model-viewer::part(default-progress-mask) {
 /* Финальные настройки для точного соответствия фото 2 */
 .control-panel-new {
     width: 60px;
+    z-index: 2000;
 }
 
 .tool-circle {
     width: 60px;
     height: 60px;
-    margin-bottom: 10px;
-    left: 0;
+    position: absolute;
+    top: 20px;
+    right: 10px;
+    z-index: 2100;
 }
 
 .tool-buttons-container {
     width: 60px;
-    left: 0;
+    position: absolute;
+    top: 95px;
+    right: 10px;
     padding: 15px 0;
     gap: 15px;
+    background: transparent;
+    box-shadow: none;
 }
 
 .tool-button-new {
@@ -2064,5 +2080,9 @@ model-viewer::part(default-progress-mask) {
 
 /* Скрытие любых других элементов управления на панели */
 #controlPanel > :not(.tool-circle):not(.tool-buttons-container) {
+    display: none !important;
+}
+/* Скрытие кнопки закрытия приложения */
+#closeAppButton {
     display: none !important;
 }

@@ -15,6 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportModelButton = document.getElementById('exportModel');
     const viewGalleryButton = document.getElementById('viewGallery');
     
+    // Восстановление состояния контейнера с кнопками инструментов
+    const toolButtonsContainer = document.querySelector('.tool-buttons-container');
+    if (toolButtonsContainer) {
+        // Восстановление состояния из localStorage
+        const isHidden = localStorage.getItem('toolButtonsContainerHidden') === 'true';
+        if (isHidden) {
+            toolButtonsContainer.classList.add('hidden');
+        }
+    }
+    
     // Добавляем эффект нажатия для кнопок
     const allButtons = document.querySelectorAll('.tool-button-new');
     allButtons.forEach(button => {
@@ -50,7 +60,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обрабатываем функциональность кнопки настроек
     if (settingsButton) {
         settingsButton.addEventListener('click', function() {
-            showNotification('Настройки будут доступны в следующем обновлении');
+            // Найти контейнер с кнопками
+            const toolButtonsContainer = document.querySelector('.tool-buttons-container');
+            
+            // Переключить видимость только контейнера с кнопками
+            if (toolButtonsContainer) {
+                toolButtonsContainer.classList.toggle('hidden');
+                
+                // Сохраняем состояние в localStorage
+                const isHidden = toolButtonsContainer.classList.contains('hidden');
+                localStorage.setItem('toolButtonsContainerHidden', isHidden);
+                
+                // Добавляем эффект нажатия для визуальной обратной связи
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 200);
+            }
         });
     }
     
