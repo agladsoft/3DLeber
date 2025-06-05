@@ -8,47 +8,37 @@
  * @param {Number} length - Длина площадки
  */
 export function updatePlaygroundLabels(width, length) {
-    // Форматируем числа до 2-х знаков после запятой
-    const formattedWidth = width.toFixed(2);
-    const formattedLength = length.toFixed(2);
+    const widthLabel = document.getElementById('widthLabel');
+    const lengthLabel = document.getElementById('lengthLabel');
+    const statusElement = document.getElementById('playgroundStatus');
     
-    // Обновляем текстовый статус в правой панели
-    const statusElement = document.getElementById("playgroundStatus");
+    if (widthLabel && lengthLabel) {
+        widthLabel.textContent = `Ширина: ${length.toFixed(2)} м`;
+        lengthLabel.textContent = `Длина: ${width.toFixed(2)} м`;
+    }
+    
     if (statusElement) {
-        statusElement.textContent = `Площадка: ${formattedWidth}м × ${formattedLength}м`;
+        statusElement.textContent = `Размеры площадки: ${length.toFixed(2)}м x ${width.toFixed(2)}м`;
     }
-    
-    // Обновляем HTML-метки размеров
-    const widthLabel = document.getElementById("widthLabel");
-    const lengthLabel = document.getElementById("lengthLabel");
-    
-    if (widthLabel) {
-        widthLabel.textContent = `${formattedWidth}м`;
-    }
-    
-    if (lengthLabel) {
-        lengthLabel.textContent = `${formattedLength}м`;
-    }
-    
-    // Также обновляем значения в полях ввода, если они существуют
-    updateInputFields(formattedWidth, formattedLength);
+
+    updateInputFields(width, length);
 }
 
 /**
  * Обновляет значения в полях ввода размеров
- * @param {String} width - Ширина площадки (форматированная строка)
- * @param {String} length - Длина площадки (форматированная строка)
+ * @param {Number} width - Ширина площадки
+ * @param {Number} length - Длина площадки
  */
 function updateInputFields(width, length) {
     const widthInput = document.getElementById("playgroundWidth");
     const lengthInput = document.getElementById("playgroundLength");
     
     if (widthInput) {
-        widthInput.value = width;
+        widthInput.value = width.toFixed(2);
     }
     
     if (lengthInput) {
-        lengthInput.value = length;
+        lengthInput.value = length.toFixed(2);
     }
 }
 

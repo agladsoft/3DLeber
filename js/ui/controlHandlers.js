@@ -143,7 +143,7 @@ function setupPlaygroundSizeInputs() {
     updatePlaygroundStatusText();
     
     // Добавляем обработчики для предпросмотра размеров
-    addSizePreviewHandlers(widthInput, lengthInput);
+    addSizePreviewHandlers();
 }
 
 /**
@@ -158,23 +158,26 @@ function updatePlaygroundStatusText() {
 
 /**
  * Добавляет обработчики для предпросмотра размеров
- * @param {HTMLInputElement} widthInput - Поле ввода ширины
- * @param {HTMLInputElement} lengthInput - Поле ввода длины
  */
-function addSizePreviewHandlers(widthInput, lengthInput) {
-    if (widthInput) {
-        widthInput.addEventListener("input", (e) => {
-            const value = parseFloat(e.target.value) || playgroundWidth;
-            const widthLabel = document.getElementById("widthLabel");
-            if (widthLabel) widthLabel.textContent = `${value}м`;
+export function addSizePreviewHandlers() {
+    const widthInput = document.getElementById('playgroundWidth');
+    const lengthInput = document.getElementById('playgroundLength');
+    const widthLabel = document.getElementById('widthLabel');
+    const lengthLabel = document.getElementById('lengthLabel');
+
+    if (widthInput && lengthInput && widthLabel && lengthLabel) {
+        widthInput.addEventListener('input', () => {
+            const value = parseFloat(widthInput.value) || 0;
+            // Меняем местами значения для отображения
+            widthLabel.textContent = `Ширина: ${value.toFixed(2)} м`;
+            lengthLabel.textContent = `Длина: ${parseFloat(lengthInput.value || 0).toFixed(2)} м`;
         });
-    }
-    
-    if (lengthInput) {
-        lengthInput.addEventListener("input", (e) => {
-            const value = parseFloat(e.target.value) || playgroundLength;
-            const lengthLabel = document.getElementById("lengthLabel");
-            if (lengthLabel) lengthLabel.textContent = `${value}м`;
+
+        lengthInput.addEventListener('input', () => {
+            const value = parseFloat(lengthInput.value) || 0;
+            // Меняем местами значения для отображения
+            widthLabel.textContent = `Ширина: ${parseFloat(widthInput.value || 0).toFixed(2)} м`;
+            lengthLabel.textContent = `Длина: ${value.toFixed(2)} м`;
         });
     }
 }

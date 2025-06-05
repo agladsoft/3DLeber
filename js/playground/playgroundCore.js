@@ -22,8 +22,12 @@ export function updateGroundReferences(newGround, newGroundMesh) {
 
 // Функция для обновления размеров площадки
 export function updatePlaygroundDimensions(width, length) {
-    playgroundWidth = width;
-    playgroundLength = length;
+    // Сохраняем оригинальные значения
+    playgroundWidth = parseFloat(width);
+    playgroundLength = parseFloat(length);
+    
+    // Обновляем метки с правильными значениями
+    updatePlaygroundLabels(playgroundWidth, playgroundLength);
 }
 
 /**

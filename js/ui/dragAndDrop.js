@@ -267,7 +267,7 @@ function handleDrop(event) {
         }
         
         // Получаем текущее количество модели
-        const item = document.querySelector(`.item[data-model="${modelName}"]`);
+        const item = document.querySelector(`.model[data-model="${modelName}"]`);
         if (!item) {
             console.warn("Model item not found in sidebar");
             isDropProcessing = false;

@@ -77,8 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const startAppButton = document.getElementById('startAppButton');
     const cancelAppButton = document.getElementById('cancelAppButton');
     const closeAppButton = document.getElementById('closeAppButton');
-    const playgroundPreview = document.getElementById('playgroundPreview');
-    const modalPlaygroundType = document.getElementById('modalPlaygroundType');
     const modalPlaygroundColorField = document.getElementById('modalPlaygroundColor');
     const colorSquares = document.querySelectorAll('.color-square');
     
@@ -105,256 +103,209 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Запуск модального окна выбора площадки
-    launchButton.addEventListener('click', async () => {
-        try {
-            // Подготавливаем данные для отправки
-            const modelsData = {
-                "user_id": "id_12345678",
-                "models": [
-                    {
-                        "article": "ЛГИК-02.01",
-                        "quantity": 2
-                    },
-                    {
-                        "article": "ЛГИК-02.18",
-                        "quantity": 2
-                    },
-                    {
-                        "article": "ЛГИК-02.17-1",
-                        "quantity": 2
-                    },
-                    {
-                        "article": "ЛГИК-02.17",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.16",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.14",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.13",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.12",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.11",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.04",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.03",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-02.02",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.01",
-                        "quantity": 2
-                    },
-                    {
-                        "article": "ЛГИК-16.02",
-                        "quantity": 2
-                    },
-                    {
-                        "article": "ЛГИК-16.03",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.04",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.05",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.10",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.11",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.12",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.13",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.14",
-                        "quantity": 1
-                    },
-                    {
-                        "article": "ЛГИК-16.15",
-                        "quantity": 1
-                    }
-                ]
-            };
+    if (launchButton) {
+        launchButton.addEventListener('click', async () => {
+            try {
+                // Подготавливаем данные для отправки
+                const modelsData = {
+                    "user_id": "id_12345678",
+                    "models": [
+                        {"article": "ЛГД-19", "quantity": 2},
+                        {"article": "ЛГК-24.7","quantity": 1},
+                        {"article": "ЛГИК-7.26", "quantity": 1},
+                        {"article": "ЛГИК-7.03", "quantity": 1},
+                        {"article": "ЛГИК-7.01", "quantity": 1},
+                        {"article": "ЛГД-29", "quantity": 1},
+                        {"article": "ЛГД-25", "quantity": 1},
+                        {"article": "ЛГД-23", "quantity": 1},
+                        {"article": "ЛГД-14", "quantity": 1},
+                        {"article": "ЛГВО-421", "quantity": 1},
+                        {"article": "ЛГИК-02.01", "quantity": 2},
+                        {"article": "ЛГИК-02.18", "quantity": 2},
+                        {"article": "ЛГИК-02.17-1", "quantity": 2},
+                        {"article": "ЛГИК-02.17", "quantity": 1},
+                        {"article": "ЛГИК-02.16", "quantity": 1},
+                        {"article": "ЛГИК-02.14", "quantity": 1},
+                        {"article": "ЛГИК-02.13", "quantity": 1},
+                        {"article": "ЛГИК-02.12", "quantity": 1},
+                        {"article": "ЛГИК-02.11", "quantity": 1},
+                        {"article": "ЛГИК-02.04", "quantity": 1},
+                        {"article": "ЛГИК-02.03", "quantity": 1},
+                        {"article": "ЛГИК-02.02", "quantity": 1},
+                        {"article": "ЛГИК-16.01", "quantity": 2},
+                        {"article": "ЛГИК-16.02", "quantity": 2},
+                        {"article": "ЛГИК-16.03", "quantity": 1},
+                        {"article": "ЛГИК-16.04", "quantity": 1},
+                        {"article": "ЛГИК-16.05", "quantity": 1},
+                        {"article": "ЛГИК-16.10", "quantity": 1},
+                        {"article": "ЛГИК-16.11", "quantity": 1},
+                        {"article": "ЛГИК-16.12", "quantity": 1},
+                        {"article": "ЛГИК-16.13", "quantity": 1},
+                        {"article": "ЛГИК-16.14", "quantity": 1},
+                        {"article": "ЛГИК-16.15", "quantity": 1}
+                    ]
+                };
 
-            // Сохраняем userId в sessionStorage
-            sessionStorage.setItem('userId', modelsData.user_id);
-            sessionStorage.setItem('models', JSON.stringify(modelsData.models));
+                // Сохраняем userId в sessionStorage
+                sessionStorage.setItem('userId', modelsData.user_id);
+                sessionStorage.setItem('models', JSON.stringify(modelsData.models));
 
-            // Загружаем модели
-            await loadModels(modelsData);
+                // Загружаем модели
+                await loadModels(modelsData);
 
-            // Проверяем наличие сессии
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
-            if (!sessionResponse.ok) {
-                throw new Error('Failed to get session');
-            }
-
-            const { session } = await sessionResponse.json();
-            
-            if (session) {
-                // Если есть сессия, показываем модальное окно управления сессией
-                launchContainer.style.display = 'none';
-                const sessionModal = document.getElementById('sessionModal');
-                if (sessionModal) {
-                    sessionModal.style.display = 'block';
+                // Проверяем наличие сессии
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
+                if (!sessionResponse.ok) {
+                    throw new Error('Failed to get session');
                 }
-            } else {
-                // Если сессии нет, сразу показываем окно выбора площадки
-                launchContainer.style.display = 'none';
+
+                const { session } = await sessionResponse.json();
+                
+                if (session) {
+                    // Если есть сессия, показываем модальное окно управления сессией
+                    if (launchContainer) {
+                        launchContainer.style.display = 'none';
+                    }
+                    const sessionModal = document.getElementById('sessionModal');
+                    if (sessionModal) {
+                        sessionModal.style.display = 'block';
+                    }
+                } else {
+                    // Если сессии нет, сразу показываем окно выбора площадки
+                    if (launchContainer) {
+                        launchContainer.style.display = 'none';
+                    }
+                    const platformSelectModal = document.getElementById('platformSelectModal');
+                    if (platformSelectModal) {
+                        // Сбрасываем значения в полях ввода
+                        const widthInput = document.getElementById('modalPlaygroundWidth');
+                        const lengthInput = document.getElementById('modalPlaygroundLength');
+                        if (widthInput) widthInput.value = '40';
+                        if (lengthInput) lengthInput.value = '30';
+                        
+                        platformSelectModal.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+                // В случае ошибки показываем окно выбора площадки
+                if (launchContainer) {
+                    launchContainer.style.display = 'none';
+                }
                 const platformSelectModal = document.getElementById('platformSelectModal');
                 if (platformSelectModal) {
-                    // Сбрасываем значения в полях ввода
-                    const widthInput = document.getElementById('modalPlaygroundWidth');
-                    const lengthInput = document.getElementById('modalPlaygroundLength');
-                    if (widthInput) widthInput.value = '40';
-                    if (lengthInput) lengthInput.value = '30';
-                    
                     platformSelectModal.style.display = 'block';
                 }
             }
-        } catch (error) {
-            console.error('Error checking session:', error);
-            // В случае ошибки показываем окно выбора площадки
-            launchContainer.style.display = 'none';
-            const platformSelectModal = document.getElementById('platformSelectModal');
-            if (platformSelectModal) {
-                platformSelectModal.style.display = 'block';
-            }
-        }
-    });
+        });
+    }
     
     // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
-    cancelAppButton.addEventListener('click', () => {
-        platformSelectModal.style.display = 'none';
-        
-        // Проверяем, нужно ли вернуться к приложению
-        if (window.returnToApp) {
-            // Возвращаемся к приложению
-            appModal.style.display = 'block';
-        } else {
-            // Возвращаемся к начальному экрану
-            launchContainer.style.display = 'flex';
-        }
-    });
-    
-    // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
-    startAppButton.addEventListener('click', async () => {
-        try {
-            // Показываем индикатор загрузки на кнопке
-            startAppButton.innerHTML = 'Загрузка...';
-            startAppButton.disabled = true;
-            
-            // Получаем выбранные значения
-            const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
-            const selectedLength = document.getElementById('modalPlaygroundLength').value;
-            const selectedColor = document.getElementById('modalPlaygroundColor').value;
-            
-            // Сохраняем выбранные значения в глобальных переменных для использования в приложении
-            window.selectedPlaygroundType = 'basketball_court.glb';
-            window.selectedPlaygroundWidth = parseFloat(selectedWidth);
-            window.selectedPlaygroundLength = parseFloat(selectedLength);
-            window.selectedPlaygroundColor = selectedColor;
-                
-            // Получаем user_id из sessionStorage
-            const userId = sessionStorage.getItem('userId');
-            const models = JSON.parse(sessionStorage.getItem('models'));
-
-            if (!userId) {
-                throw new Error('No user ID found');
-            }
-
-            // Инициализируем новую сессию с моделями из JSON
-            if (models && Array.isArray(models)) {
-                console.log('Initializing new session with models:', models);
-                const newSessionData = await initializeNewSession(userId, models);
-                
-                // Добавляем параметры площадки в сессию
-                if (newSessionData) {
-                    // Импортируем модуль playground
-                    const playgroundModule = await import('./playground.js');
-                    
-                    // Сохраняем параметры площадки
-                    await playgroundModule.savePlaygroundParameters(
-                        window.selectedPlaygroundType,
-                        window.selectedPlaygroundWidth,
-                        window.selectedPlaygroundLength,
-                        window.selectedPlaygroundColor
-                    );
-                }
-            }
-        
-            // Выводим информацию в консоль для отладки
-            console.log('Настройки площадки из модального окна:', {
-                тип: 'basketball_court.glb',
-                ширина: selectedWidth,
-                длина: selectedLength,
-                цвет: selectedColor
-            });
-            
-            // Скрываем модальное окно выбора площадки
+    if (cancelAppButton) {
+        cancelAppButton.addEventListener('click', () => {
             platformSelectModal.style.display = 'none';
             
-            // Показываем приложение
-            appModal.style.display = 'block';
-            
-            // Показываем индикатор загрузки
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                window.isLoading = true;
+            // Проверяем, нужно ли вернуться к приложению
+            if (window.returnToApp) {
+                // Возвращаемся к приложению
+                appModal.style.display = 'block';
+            } else {
+                // Возвращаемся к начальному экрану
+                launchContainer.style.display = 'flex';
             }
+        });
+    }
+    
+    // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
+    if (startAppButton) {
+        startAppButton.addEventListener('click', async () => {
+            try {
+                // Показываем индикатор загрузки на кнопке
+                startAppButton.innerHTML = 'Загрузка...';
+                startAppButton.disabled = true;
+                
+                // Получаем выбранные значения
+                const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
+                const selectedLength = document.getElementById('modalPlaygroundLength').value;
+                const selectedColor = document.getElementById('modalPlaygroundColor').value;
+                
+                // Сохраняем выбранные значения в глобальных переменных для использования в приложении
+                window.selectedPlaygroundType = 'basketball_court.glb';
+                window.selectedPlaygroundWidth = parseFloat(selectedWidth);
+                window.selectedPlaygroundLength = parseFloat(selectedLength);
+                window.selectedPlaygroundColor = selectedColor;
+                    
+                // Получаем user_id из sessionStorage
+                const userId = sessionStorage.getItem('userId');
+                const models = JSON.parse(sessionStorage.getItem('models'));
+
+                if (!userId) {
+                    throw new Error('No user ID found');
+                }
+
+                // Инициализируем новую сессию с моделями из JSON
+                if (models && Array.isArray(models)) {
+                    console.log('Initializing new session with models:', models);
+                    const newSessionData = await initializeNewSession(userId, models);
+                    
+                    // Добавляем параметры площадки в сессию
+                    if (newSessionData) {
+                        // Импортируем модуль playground
+                        const playgroundModule = await import('./playground.js');
+                        
+                        // Сохраняем параметры площадки
+                        await playgroundModule.savePlaygroundParameters(
+                            window.selectedPlaygroundType,
+                            window.selectedPlaygroundWidth,
+                            window.selectedPlaygroundLength,
+                            window.selectedPlaygroundColor
+                        );
+                    }
+                }
             
-            // Запускаем приложение
-            if (window.initApp) {
-                window.initApp();
-                setTimeout(initializeTopViewButtonWithDelay, 1000);
+                // Выводим информацию в консоль для отладки
+                console.log('Настройки площадки из модального окна:', {
+                    тип: 'basketball_court.glb',
+                    ширина: selectedWidth,
+                    длина: selectedLength,
+                    цвет: selectedColor
+                });
+                
+                // Скрываем модальное окно выбора площадки
+                platformSelectModal.style.display = 'none';
+                
+                // Показываем приложение
+                appModal.style.display = 'block';
+                
+                // Показываем индикатор загрузки
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('hidden');
+                    window.isLoading = true;
+                }
+                
+                // Запускаем приложение
+                if (window.initApp) {
+                    window.initApp();
+                    setTimeout(initializeTopViewButtonWithDelay, 1000);
+                    setTimeout(() => {
+                        console.log("Запуск проверки сцены после открытия модального окна");
+                        startSceneChecks();
+                    }, 3000);
+                }
+                
+                // Восстанавливаем состояние кнопки после задержки
                 setTimeout(() => {
-                    console.log("Запуск проверки сцены после открытия модального окна");
-                    startSceneChecks();
-                }, 3000);
-            }
-            
-            // Восстанавливаем состояние кнопки после задержки
-            setTimeout(() => {
+                    startAppButton.innerHTML = 'Запустить';
+                    startAppButton.disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Error starting app:', error);
                 startAppButton.innerHTML = 'Запустить';
                 startAppButton.disabled = false;
-            }, 2000);
-        } catch (error) {
-            console.error('Error starting app:', error);
-            startAppButton.innerHTML = 'Запустить';
-            startAppButton.disabled = false;
-        }
-    });
+            }
+        });
+    }
     
     // Обработчик для кнопки "Начать новую сессию"
     const newSessionButton = document.getElementById('newSessionButton');
@@ -503,16 +454,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Обработчик нажатия на кнопку закрытия приложения
-    closeAppButton.addEventListener('click', () => {
-        // Скрываем модальное окно
-        appModal.style.display = 'none';
-        
-        // Показываем контейнер с кнопкой запуска
-        launchContainer.style.display = 'flex';
-        
-        // Очищаем сетку и ресурсы при закрытии
-        cleanupResources();
-    });
+    if (closeAppButton) {
+        closeAppButton.addEventListener('click', () => {
+            // Скрываем модальное окно
+            if (appModal) {
+                appModal.style.display = 'none';
+            }
+            
+            // Показываем контейнер с кнопкой запуска
+            if (launchContainer) {
+                launchContainer.style.display = 'flex';
+            }
+            
+            // Очищаем сетку и ресурсы при закрытии
+            cleanupResources();
+        });
+    }
 });
 
 /**

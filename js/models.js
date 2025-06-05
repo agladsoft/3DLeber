@@ -158,20 +158,37 @@ async function preloadCategoryImages(models) {
     await Promise.all(imagePromises);
 }
 
-async function loadModels(modelsData) {
+// Фильтрует модели по выбранной категории
+function filterModelsByCategory(models, categoryId) {
+    if (!categoryId || categoryId === 'all') {
+        return models;
+    }
+    
+    return models.filter(model => model.category === categoryId);
+}
+
+export async function loadModels(modelsData) {
     try {
         console.log('Loaded JSON data:', modelsData);
         
+        // Получаем ID пользователя из sessionStorage
+        let userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            // Создаем временный ID пользователя если он отсутствует
+            userId = 'temp_' + Date.now();
+            sessionStorage.setItem('userId', userId);
+            console.log('Created temporary user ID:', userId);
+        }
+        
         // Получаем сессию из БД
         let sessionData = null;
-        if (modelsData.user_id) {
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
-            if (sessionResponse.ok) {
-                const { session } = await sessionResponse.json();
-                sessionData = session;
-                console.log('Loaded session data:', sessionData);
-            }
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (sessionResponse.ok) {
+            const { session } = await sessionResponse.json();
+            sessionData = session;
+        console.log('Loaded session data:', sessionData);
         }
+        
         
         // Отправляем данные на сервер для сопоставления с БД
         const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
@@ -186,69 +203,88 @@ async function loadModels(modelsData) {
             throw new Error('Failed to match models with database');
         }
         
-        const data = await matchResponse.json();
-        console.log('Matched models:', data);
+        const { models: dbModels } = await matchResponse.json();
+        console.log('Matched models from database:', dbModels);
+
+        // Объединяем данные из всех источников
+        const combinedModels = dbModels.map(dbModel => {
+            // Находим соответствующую модель из modelsData
+            const jsonModel = modelsData.models.find(m => m.article === dbModel.article);
+            
+            return {
+                ...dbModel,
+                name: `${dbModel.name}.glb`,
+                quantity: jsonModel ? jsonModel.quantity : 0,
+                isAvailable: true // Все модели из БД считаются доступными
+            };
+        });
 
         // Check if we have valid data
-        if (!data || !data.models || !Array.isArray(data.models)) {
+        if (!combinedModels || !Array.isArray(combinedModels)) {
             console.error('Invalid data format');
             const sidebar = document.getElementById('sidebar');
             sidebar.innerHTML = '<h3>Ошибка загрузки моделей</h3>';
             return;
         }
 
-        const { models } = data;
-
         // Get the sidebar element
-        const sidebar = document.getElementById('sidebar');
-        sidebar.innerHTML = `<h3>Выберите категорию (User: ${modelsData.user_id || 'default'})</h3>`;
-
-        // Group models by category
-        const categories = {};
-        models.forEach(model => {
-            if (!model.name || !model.category) {
-                return;
-            }
-            if (!categories[model.category]) {
-                categories[model.category] = [];
-            }
-            // Добавляем расширение .glb к имени модели
-            const modelName = `${model.name}.glb`;
+        const categoriesList = document.getElementById('categoriesList');
+        const objectsList = document.getElementById('objectsList');
+        
+        // Сначала показываем категории
+        if (categoriesList && objectsList) {
+            categoriesList.style.display = 'block';
+            objectsList.style.display = 'none';
             
-            // Получаем количество из сессии или из JSON
-            let quantity = 0;
-            if (sessionData && sessionData.quantities) {
-                // Если есть данные в сессии, используем их
-                quantity = sessionData.quantities[modelName] || 0;
-            } else {
-                // Если сессии нет, ищем количество в JSON по article
-                const jsonModel = modelsData.models.find(m => m.article === model.article);
-                if (jsonModel) {
-                    quantity = jsonModel.quantity || 0;
-                }
+
+            // При клике на категорию показываем объекты этой категории
+            categoriesList.style.display = 'none';
+            objectsList.style.display = 'block';
+            
+            // Очищаем список объектов
+            objectsList.innerHTML = `
+                <div class="categories-header">
+                    <div class="toggle-categories" onclick="document.getElementById('categoriesList').style.display='block'; document.getElementById('objectsList').style.display='none';">
+                        <span>←</span>
+                    </div>
+                    <h3 class="categories-title">${selectedCategory.name.toUpperCase()}</h3>
+                </div>
+            `;
+            
+            // Фильтруем модели по категории
+            const filteredModels = filterModelsByCategory(combinedModels, selectedCategory.id);
+            
+            // Создаем контейнер для объектов
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'items-container';
+            
+            // Показываем индикатор загрузки
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-indicator';
+            loadingIndicator.textContent = 'Загрузка моделей...';
+            objectsList.appendChild(loadingIndicator);
+            
+            try {
+            // Предварительно загружаем все изображения
+            await preloadCategoryImages(filteredModels);
+            
+            // Отображаем модели выбранной категории
+            for (const model of filteredModels) {
+                await createModelItem(model, modelsData, sessionData, itemsContainer);
             }
+                
+                // Удаляем индикатор загрузки
+                loadingIndicator.remove();
             
-            console.log(`Model ${modelName} (${model.article}) quantity: ${quantity}`);
+            objectsList.appendChild(itemsContainer);
             
-            // Создаем копию модели с количеством
-            const modelCopy = { ...model, name: modelName, quantity };
-            categories[model.category].push(modelCopy);
-        });
-
-        // Create categories container
-        const categoriesContainer = document.createElement('div');
-        categoriesContainer.className = 'categories-container';
-
-        // Create category buttons
-        Object.keys(categories).forEach(category => {
-            const categoryButton = document.createElement('button');
-            categoryButton.className = 'category-button';
-            categoryButton.textContent = category;
-            categoryButton.onclick = () => showModelsForCategory(modelsData, category, categories[category], sidebar);
-            categoriesContainer.appendChild(categoryButton);
-        });
-
-        sidebar.appendChild(categoriesContainer);
+            // Initialize drag and drop
+            initDragAndDrop();
+            } catch (error) {
+                console.error('Error loading models:', error);
+                loadingIndicator.textContent = 'Ошибка загрузки моделей';
+            }
+        }
 
     } catch (error) {
         console.error('Error loading models:', error);
@@ -257,105 +293,87 @@ async function loadModels(modelsData) {
     }
 }
 
-async function showModelsForCategory(modelsData, category, models, sidebar) {
-    // Clear previous content
-    sidebar.innerHTML = `<h3>${category}</h3>`;
+// Создает элемент модели для отображения в списке
+async function createModelItem(model, modelsData, sessionData, container) {
+    const modelName = `${model.name}.glb`;
     
-    // Add back button
-    const backButton = document.createElement('button');
-    backButton.className = 'back-button';
-    backButton.textContent = '← Назад к категориям';
-    backButton.onclick = () => loadModels(modelsData);
-    sidebar.appendChild(backButton);
-
-    // Create models container
-    const itemsContainer = document.createElement('div');
-    itemsContainer.className = 'items-container';
-
-    // Показываем индикатор загрузки
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'loading-indicator';
-    loadingIndicator.textContent = 'Загрузка моделей...';
-    sidebar.appendChild(loadingIndicator);
-
-    try {
-        // Предварительно загружаем все изображения
-        await preloadCategoryImages(models);
-
-    // Create model items
-    for (const model of models) {
-        const item = document.createElement('div');
-        item.className = 'item';
-        item.setAttribute('draggable', 'true');
-        item.setAttribute('data-model', model.name);
-        item.setAttribute('data-article', model.article);
-        
-        // Проверяем количество в базе данных
-        const storedQuantity = await getQuantityFromDatabase(model.name);
-        const quantity = storedQuantity !== null ? storedQuantity : model.quantity;
-        
-        item.setAttribute('data-quantity', quantity);
-
-        // Добавляем класс blurred если количество 0
-        if (quantity === 0) {
-            item.classList.add('blurred');
-            item.style.filter = 'blur(2px)';
-            item.style.opacity = '0.9';
-            item.style.pointerEvents = 'none';
+    // Получаем количество из сессии или из JSON
+    let quantity = 0;
+    if (sessionData && sessionData.quantities) {
+        quantity = sessionData.quantities[modelName] || 0;
+    } else {
+        const jsonModel = modelsData.models.find(m => m.article === model.article);
+        if (jsonModel) {
+            quantity = jsonModel.quantity || 0;
         }
+    }
+    
+    // Проверяем количество в базе данных
+    const storedQuantity = await getQuantityFromDatabase(modelName);
+    if (storedQuantity !== null) {
+        quantity = storedQuantity;
+    }
+    
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.setAttribute('draggable', model.isAvailable);
+    item.setAttribute('data-model', modelName);
+    item.setAttribute('data-article', model.article);
+    item.setAttribute('data-quantity', quantity);
+    
+    // Добавляем классы в зависимости от состояния модели
+    if (quantity === 0) {
+        item.classList.add('blurred');
+        item.style.filter = 'blur(2px)';
+        item.style.opacity = '0.9';
+        item.style.pointerEvents = 'none';
+    }
+    
+    if (!model.isAvailable) {
+        item.classList.add('unavailable');
+        item.style.opacity = '0.5';
+        item.style.pointerEvents = 'none';
+    }
+    
+    // Создаем изображение
+    const modelImage = document.createElement('img');
+    const imageName = model.name.replace('.glb', '.png');
+    modelImage.src = `textures/${imageName}`;
+    modelImage.alt = model.name;
+    modelImage.className = 'model-image';
 
-            // Создаем изображение
-        const modelImage = document.createElement('img');
-        const imageName = model.name.replace('.glb', '.png');
-        modelImage.src = `textures/${imageName}`;
-        modelImage.alt = model.name;
-        modelImage.className = 'model-image';
+    const article = document.createElement('p');
+    article.className = 'model-article';
+    article.textContent = model.article;
 
-        const article = document.createElement('p');
-        article.className = 'model-article';
-        article.textContent = model.article;
+    const description = document.createElement('p');
+    description.className = 'model-description';
+    description.textContent = model.description;
 
-        const description = document.createElement('p');
-        description.className = 'model-description';
-        description.textContent = model.description;
+    // Создаем отдельный контейнер для корзины и количества
+    const cartContainer = document.createElement('div');
+    cartContainer.className = 'cart-container';
+    const cartIcon = document.createElement('span');
+    cartIcon.className = 'cart-icon';
+    cartIcon.textContent = '🛒';
+    const quantityElement = document.createElement('span');
+    quantityElement.className = 'model-quantity';
+    quantityElement.textContent = quantity;
+    cartContainer.appendChild(cartIcon);
+    cartContainer.appendChild(quantityElement);
 
-        // Создаем отдельный контейнер для корзины и количества
-        const cartContainer = document.createElement('div');
-        cartContainer.className = 'cart-container';
-        const cartIcon = document.createElement('span');
-        cartIcon.className = 'cart-icon';
-        cartIcon.textContent = '🛒';
-        const quantityElement = document.createElement('span');
-        quantityElement.className = 'model-quantity';
-        quantityElement.textContent = quantity;
-        cartContainer.appendChild(cartIcon);
-        cartContainer.appendChild(quantityElement);
-
-        item.appendChild(modelImage);
-        item.appendChild(article);
-        item.appendChild(description);
-        item.appendChild(cartContainer);
-        itemsContainer.appendChild(item);
+    // Добавляем индикатор доступности, если модель недоступна
+    if (!model.isAvailable) {
+        const availabilityIndicator = document.createElement('div');
+        availabilityIndicator.className = 'availability-indicator';
+        availabilityIndicator.textContent = 'Модель недоступна';
+        item.appendChild(availabilityIndicator);
     }
 
-        // Удаляем индикатор загрузки
-        loadingIndicator.remove();
-        
-        // Добавляем контейнер с моделями
-    sidebar.appendChild(itemsContainer);
-
-    // Reinitialize drag and drop handlers after creating new items
-    if (typeof initDragAndDrop === 'function') {
-        initDragAndDrop();
-        }
-    } catch (error) {
-        console.error('Error loading models:', error);
-        loadingIndicator.textContent = 'Ошибка загрузки моделей';
-    }
+    item.appendChild(modelImage);
+    item.appendChild(article);
+    item.appendChild(description);
+    item.appendChild(cartContainer);
+    
+    container.appendChild(item);
 }
-
-// Load models when the page loads
-// document.addEventListener('DOMContentLoaded', loadModels);
-
-// Export the loadModels function
-export { loadModels };
