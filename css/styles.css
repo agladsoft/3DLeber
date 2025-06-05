@@ -2086,3 +2086,89 @@ model-viewer::part(default-progress-mask) {
 #closeAppButton {
     display: none !important;
 }
+
+/* Стили для модального окна настройки площадки */
+.playground-modal {
+    width: 280px;
+    max-width: 90%;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    position: absolute;
+    top: 50px;
+    right: 80px;
+    z-index: 1000;
+}
+
+.playground-modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.input-container {
+    flex: 1;
+}
+
+.playground-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 14px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.color-section p {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.color-options {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: space-between;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.color-option.selected {
+    border-color: #FF5722;
+}
+
+.apply-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #FF5722;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.apply-button:hover {
+    background-color: #E64A19;
+}
+
+.hidden {
+    display: none !important;
+}

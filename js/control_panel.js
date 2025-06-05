@@ -1,8 +1,16 @@
 /**
- * Скрипт для управления новой панелью инструментов
+ *  Скрипт для управления новой панелью инструментов
  */
+import { toggleTopView } from './scene.js';
+
+// Глобальные переменные для настроек площадки
+let selectedColor = '#d9d9d9'; // Цвет по умолчанию - серый
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Control Panel v2 loaded');
+    
+    // Инициализация обработчиков для модального окна настройки площадки
+    initPlaygroundSettingsHandlers();
     
     // Получаем ссылки на кнопки
     const settingsButton = document.getElementById('settingsButton');
@@ -80,17 +88,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Обрабатываем функциональность кнопки галереи
+    // Обрабатываем кнопку Галерея как "Площадка"
     if (viewGalleryButton) {
         viewGalleryButton.addEventListener('click', function() {
-            showNotification('Галерея скриншотов будет доступна в следующем обновлении');
+            try {
+                // Добавляем класс активности для кнопки
+                this.classList.toggle('active');
+                
+                // Получаем модальное окно настройки площадки
+                const playgroundSettings = document.getElementById('playgroundSettings');
+                
+                if (playgroundSettings) {
+                    // Если модальное окно существует, переключаем его видимость
+                    if (playgroundSettings.classList.contains('hidden')) {
+                        // Получаем текущие размеры и цвет площадки
+                        updatePlaygroundModalValues();
+                        // Показываем модальное окно
+                        playgroundSettings.classList.remove('hidden');
+                    } else {
+                        // Скрываем модальное окно
+                        playgroundSettings.classList.add('hidden');
+                    }
+                } else {
+                    showNotification('Модальное окно настройки площадки не найдено');
+                }
+            } catch (error) {
+                console.error('Ошибка при работе с настройками площадки:', error);
+                showNotification('Произошла ошибка при открытии настроек площадки');
+            }
         });
     }
     
-    // Обрабатываем новую функциональность кнопки экспорта
+    // Обрабатываем кнопку Экспорт как "Вид сверху"
     if (exportModelButton) {
         exportModelButton.addEventListener('click', function() {
-            showNotification('Функция экспорта будет доступна в следующем обновлении');
+            try {
+                // Получаем текущие размеры площадки
+                let width = 40;
+                let length = 30;
+                
+                if (window.app && window.app.playgroundWidth && window.app.playgroundLength) {
+                    width = window.app.playgroundWidth;
+                    length = window.app.playgroundLength;
+                }
+                
+                // Вызываем функцию toggleTopView напрямую из импорта
+                toggleTopView(width, length);
+                
+                // Визуальная обратная связь на кнопке
+                this.classList.toggle('active');
+            } catch (error) {
+                console.error('Ошибка при включении режима вид сверху:', error);
+                showNotification('Произошла ошибка при включении режима "Вид сверху"');
+            }
         });
     }
 });

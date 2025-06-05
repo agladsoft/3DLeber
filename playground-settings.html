@@ -1,0 +1,27 @@
+<!-- Модальное окно настройки размеров и цвета площадки -->
+<div id="playgroundSettings" class="modal hidden">
+    <div class="modal-content playground-modal">
+        <h2>Площадка</h2>
+        
+        <div class="input-row">
+            <div class="input-container">
+                <input type="number" id="playground-width" min="10" max="100" placeholder="Ширина, м" value="40" class="playground-input">
+            </div>
+            <div class="input-container">
+                <input type="number" id="playground-length" min="10" max="100" placeholder="Длина, м" value="30" class="playground-input">
+            </div>
+        </div>
+        
+        <div class="color-section">
+            <p>Цвет площадки:</p>
+            <div class="color-options">
+                <div class="color-option selected" data-color="#d9d9d9" style="background-color: #d9d9d9;"></div>
+                <div class="color-option" data-color="#1f1f1f" style="background-color: #1f1f1f;"></div>
+                <div class="color-option" data-color="#2B7A30" style="background-color: #2B7A30;"></div>
+                <div class="color-option" data-color="#6E4C3D" style="background-color: #6E4C3D;"></div>
+            </div>
+        </div>
+        
+        <button id="apply-playground-settings" class="apply-button">Применить</button>
+    </div>
+</div>
