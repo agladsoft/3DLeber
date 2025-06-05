@@ -10,6 +10,7 @@ import { checkAllObjectsPositions } from './collisionDetection.js';
 import { showModelDimensions } from './dimensionDisplay/index.js';
 import { updateSafetyZonesVisibility } from '../core/safetyManager.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
+import { updateModelPlacementCounter } from '../sidebar.js';
 
 // Массив для хранения размещенных объектов
 export let placedObjects = [];
@@ -265,6 +266,10 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         throw new Error('Failed to save session');
                     }
 
+                    // Обновляем счетчик размещенных объектов в UI
+                    const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
+                    updateModelPlacementCounter(modelName, placedCount);
+
                     console.log('Session updated successfully for cached model:', objectData);
                     console.log('Updated quantities:', sessionData.quantities);
                 } catch (error) {
@@ -500,6 +505,10 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                             throw new Error('Failed to save session');
                         }
 
+                        // Обновляем счетчик размещенных объектов в UI
+                        const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
+                        updateModelPlacementCounter(modelName, placedCount);
+
                         console.log('Session updated successfully for new object:', objectData);
                         console.log('Updated quantities:', sessionData.quantities);
                     } catch (error) {
@@ -601,6 +610,10 @@ export function removeObject(container, isMassRemoval = false) {
                 const currentQuantity = sessionData.quantities[modelName] || 0;
                 sessionData.quantities[modelName] = currentQuantity + 1;
                 console.log(`Increased quantity for ${modelName} to ${currentQuantity + 1}`);
+
+                // Обновляем счетчик размещенных объектов в UI
+                const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
+                updateModelPlacementCounter(modelName, placedCount);
             }
 
             // Сохраняем обновленную сессию

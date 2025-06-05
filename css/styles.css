@@ -268,6 +268,122 @@ body, html {
     box-shadow: 0 5px 15px rgba(240, 83, 35, 0.3);
 }
 
+/* Современные кнопки */
+.modern-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.modern-button {
+    flex: 1;
+    height: 70px;
+    padding: 0 30px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid #F05323;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.outline-button {
+    background-color: transparent !important;
+    color: #F05323 !important;
+    border: 2px solid #F05323;
+    font-weight: 600;
+}
+
+.filled-button {
+    background-color: #F05323;
+    color: white;
+    border: 2px solid #F05323;
+}
+
+.outline-button:hover {
+    background-color: rgba(240, 83, 35, 0.05);
+}
+
+.filled-button:hover {
+    background-color: #E04213;
+}
+
+/* Настройки площадки */
+.platform-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 130%;
+    color: rgba(16, 15, 15, 0.6);
+    margin-left: 5px;
+    margin-bottom: 5px;
+}
+
+.control-group input[type="number"] {
+    width: 100%;
+    padding: 20px;
+    border: 1px solid rgba(16, 15, 15, 0.15);
+    border-radius: 60px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    color: #100F0F;
+    outline: none;
+    transition: border-color 0.3s ease;
+    background-color: #FFFFFF;
+}
+
+.control-group input[type="number"]::placeholder {
+    color: rgba(16, 15, 15, 0.6);
+}
+
+.control-group input[type="number"]:focus {
+    border-color: #F05323;
+}
+
+/* Цветовой выбор */
+.horizontal-color-picker {
+    display: flex;
+    gap: 10px;
+    padding: 0 20px;
+    align-items: center;
+}
+
+.color-square {
+    width: 74.25px;
+    height: 74.25px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.color-square:hover {
+    transform: scale(1.05);
+}
+
+.color-square.selected {
+    border: 3px solid #F05323;
+    box-shadow: 0 5px 15px rgba(240, 83, 35, 0.3);
+}
+
 /* Кнопки действий */
 .action-button {
     width: 100%;
@@ -1229,19 +1345,24 @@ model-viewer::part(default-progress-mask) {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-.category-name {
-    font-family: 'Inter Tight', sans-serif;
-    font-style: normal;
-    font-weight: 700; /* Увеличиваем жирность шрифта */
-    font-size: 20px; /* Немного уменьшаем размер */
-    line-height: 120%;
-    color: #000000;
+.category-item.active {
+    background: #F5F5F5;
 }
 
-.category-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.category-item span {
+    font-family: 'TT Lakes Neue', sans-serif;
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 80%;
+    letter-spacing: -0.02em;
+    color: #100F0F;
+}
+
+.arrow-icon {
+    width: 22px;
+    height: 22px;
+    position: relative;
+    color: #F05323;
 }
 
 /* Обновленные стили для категорий объектов в соответствии с новым дизайном */
@@ -1299,13 +1420,14 @@ model-viewer::part(default-progress-mask) {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: #FFFFFF;
-    border: 1px solid rgba(16, 15, 15, 0.1);
-    border-radius: 30px;
+    width: 80px;
+    height: 80px;
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 40px;
     cursor: pointer;
     transition: all 0.3s ease;
+    margin-right: 15px;
 }
 
 .toggle-categories:hover {
@@ -1341,9 +1463,8 @@ model-viewer::part(default-progress-mask) {
 #sidebar.hidden #categoriesList {
     display: none;
 }.category-arrow svg {
-    width: 18px; /* Уменьшаем размер стрелки */
-    height: 18px; /* Уменьшаем размер стрелки */
-    transform: scale(0.85); /* Дополнительно уменьшаем размер */
+    width: 18px !important;
+    height: auto !important;
 }
 
 /* Увеличиваем отступы между категориями */
@@ -1478,7 +1599,7 @@ model-viewer::part(default-progress-mask) {
 
 /* Стрелка категории (оранжевая) */
 .category-arrow-new svg path {
-    stroke: #FF7E3D;
+    stroke: #FF7E3D !important;
 }
 
 /* Список элементов категории (подкатегории) */
@@ -1521,22 +1642,28 @@ model-viewer::part(default-progress-mask) {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 80px; /* Increased width based on Figma */
+    height: 80px; /* Increased height based on Figma */
     background-color: white;
-    border-radius: 50%;
+    border-radius: 40px; /* Adjusted border-radius based on Figma */
     margin-right: 15px;
     cursor: pointer;
+}
+
+.sidebar-new .toggle-categories svg {
+    width: 30px; /* Explicitly set SVG width */
+    height: 30px; /* Explicitly set SVG height */
+    /* If the SVG has a path, you might need to adjust stroke-width here or on the path */
 }
 
 /* Стили для новой версии сайдбара категорий */
 #sidebar.categories-sidebar {
     position: absolute !important;
     width: 310px !important;
-    height: calc(100vh - 50px) !important;
+    height: calc(100vh - 100px) !important;
     background-color: #EEF0F5 !important;
-    border-top-right-radius: 50px !important;
-    border-bottom-right-radius: 50px !important;
+    border-top-right-radius: 30px !important;
+    border-bottom-right-radius: 30px !important;
     overflow-y: auto !important;
     top: 50px !important;
     left: 0 !important;
@@ -1545,31 +1672,38 @@ model-viewer::part(default-progress-mask) {
     scrollbar-width: thin !important;
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent !important;
     transition: width 0.3s ease-in-out !important;
-    padding: 10px !important;
+    padding: 0 10px 10px 10px !important; /* Adjusted padding to remove top padding */
 }
 
 /* Заголовок */
 #sidebar.categories-sidebar .sidebar-header {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 15px;
+    gap: 20px;
+    width: 100%;
+    height: 80px;
+    background: #EEF0F5;
+    z-index: 10 !important;
     position: sticky !important;
     top: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    padding: 15px 20px !important;
-    background-color: #EEF0F5 !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
-    z-index: 10 !important;
 }
 
 #sidebar.categories-sidebar .back-button {
-    width: 32px !important;
-    height: 32px !important;
+    width: 60px !important; /* Increased button width */
     background-color: white !important;
-    border-radius: 50% !important;
+    border-radius: 40px !important; /* Adjusted border-radius */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    margin-right: 15px !important;
     cursor: pointer !important;
+}
+
+#sidebar.categories-sidebar .back-button svg {
+    width: 100% !important; /* Allow SVG to fill button */
+    height: 100% !important; /* Allow SVG to fill button */
 }
 
 #sidebar.categories-sidebar .sidebar-title {
@@ -1582,48 +1716,73 @@ model-viewer::part(default-progress-mask) {
 #sidebar.categories-sidebar .categories-list {
     padding: 15px !important;
     padding-bottom: 100px !important;
-    gap: 30px !important;
+    gap: 8px !important;
     display: flex !important;
     flex-direction: column !important;
 }
 
 /* Категория */
 #sidebar.categories-sidebar .category {
-    margin-bottom: 15px !important;
+    margin-bottom: 0px !important;
+    min-height: 120px !important; /* Added minimum height to the category container */
 }
 
 #sidebar.categories-sidebar .category-header {
     display: flex !important;
     justify-content: space-between !important;
-    align-items: center !important;
-    padding: 15px 20px !important;
+    align-items: flex-start !important;
+    padding: 48px 100px 48px 30px !important;
     background-color: white !important;
     border-radius: 12px !important;
+    min-height: 120px !important; /* Минимальная высота */
+    height: auto !important; /* Автоматическая высота */
     cursor: pointer !important;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
-    transition: all 0.3s !important;
+    transition: all 0.3s ease !important;
 }
 
 #sidebar.categories-sidebar .category.active .category-header {
+    min-height: 50px !important; /* Минимальная высота в активном состоянии */
+    padding: 20px 100px 20px 30px !important;
     background-color: #FF7E3D !important;
     color: white !important;
 }
 
 #sidebar.categories-sidebar .category-name {
-    font-weight: 500 !important;
-    font-size: 16px !important;
+    font-weight: 700 !important;
+    font-size: 20px !important;
+    margin: 0 !important;
+    font-family: 'TT Lakes Neue', sans-serif !important;
+    flex: 1 !important;
+    padding-right: 20px !important;
+    word-wrap: break-word !important;
+    transition: all 0.3s ease !important;
+    line-height: 1.2 !important; /* Добавляем line-height для лучшего контроля высоты */
+}
+
+#sidebar.categories-sidebar .category.active .category-name {
+    font-size: 18px !important; /* Уменьшаем размер шрифта при активном состоянии */
 }
 
 #sidebar.categories-sidebar .category-arrow {
     transition: transform 0.3s !important;
+    width: 24px !important;
+    transform: rotate(-45deg) !important;
+    flex-shrink: 0 !important; /* Запрещаем стрелке сжиматься */
+    margin-top: 0 !important; /* Выравнивание стрелки по верхнему краю */
 }
 
-#sidebar.categories-sidebar .category.active .category-arrow {
-    transform: rotate(90deg) !important;
+#sidebar.categories-sidebar .category-arrow svg {
+    width: 100% !important;
+    height: auto !important;
 }
 
 #sidebar.categories-sidebar .category-arrow path {
     stroke: #FF7E3D !important;
+}
+
+#sidebar.categories-sidebar .category.active .category-arrow {
+    transform: rotate(45deg) !important; /* Изменено на 45 градусов для активного состояния */
 }
 
 #sidebar.categories-sidebar .category.active .category-arrow path {
@@ -1744,13 +1903,13 @@ model-viewer::part(default-progress-mask) {
     width: 100px !important;
     overflow: hidden !important;
     transition: width 0.3s ease-in-out !important;
-    padding: 10px !important;
+    background: white !important;
 }
 
 #sidebar.categories-sidebar.collapsed .sidebar-header {
-    padding: 10px !important;
     margin-bottom: 30px !important;
     justify-content: center !important;
+    background-color: white;
 }
 
 #sidebar.categories-sidebar.collapsed .sidebar-title {
@@ -1768,17 +1927,17 @@ model-viewer::part(default-progress-mask) {
 
 #sidebar.categories-sidebar.collapsed .vertical-title {
     display: flex !important;
+    position: fixed !important; /* Фиксированное позиционирование */
+    top: 20% !important; /* Центрируем по вертикали */
+    left: 40px !important;
+    transform: rotate(180deg) !important;
     writing-mode: vertical-rl !important;
     text-orientation: mixed !important;
-    transform: rotate(180deg) !important;
-    position: absolute !important;
-    top: 150px !important;
-    left: 40px !important;
     font-weight: bold !important;
     font-size: 18px !important;
     letter-spacing: 2px !important;
     color: #333 !important;
-    gap: 30px !important;
+    z-index: 1000 !important; /* Убедимся, что заголовок поверх других элементов */
 }
 
 #sidebar.categories-sidebar .vertical-title {
@@ -1787,6 +1946,7 @@ model-viewer::part(default-progress-mask) {
 
 #sidebar.categories-sidebar.collapsed .back-button {
     margin-right: 0 !important;
+    border: 1px solid rgba(16, 15, 15, 0.1) !important; /* Added small border */
 }
 
 

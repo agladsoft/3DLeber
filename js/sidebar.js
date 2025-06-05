@@ -31,8 +31,8 @@ async function createNewSidebar() {
     sidebarHeader.className = 'sidebar-header';
     sidebarHeader.innerHTML = `
         <div class="back-button">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15 6L9 12L15 18" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M12 19l-7-7 7-7" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
         <h3 class="sidebar-title">КАТЕГОРИИ ОБЪЕКТОВ</h3>
@@ -114,8 +114,8 @@ async function createNewSidebar() {
             categoryHeader.innerHTML = `
                 <span class="category-name">${categoryId}</span>
                 <span class="category-arrow">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 18L15 12L9 6" stroke="#FF7E3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span>
             `;
@@ -137,8 +137,15 @@ async function createNewSidebar() {
                 modelElement.setAttribute('data-article', model.article);
                 modelElement.setAttribute('data-quantity', model.quantity);
                 
+                // Получаем количество размещенных объектов
+                const placedCount = sessionData.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
+                // Получаем общее количество из modelsData
+                const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
+                // Вычисляем оставшееся количество
+                const remainingQuantity = totalQuantity - placedCount;
+                
                 // Добавляем классы в зависимости от состояния модели
-                if (model.quantity === 0) {
+                if (remainingQuantity === 0) {
                     modelElement.classList.add('blurred');
                     modelElement.style.filter = 'blur(2px)';
                     modelElement.style.opacity = '0.9';
@@ -151,7 +158,7 @@ async function createNewSidebar() {
                     </div>
                     <div class="model-article">${model.article}</div>
                     <div class="model-title">${model.description}</div>
-                    <div class="model-placement">Добавлено на площадку: 0 из ${model.quantity}</div>
+                    <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
                     <div class="model-specs">
                         <div class="model-spec">
                             <span class="model-spec-icon">👤</span>
@@ -229,6 +236,41 @@ document.addEventListener('DOMContentLoaded', function() {
     applyNewStyles();
     createNewSidebar();
 });
+
+/**
+ * Обновляет счетчик размещенных объектов для конкретной модели
+ * @param {string} modelName - Имя модели
+ * @param {number} placedCount - Количество размещенных объектов
+ */
+export function updateModelPlacementCounter(modelName, placedCount) {
+    const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    
+    modelElements.forEach(element => {
+        const article = element.getAttribute('data-article');
+        const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
+        const remainingQuantity = totalQuantity - placedCount;
+        
+        // Обновляем счетчик
+        const placementDiv = element.querySelector('.model-placement');
+        if (placementDiv) {
+            placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+        }
+        
+        // Обновляем состояние blur
+        if (remainingQuantity === 0) {
+            element.classList.add('blurred');
+            element.style.filter = 'blur(2px)';
+            element.style.opacity = '0.9';
+            element.style.pointerEvents = 'none';
+        } else {
+            element.classList.remove('blurred');
+            element.style.filter = '';
+            element.style.opacity = '';
+            element.style.pointerEvents = '';
+        }
+    });
+}
 
 // Экспортируем функции для использования в других модулях
 export { applyNewStyles, createNewSidebar };

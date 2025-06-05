@@ -10,8 +10,8 @@ import {
     playgroundWidth, 
     playgroundLength 
 } from '../playground.js';
-import { updateModelQuantityUI } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
+import { updateModelPlacementCounter } from '../sidebar.js';
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
@@ -102,11 +102,12 @@ function setupControlHandlers() {
                 }
 
                 // Обновляем UI для отображения новых количеств
-                const items = document.querySelectorAll('.item');
+                const items = document.querySelectorAll('.model');
+                const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
                 items.forEach(item => {
                     const modelName = item.getAttribute('data-model');
                     if (modelName && updatedQuantities[modelName] !== undefined) {
-                        updateModelQuantityUI(item, updatedQuantities[modelName]);
+                        updateModelPlacementCounter(modelName, placedCount);
                     }
                 });
 
