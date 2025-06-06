@@ -87,8 +87,6 @@ async function updateSessionInDatabase(object) {
         if (!saveResponse.ok) {
             throw new Error('Failed to save session');
         }
-
-        console.log('Session updated successfully for object:', objectData);
     } catch (error) {
         console.error('Error updating session:', error);
     }
