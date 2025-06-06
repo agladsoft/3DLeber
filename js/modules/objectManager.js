@@ -334,12 +334,12 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                     material.envMapIntensity = 0;
                                     material.needsUpdate = true;
                                     
-                                    // Оптимизация текстур
-                                    if (material.map) {
-                                        material.map.minFilter = THREE.LinearFilter;
-                                        material.map.magFilter = THREE.LinearFilter;
-                                        material.map.anisotropy = 1;
-                                    }
+                                    // // Оптимизация текстур
+                                    // if (material.map) {
+                                    //     material.map.minFilter = THREE.LinearFilter;
+                                    //     material.map.magFilter = THREE.LinearFilter;
+                                    //     material.map.anisotropy = 1;
+                                    // }
                                 });
                             }
 
