@@ -1867,6 +1867,9 @@ model-viewer::part(default-progress-mask) {
     align-items: center !important;
     font-size: 12px !important;
     color: #666 !important;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    padding: 5px;
 }
 
 #sidebar.categories-sidebar .model-spec-icon {
