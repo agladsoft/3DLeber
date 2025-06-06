@@ -30,12 +30,6 @@ function handleDOMContentLoaded() {
     
     // Инициализация кнопки переключения сайдбара
     setupToggleSidebarButton();
-    
-    // Инициализация кнопки скрытия размеров
-    setupToggleDimensionsButton();
-
-    // Инициализация кнопки скрытия размеров
-    setupToggleSafetyZoneButton();
 }
 
 /**
@@ -110,109 +104,6 @@ function setupToggleSidebarButton() {
         });
     } else {
         console.log('Кнопка переключения сайдбара или сам сайдбар не найден');
-    }
-}
-
-/**
- * Настраивает кнопку скрытия/показа размеров модели
- */
-function setupToggleDimensionsButton() {
-    const toggleButton = document.getElementById('toggleDimensions');
-    const dimensionLabels = document.getElementById('dimensionLabels');
-    if (toggleButton && dimensionLabels) {
-        // Восстанавливаем состояние из localStorage (если есть)
-        const isHidden = localStorage.getItem('dimensionLabelsHidden') === 'true';
-        if (isHidden) {
-            dimensionLabels.style.display = 'none';
-            toggleButton.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="#000000" stroke-width="2"/>
-                    <line x1="3" y1="12" x2="21" y2="12" stroke="#000000" stroke-width="2"/>
-                    <line x1="12" y1="3" x2="12" y2="21" stroke="#000000" stroke-width="2"/>
-                </svg>
-            `;
-            hideAllDimensions();
-        } else {
-            dimensionLabels.style.display = '';
-            toggleButton.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="#000000" stroke-width="2"/>
-                    <line x1="3" y1="12" x2="21" y2="12" stroke="#000000" stroke-width="2"/>
-                    <line x1="12" y1="3" x2="12" y2="21" stroke="#000000" stroke-width="2"/>
-                </svg>
-            `;
-            // Показываем размеры для всех объектов
-            if (Array.isArray(placedObjects)) {
-                placedObjects.forEach(obj => showModelDimensions(obj));
-            }
-        }
-
-        toggleButton.addEventListener('click', function() {
-            const isCurrentlyHidden = dimensionLabels.style.display === 'none';
-            if (isCurrentlyHidden) {
-                dimensionLabels.style.display = '';
-                toggleButton.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="#000000" stroke-width="2"/>
-                        <line x1="3" y1="12" x2="21" y2="12" stroke="#000000" stroke-width="2"/>
-                        <line x1="12" y1="3" x2="12" y2="21" stroke="#000000" stroke-width="2"/>
-                    </svg>
-                `;
-                // Показываем размеры для всех объектов
-                if (Array.isArray(placedObjects)) {
-                    placedObjects.forEach(obj => showModelDimensions(obj));
-                }
-            } else {
-                dimensionLabels.style.display = 'none';
-                toggleButton.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="#000000" stroke-width="2"/>
-                        <line x1="3" y1="12" x2="21" y2="12" stroke="#000000" stroke-width="2"/>
-                        <line x1="12" y1="3" x2="12" y2="21" stroke="#000000" stroke-width="2"/>
-                    </svg>
-                `;
-                hideAllDimensions();
-            }
-            localStorage.setItem('dimensionLabelsHidden', !isCurrentlyHidden);
-        });
-    }
-}
-
-/**
- * Настраивает кнопку скрытия/показа зоны безопасности
- */
-function setupToggleSafetyZoneButton() {
-    const toggleButton = document.getElementById('toggleSafetyZone');
-    if (toggleButton) {
-        // Восстанавливаем состояние из localStorage
-        const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
-        
-        // Устанавливаем начальное состояние
-        if (isHidden) {
-            toggleButton.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
-            removeAllSafetyZones();
-        } else {
-            toggleButton.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
-            showAllSafetyZones();
-        }
-        
-        toggleButton.addEventListener('click', function() {
-            const isVisible = toggleSafetyZones();
-            toggleButton.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
-            localStorage.setItem('safetyZoneHidden', !isVisible);
-        });
     }
 }
 

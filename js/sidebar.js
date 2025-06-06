@@ -175,12 +175,14 @@ async function createNewSidebar() {
     }
 }
 
-// Инициализация при загрузке документа
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Инициализация сайдбара - экспортируемая функция
+ */
+export function initSidebar() {
     console.log('Initializing sidebar v2...');
     applyNewStyles();
     createNewSidebar();
-});
+}
 
 /**
  * Обновляет счетчик размещенных объектов для конкретной модели

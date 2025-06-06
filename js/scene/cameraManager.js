@@ -13,8 +13,10 @@ import { ground } from '../playground/playgroundCore.js';
 export let camera;
 export let controls;
 export let isTopViewActive = false;
-export let previousCameraState = null;
 export let renderer;
+
+// Переменная для защиты от повторных вызовов
+let isToggling = false;
 
 /**
  * Создает и настраивает камеру и её элементы управления
@@ -171,16 +173,17 @@ export function setupCamera(rendererInstance) {
  * Сброс вида камеры к исходному положению с анимацией
  * @param {Number} width - Ширина площадки для расчета позиции камеры
  * @param {Number} length - Длина площадки для расчета позиции камеры
+ * @param {Boolean} fromToggleTopView - Флаг, указывающий что функция вызвана из toggleTopView
  */
-export function resetCameraView(width, length) {
+export function resetCameraView(width, length, fromToggleTopView = false) {
     // Всегда скрываем размерную сетку при сбросе вида, независимо от режима
     import('../scene/gridManager.js').then(gridManagerModule => {
         gridManagerModule.toggleDimensionGridVisibility(false);
     });
     
     // Если активен режим вида сверху, но мы не вызываем disableTopView()
-    // для избежания двойной анимации
-    if (isTopViewActive) {
+    // для избежания двойной анимации (только если не вызвано из toggleTopView)
+    if (isTopViewActive && !fromToggleTopView) {
         console.log('Сброс вида из режима вида сверху напрямую');
         
         // Очищаем обработчики вручную без запуска анимации
@@ -295,6 +298,19 @@ export function animateCameraMove(targetPosition, targetLookAt, callback) {
  * @returns {Boolean} Новое состояние вида сверху (true - включен, false - выключен)
  */
 export function toggleTopView(width, length) {
+    console.log('=== TOGGLE TOP VIEW CALLED ===');
+    console.log('isToggling:', isToggling);
+    console.log('isTopViewActive:', isTopViewActive);
+    console.log('Stack trace:', new Error().stack);
+    
+    // Защита от повторных вызовов
+    if (isToggling) {
+        console.log('toggleTopView уже выполняется, игнорируем повторный вызов');
+        return isTopViewActive;
+    }
+    
+    isToggling = true;
+    
     try {
         // Проверяем, есть ли уже сетка
         const hasGrid = window.app && window.app.gridHelper;
@@ -304,19 +320,24 @@ export function toggleTopView(width, length) {
             isTopViewActive = true;
         }
         
+        console.log('Текущее состояние перед переключением:', isTopViewActive);
+        
         // Инвертируем состояние
         isTopViewActive = !isTopViewActive;
         
+        console.log('Новое состояние после переключения:', isTopViewActive);
+        
         if (isTopViewActive) {
+            console.log('Включаем вид сверху...');
             // Включаем вид сверху
             enableTopView(width, length);
         } else {
+            console.log('Выключаем вид сверху...');
             // Выключаем вид сверху
             disableTopView();
             
-            // Вызываем resetCameraView для перемещения к стандартному виду,
-            // точно так же, как при нажатии кнопки "Сбросить вид"
-            resetCameraView(width, length);
+            // Всегда используем resetCameraView для выхода из вида сверху
+            resetCameraView(width, length, true);
         }
         
         // Обновляем глобальное состояние
@@ -342,10 +363,19 @@ export function toggleTopView(width, length) {
             updateTopViewButtonStyle(isTopViewActive);
         }, 0);
         
+        console.log('=== TOGGLE TOP VIEW COMPLETED ===');
+        console.log('Final state:', isTopViewActive);
+        
         return isTopViewActive;
     } catch (error) {
         // В случае ошибки, обеспечиваем безопасность и возвращаем текущее состояние
+        console.error('Ошибка в toggleTopView:', error);
         return isTopViewActive;
+    } finally {
+        // Всегда снимаем блокировку
+        setTimeout(() => {
+            isToggling = false;
+        }, 100);
     }
 }
 
@@ -360,15 +390,16 @@ function updateTopViewButtonStyle(isActive) {
         const maxAttempts = 3;
         
         function tryUpdateButton() {
-            const topViewButton = document.getElementById("topView");
+            // Теперь ищем кнопку exportModel вместо topView
+            const exportButton = document.getElementById("exportModel");
             
-            if (topViewButton) {
+            if (exportButton) {
                 if (isActive) {
-                    topViewButton.textContent = "Выйти из вида сверху";
-                    topViewButton.classList.add("active");
+                    exportButton.classList.add("active");
+                    exportButton.title = "Выйти из вида сверху";
                 } else {
-                    topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
-                    topViewButton.classList.remove("active");
+                    exportButton.classList.remove("active");
+                    exportButton.title = "Экспорт";
                 }
             } else {
                 if (attempts < maxAttempts) {
@@ -383,6 +414,7 @@ function updateTopViewButtonStyle(isActive) {
         tryUpdateButton();
     } catch (error) {
         // В случае ошибки просто продолжаем работу
+        console.log('Ошибка при обновлении стиля кнопки:', error);
     }
 }
 
@@ -393,17 +425,6 @@ function updateTopViewButtonStyle(isActive) {
  */
 function enableTopView(width, length) {
     console.log("Включаем режим вида сверху, размеры площадки:", width, "x", length);
-    
-    // Сохраняем текущее состояние камеры для возврата
-    previousCameraState = {
-        position: camera.position.clone(),
-        target: controls.target.clone(),
-        minDistance: controls.minDistance,
-        maxDistance: controls.maxDistance,
-        minPolarAngle: controls.minPolarAngle,
-        maxPolarAngle: controls.maxPolarAngle,
-        enableRotate: controls.enableRotate
-    };
     
     // Код создания сетки удален - теперь вид сверху работает без сетки
     console.log("Вид сверху активирован без сетки");
@@ -485,7 +506,7 @@ function enableTopView(width, length) {
  * Выключение режима вида сверху (без анимации)
  */
 function disableTopView() {
-    console.log("Выключение режима вида сверху (без анимации)");
+    console.log("Выключение режима вида сверху");
     
     // Удаляем обработчик левой кнопки мыши, если он был добавлен
     if (window.topViewLeftClickHandler) {
@@ -494,16 +515,19 @@ function disableTopView() {
         console.log("Обработчик левой кнопки мыши удален");
     }
     
+    // Удаляем размерную сетку через gridManager
+    import('../scene/gridManager.js').then(gridManagerModule => {
+        gridManagerModule.toggleDimensionGridVisibility(false);
+        console.log("Размерная сетка скрыта");
+    });
+    
     // Удаляем сетку и очищаем ресурсы
     cleanupGridHelper();
-    
-    // Обновляем стиль кнопки
-    updateTopViewButtonStyle(false);
     
     // Очищаем обработчики нашего контроллера вида сверху
     cleanupEventListeners();
     
-    // Восстанавливаем настройки камеры без анимации
+    // Восстанавливаем настройки камеры
     controls.enabled = true;
     controls.enableRotate = true;
     controls.enablePan = true;
@@ -519,22 +543,14 @@ function disableTopView() {
     // Восстанавливаем стандартный вектор up для камеры
     camera.up.set(0, 1, 0);
     
-    // Восстанавливаем ограничения камеры из сохраненного состояния
-    if (previousCameraState) {
-        controls.minDistance = previousCameraState.minDistance;
-        controls.maxDistance = previousCameraState.maxDistance;
-        controls.minPolarAngle = previousCameraState.minPolarAngle;
-        controls.maxPolarAngle = previousCameraState.maxPolarAngle;
-    } else {
-        // Если нет сохраненного состояния, используем стандартные настройки
-        controls.minDistance = CAMERA_SETTINGS.minDistance;
-        controls.maxDistance = CAMERA_SETTINGS.maxDistance;
-        controls.minPolarAngle = CAMERA_SETTINGS.minPolarAngle;
-        controls.maxPolarAngle = CAMERA_SETTINGS.maxPolarAngle;
-    }
+    // Восстанавливаем стандартные ограничения камеры
+    controls.minDistance = CAMERA_SETTINGS.minDistance;
+    controls.maxDistance = CAMERA_SETTINGS.maxDistance;
+    controls.minPolarAngle = CAMERA_SETTINGS.minPolarAngle;
+    controls.maxPolarAngle = CAMERA_SETTINGS.maxPolarAngle;
+    
+    console.log("Режим вида сверху выключен");
 }
-
-
 
 /**
  * Очищает сетку и связанные с ней ресурсы

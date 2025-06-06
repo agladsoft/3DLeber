@@ -14,6 +14,7 @@ import {
     resizePlaygroundWithAnimation
 } from './playground/index.js';
 import { API_BASE_URL } from './api/serverConfig.js'
+import { showNotification } from './utils/notifications.js';
 
 // Реэкспорт всех переменных и функций для внешнего интерфейса
 export {

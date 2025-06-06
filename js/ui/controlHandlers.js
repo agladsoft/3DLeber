@@ -12,36 +12,345 @@ import {
 } from '../playground.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
 import { updateModelPlacementCounter } from '../sidebar.js';
+import { showNotification } from '../utils/notifications.js';
+import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
+import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from '../core/safetyManager.js';
+
+// Флаг для защиты от повторной инициализации
+let controlHandlersInitialized = false;
 
 /**
  * Инициализирует обработчики для элементов управления в интерфейсе
  */
 export function initControlHandlers() {
-    // Проверяем состояние загрузки страницы
-    if (document.readyState === 'loading') {
-        document.addEventListener("DOMContentLoaded", setupControlHandlers);
-    } else {
-        // Если DOMContentLoaded уже произошло
-        setupControlHandlers();
+    if (controlHandlersInitialized) {
+        console.log('Control handlers already initialized, skipping...');
+        return;
     }
+    
+    console.log('Initializing control handlers...');
+    controlHandlersInitialized = true;
+    setupControlHandlers();
 }
 
 /**
  * Настраивает обработчики для элементов управления
  */
 function setupControlHandlers() {
+    console.log('Setting up control handlers...');
+    
     // Устанавливаем обработчики для различных элементов управления
     setupScreenshotButton();
     setupPlaygroundSizeInputs();
     setupChangePlaygroundButton();
     setupResetViewButton();
-    setupTopViewButton();
     setupPlaygroundButton();
+    setupDeleteAllButton();
+    
+    // Новые обработчики из control_panel.js
+    setupSettingsButton();
+    setupExportModelButton();
+    setupToggleDimensionsButton();
+    setupToggleSafetyZoneButton();
+    setupCloseAppButton();
+    setupToolButtonsEffects();
+    setupToolButtonsContainerState();
+}
 
-    // Обработчик для кнопки удаления всех моделей
+/**
+ * Настраивает эффекты нажатия для всех кнопок инструментов
+ */
+function setupToolButtonsEffects() {
+    const allButtons = document.querySelectorAll('.tool-button-new');
+    allButtons.forEach(button => {
+        button.addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        button.addEventListener('mouseup', function() {
+            this.style.transform = 'scale(1)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+}
+
+/**
+ * Восстанавливает состояние контейнера с кнопками инструментов
+ */
+function setupToolButtonsContainerState() {
+    const toolButtonsContainer = document.querySelector('.tool-buttons-container');
+    if (toolButtonsContainer) {
+        console.log('Контейнер с кнопками инструментов найден при загрузке');
+        // Восстановление состояния из localStorage
+        const isHidden = localStorage.getItem('toolButtonsContainerHidden') === 'true';
+        console.log('Состояние в localStorage (скрыт):', isHidden);
+        
+        if (isHidden) {
+            // Применяем напрямую стиль вместо класса для надежности
+            toolButtonsContainer.style.display = 'none';
+            console.log('Скрыли панель инструментов при загрузке');
+        } else {
+            toolButtonsContainer.style.display = '';
+            console.log('Отобразили панель инструментов при загрузке');
+        }
+    } else {
+        console.error('Контейнер кнопок не найден при загрузке!');
+    }
+}
+
+/**
+ * Настраивает кнопку настроек (показать/скрыть панель инструментов)
+ */
+function setupSettingsButton() {
+    const settingsButton = document.getElementById('settingsButton');
+    if (settingsButton) {
+        console.log('Кнопка настроек найдена:', settingsButton);
+        
+        settingsButton.addEventListener('click', function() {
+            console.log('Клик по кнопке настроек');
+            
+            // Найти контейнер с кнопками
+            const toolButtonsContainer = document.querySelector('.tool-buttons-container');
+            console.log('Найден контейнер с кнопками:', toolButtonsContainer);
+            
+            // Проверяем текущее состояние видимости через вычисляемые стили
+            if (toolButtonsContainer) {
+                const computedStyle = window.getComputedStyle(toolButtonsContainer);
+                const isCurrentlyVisible = computedStyle.display !== 'none';
+                console.log('Текущее состояние видимости (вычисляемые стили):', 
+                            {display: computedStyle.display, isVisible: isCurrentlyVisible});
+                
+                // Переключаем видимость
+                if (isCurrentlyVisible) {
+                    // Если видим - скрываем
+                    console.log('Скрываем кнопки (был виден)');
+                    toolButtonsContainer.classList.add('hidden');
+                    
+                    // Затем дополнительно через прямой стиль для надежности
+                    if (window.getComputedStyle(toolButtonsContainer).display !== 'none') {
+                        console.log('Класс hidden не сработал, применяем inline стиль');
+                        toolButtonsContainer.style.display = 'none';
+                    }
+                    
+                    localStorage.setItem('toolButtonsContainerHidden', 'true');
+                } else {
+                    // Если скрыт - показываем
+                    console.log('Показываем кнопки (был скрыт)');
+                    toolButtonsContainer.classList.remove('hidden');
+                    toolButtonsContainer.style.display = '';
+                    localStorage.setItem('toolButtonsContainerHidden', 'false');
+                }
+                
+                // Проверяем, сработало ли переключение
+                setTimeout(() => {
+                    const newComputedStyle = window.getComputedStyle(toolButtonsContainer);
+                    console.log('Состояние после переключения:', 
+                              {display: newComputedStyle.display, 
+                               visible: newComputedStyle.display !== 'none'});
+                }, 50);
+                
+                // Добавляем эффект нажатия для визуальной обратной связи
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 200);
+            } else {
+                console.error('Контейнер с кнопками не найден!');
+            }
+        });
+    } else {
+        console.error('Кнопка настроек не найдена!');
+    }
+}
+
+/**
+ * Настраивает кнопку экспорта (вид сверху)
+ */
+function setupExportModelButton() {
+    const exportModelButton = document.getElementById('exportModel');
+    if (exportModelButton) {
+        // Проверяем, не был ли уже добавлен обработчик
+        if (exportModelButton.hasAttribute('data-handler-added')) {
+            console.log('Обработчик для кнопки экспорта уже добавлен, пропускаем');
+            return;
+        }
+        
+        // Отмечаем, что обработчик добавлен
+        exportModelButton.setAttribute('data-handler-added', 'true');
+        
+        exportModelButton.addEventListener('click', function() {
+            console.log('=== Нажата кнопка экспорта (вид сверху) ===');
+            try {
+                // Получаем текущие размеры площадки
+                let width = 40;
+                let length = 30;
+                
+                if (window.app && window.app.playgroundWidth && window.app.playgroundLength) {
+                    width = window.app.playgroundWidth;
+                    length = window.app.playgroundLength;
+                } else {
+                    // Используем импортированные переменные
+                    width = playgroundWidth;
+                    length = playgroundLength;
+                }
+                
+                console.log('Размеры площадки:', width, 'x', length);
+                
+                // Вызываем функцию toggleTopView
+                const isActive = toggleTopView(width, length);
+                
+                console.log('Результат toggleTopView:', isActive);
+                
+                // Визуальная обратная связь на кнопке
+                if (isActive) {
+                    this.classList.add('active');
+                    this.title = 'Выйти из вида сверху';
+                    console.log('Кнопка активирована (режим вида сверху включен)');
+                } else {
+                    this.classList.remove('active');
+                    this.title = 'Экспорт';
+                    console.log('Кнопка деактивирована (режим вида сверху выключен)');
+                }
+            } catch (error) {
+                console.error('Ошибка при включении режима вид сверху:', error);
+                showNotification('Произошла ошибка при включении режима "Вид сверху"');
+            }
+            console.log('=== Обработка кнопки экспорта завершена ===');
+        });
+    }
+}
+
+/**
+ * Настраивает кнопку переключения размеров
+ */
+function setupToggleDimensionsButton() {
+    const toggleDimensionsButton = document.getElementById('toggleDimensions');
+    if (toggleDimensionsButton) {
+        // Восстанавливаем состояние из localStorage
+        const isHidden = localStorage.getItem('dimensionLabelsHidden') === 'true';
+        
+        // Устанавливаем начальное состояние
+        const dimensionLabels = document.getElementById('dimensionLabels');
+        if (dimensionLabels) {
+            if (isHidden) {
+                dimensionLabels.style.display = 'none';
+                hideAllDimensions();
+                toggleDimensionsButton.classList.add('active');
+                toggleDimensionsButton.title = 'Показать размеры';
+            } else {
+                dimensionLabels.style.display = '';
+                // Показываем размеры для всех объектов
+                if (Array.isArray(placedObjects)) {
+                    placedObjects.forEach(obj => showModelDimensions(obj));
+                }
+                toggleDimensionsButton.classList.remove('active');
+                toggleDimensionsButton.title = 'Скрыть размеры';
+            }
+        }
+        
+        toggleDimensionsButton.addEventListener('click', function() {
+            const dimensionLabels = document.getElementById('dimensionLabels');
+            if (!dimensionLabels) return;
+            
+            const isCurrentlyHidden = dimensionLabels.style.display === 'none';
+            
+            if (isCurrentlyHidden) {
+                // Показываем размеры
+                dimensionLabels.style.display = '';
+                if (Array.isArray(placedObjects)) {
+                    placedObjects.forEach(obj => showModelDimensions(obj));
+                }
+                this.classList.remove('active');
+                this.title = 'Скрыть размеры';
+                localStorage.setItem('dimensionLabelsHidden', 'false');
+            } else {
+                // Скрываем размеры
+                dimensionLabels.style.display = 'none';
+                hideAllDimensions();
+                this.classList.add('active');
+                this.title = 'Показать размеры';
+                localStorage.setItem('dimensionLabelsHidden', 'true');
+            }
+        });
+    }
+}
+
+/**
+ * Настраивает кнопку переключения безопасной зоны
+ */
+function setupToggleSafetyZoneButton() {
+    const toggleSafetyZoneButton = document.getElementById('toggleSafetyZone');
+    if (toggleSafetyZoneButton) {
+        // Восстанавливаем состояние из localStorage
+        const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
+        
+        // Устанавливаем начальное состояние
+        if (isHidden) {
+            removeAllSafetyZones();
+            toggleSafetyZoneButton.classList.add('active');
+            toggleSafetyZoneButton.title = 'Показать зоны безопасности';
+        } else {
+            showAllSafetyZones();
+            toggleSafetyZoneButton.classList.remove('active');
+            toggleSafetyZoneButton.title = 'Скрыть зоны безопасности';
+        }
+        
+        toggleSafetyZoneButton.addEventListener('click', function() {
+            const isVisible = toggleSafetyZones();
+            
+            if (isVisible) {
+                // Зоны безопасности показаны
+                this.classList.remove('active');
+                this.title = 'Скрыть зоны безопасности';
+                localStorage.setItem('safetyZoneHidden', 'false');
+            } else {
+                // Зоны безопасности скрыты
+                this.classList.add('active');
+                this.title = 'Показать зоны безопасности';
+                localStorage.setItem('safetyZoneHidden', 'true');
+            }
+        });
+    }
+}
+
+/**
+ * Настраивает кнопку закрытия приложения
+ */
+function setupCloseAppButton() {
+    const closeAppButton = document.getElementById('closeAppButton');
+    if (closeAppButton) {
+        closeAppButton.addEventListener('click', function() {
+            if (confirm('Вы действительно хотите закрыть приложение?')) {
+                // Закрываем модальное окно приложения
+                const appModal = document.getElementById('appModal');
+                if (appModal) {
+                    appModal.style.display = 'none';
+                }
+                
+                // Показываем начальный экран
+                const launchContainer = document.getElementById('launchContainer');
+                if (launchContainer) {
+                    launchContainer.style.display = 'flex';
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Настраивает кнопку удаления всех моделей
+ */
+function setupDeleteAllButton() {
     const deleteAllBtn = document.getElementById('deleteAllModels');
     if (deleteAllBtn) {
         deleteAllBtn.onclick = async function() {
+            if (!confirm('Вы действительно хотите удалить все модели с площадки?')) {
+                return;
+            }
+            
             try {
                 // Получаем user_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
@@ -103,10 +412,10 @@ function setupControlHandlers() {
 
                 // Обновляем UI для отображения новых количеств
                 const items = document.querySelectorAll('.model');
-                const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
                 items.forEach(item => {
                     const modelName = item.getAttribute('data-model');
                     if (modelName && updatedQuantities[modelName] !== undefined) {
+                        const placedCount = 0; // Все объекты удалены
                         updateModelPlacementCounter(modelName, placedCount);
                     }
                 });
@@ -114,6 +423,7 @@ function setupControlHandlers() {
                 console.log('All models removed and session updated with new quantities:', updatedQuantities);
             } catch (error) {
                 console.error('Error removing all models:', error);
+                showNotification('Ошибка при удалении моделей');
             }
         };
     }
@@ -219,89 +529,6 @@ function setupResetViewButton() {
             resetCameraView(playgroundWidth, playgroundLength);
         });
     }
-}
-
-/**
- * Настраивает кнопку вида сверху
- */
-function setupTopViewButton() {
-    // Находим кнопку вида сверху
-    let topViewButton = document.getElementById("topView");
-    if (!topViewButton) {
-        console.error("Кнопка вида сверху не найдена в DOM! Проверяем еще раз...");
-        
-        // Пробуем найти повторно через небольшую задержку
-        setTimeout(() => {
-            topViewButton = document.getElementById("topView");
-            if (topViewButton) {
-                console.log("Кнопка найдена после задержки, настраиваем...");
-                initializeTopViewButton(topViewButton);
-            } else {
-                console.error("Кнопка вида сверху не найдена даже после повторной попытки!");
-            }
-        }, 500);
-    } else {
-        console.log("Кнопка вида сверху найдена, настраиваем...");
-        initializeTopViewButton(topViewButton);
-    }
-}
-
-/**
- * Инициализирует кнопку вида сверху
- * @param {HTMLElement} button - Кнопка вида сверху
- */
-function initializeTopViewButton(button) {
-    // Принудительно сбрасываем все стили и классы
-    button.className = ""; // Сбрасываем все классы
-    
-    button.textContent = "🔝 Вид сверху (сетка 1×1м)";
-    
-    // Создаем новый обработчик клика и удаляем старые, если они были
-    button.replaceWith(button.cloneNode(true));
-    
-    // Получаем заново кнопку после клонирования
-    const freshButton = document.getElementById("topView");
-    
-    freshButton.addEventListener("click", () => {
-        console.log("Нажата кнопка вида сверху");
-        console.log("Текущие размеры площадки:", playgroundWidth, "x", playgroundLength);
-        
-        try {
-            // Переключаем режим и получаем новое состояние
-            const isActive = toggleTopView(playgroundWidth, playgroundLength);
-            console.log("Новое состояние вида сверху:", isActive);
-            
-            // Форсируем рендеринг и обновление DOM
-            requestAnimationFrame(() => {
-                updateTopViewButtonStyle(freshButton, isActive);
-            });
-        } catch (error) {
-            console.error("Ошибка при переключении режима вида сверху:", error);
-        }
-    });
-    
-    console.log("Кнопка вида сверху настроена успешно");
-}
-
-/**
- * Обновляет стиль кнопки вида сверху
- * @param {HTMLElement} button - Кнопка
- * @param {Boolean} isActive - Активен ли режим вид сверху
- */
-function updateTopViewButtonStyle(button, isActive) {
-    if (isActive) {
-        // Устанавливаем красный стиль для активного режима
-        console.log("Устанавливаем красный стиль кнопки");
-        button.textContent = "Выйти из вида сверху";
-        button.classList.add("active");
-    } else {
-        // Устанавливаем зеленый стиль для неактивного режима
-        console.log("Устанавливаем зеленый стиль кнопки");
-        button.textContent = "🔝 Вид сверху (сетка 1×1м)";
-        button.classList.remove("active");
-    }
-    
-    console.log("Стиль кнопки обновлен:", button.style.backgroundColor);
 }
 
 /**
