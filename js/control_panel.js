@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteAllModelsButton = document.getElementById('deleteAllModels');
     const closeAppButton = document.getElementById('closeAppButton');
     const exportModelButton = document.getElementById('exportModel');
-    const viewGalleryButton = document.getElementById('viewGallery');
+    const playgroundButton = document.getElementById('playgroundButton');
     
     // Восстановление состояния контейнера с кнопками инструментов
     const toolButtonsContainer = document.querySelector('.tool-buttons-container');
@@ -133,37 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } else {
         console.error('Кнопка настроек не найдена!');
-    }
-    
-    // Обрабатываем кнопку Галерея как "Площадка"
-    if (viewGalleryButton) {
-        viewGalleryButton.addEventListener('click', function() {
-            try {
-                // Добавляем класс активности для кнопки
-                this.classList.toggle('active');
-                
-                // Получаем модальное окно настройки площадки
-                const playgroundSettings = document.getElementById('playgroundSettings');
-                
-                if (playgroundSettings) {
-                    // Если модальное окно существует, переключаем его видимость
-                    if (playgroundSettings.classList.contains('hidden')) {
-                        // Получаем текущие размеры и цвет площадки
-                        updatePlaygroundModalValues();
-                        // Показываем модальное окно
-                        playgroundSettings.classList.remove('hidden');
-                    } else {
-                        // Скрываем модальное окно
-                        playgroundSettings.classList.add('hidden');
-                    }
-                } else {
-                    showNotification('Модальное окно настройки площадки не найдено');
-                }
-            } catch (error) {
-                console.error('Ошибка при работе с настройками площадки:', error);
-                showNotification('Произошла ошибка при открытии настроек площадки');
-            }
-        });
     }
     
     // Обрабатываем кнопку Экспорт как "Вид сверху"
