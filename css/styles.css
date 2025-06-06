@@ -1645,7 +1645,7 @@ model-viewer::part(default-progress-mask) {
     width: 80px; /* Increased width based on Figma */
     height: 80px; /* Increased height based on Figma */
     background-color: white;
-    border-radius: 40px; /* Adjusted border-radius based on Figma */
+    border-radius: 50% !important; /* Changed to 50% for perfect circle */
     margin-right: 15px;
     cursor: pointer;
 }
@@ -1693,8 +1693,9 @@ model-viewer::part(default-progress-mask) {
 
 #sidebar.categories-sidebar .back-button {
     width: 60px !important; /* Increased button width */
+    height: 50px !important; /* Added fixed height to keep button circular */
     background-color: white !important;
-    border-radius: 40px !important; /* Adjusted border-radius */
+    border-radius: 50% !important; /* Changed to 50% for perfect circle */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1702,8 +1703,8 @@ model-viewer::part(default-progress-mask) {
 }
 
 #sidebar.categories-sidebar .back-button svg {
-    width: 100% !important; /* Allow SVG to fill button */
-    height: 100% !important; /* Allow SVG to fill button */
+    width: 18px !important; /* Reduced from 100% to fixed smaller size */
+    height: 18px !important; /* Reduced from 100% to fixed smaller size */
 }
 
 #sidebar.categories-sidebar .sidebar-title {

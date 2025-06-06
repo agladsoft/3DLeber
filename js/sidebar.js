@@ -89,112 +89,57 @@ async function createNewSidebar() {
             };
         });
 
-        // Группируем модели по категориям
-        const modelsByCategory = {};
+        // Добавляем модели напрямую в список без группировки по категориям
         combinedModels.forEach(model => {
-            const category = model.category || 'other';
-            if (!modelsByCategory[category]) {
-                modelsByCategory[category] = [];
-            }
-            modelsByCategory[category].push(model);
-        });
-
-        // Получаем уникальные категории из моделей
-        const uniqueCategories = [...new Set(combinedModels.map(model => model.category || 'other'))];
-        
-        // Добавляем категории
-        uniqueCategories.forEach(categoryId => {
-            const categoryElement = document.createElement('div');
-            categoryElement.className = 'category';
-            categoryElement.dataset.category = categoryId;
+            const modelElement = document.createElement('div');
+            modelElement.className = 'model';
+            modelElement.dataset.modelId = model.id;
+            modelElement.setAttribute('draggable', model.isAvailable);
+            modelElement.setAttribute('data-model', model.name);
+            modelElement.setAttribute('data-article', model.article);
+            modelElement.setAttribute('data-quantity', model.quantity);
             
-            // Создаем заголовок категории
-            const categoryHeader = document.createElement('div');
-            categoryHeader.className = 'category-header';
-            categoryHeader.innerHTML = `
-                <span class="category-name">${categoryId}</span>
-                <span class="category-arrow">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12h14M12 5l7 7-7 7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </span>
+            // Получаем количество размещенных объектов
+            const placedCount = sessionData.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
+            // Получаем общее количество из modelsData
+            const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
+            // Вычисляем оставшееся количество
+            const remainingQuantity = totalQuantity - placedCount;
+            
+            // Добавляем классы в зависимости от состояния модели
+            if (remainingQuantity === 0) {
+                modelElement.classList.add('blurred');
+                modelElement.style.filter = 'blur(2px)';
+                modelElement.style.opacity = '0.9';
+                modelElement.style.pointerEvents = 'none';
+            }
+            
+            modelElement.innerHTML = `
+                <div class="model-image">
+                    <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
+                </div>
+                <div class="model-article">${model.article}</div>
+                <div class="model-title">${model.description}</div>
+                <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
+                <div class="model-specs">
+                    <div class="model-spec">
+                        <span class="model-spec-icon">👤</span>
+                        <span>${model.age || '5+ лет'}</span>
+                    </div>
+                    <div class="model-spec">
+                        <span class="model-spec-icon">📏</span>
+                        <span>${model.size || '63.2 м²'}</span>
+                    </div>
+                </div>
             `;
             
-            // Создаем контейнер для моделей
-            const modelsContainer = document.createElement('div');
-            modelsContainer.className = 'models-container';
-            
-            // Получаем модели для этой категории
-            const categoryModels = modelsByCategory[categoryId] || [];
-            
-            // Добавляем модели в контейнер
-            categoryModels.forEach(model => {
-                const modelElement = document.createElement('div');
-                modelElement.className = 'model';
-                modelElement.dataset.modelId = model.id;
-                modelElement.setAttribute('draggable', model.isAvailable);
-                modelElement.setAttribute('data-model', model.name);
-                modelElement.setAttribute('data-article', model.article);
-                modelElement.setAttribute('data-quantity', model.quantity);
-                
-                // Получаем количество размещенных объектов
-                const placedCount = sessionData.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
-                // Получаем общее количество из modelsData
-                const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
-                // Вычисляем оставшееся количество
-                const remainingQuantity = totalQuantity - placedCount;
-                
-                // Добавляем классы в зависимости от состояния модели
-                if (remainingQuantity === 0) {
-                    modelElement.classList.add('blurred');
-                    modelElement.style.filter = 'blur(2px)';
-                    modelElement.style.opacity = '0.9';
-                    modelElement.style.pointerEvents = 'none';
-                }
-                
-                modelElement.innerHTML = `
-                    <div class="model-image">
-                        <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
-                    </div>
-                    <div class="model-article">${model.article}</div>
-                    <div class="model-title">${model.description}</div>
-                    <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
-                    <div class="model-specs">
-                        <div class="model-spec">
-                            <span class="model-spec-icon">👤</span>
-                            <span>${model.age || '5+ лет'}</span>
-                        </div>
-                        <div class="model-spec">
-                            <span class="model-spec-icon">📏</span>
-                            <span>${model.size || '63.2 м²'}</span>
-                        </div>
-                    </div>
-                `;
-                
-                // Добавляем обработчик drag-and-drop
-                modelElement.addEventListener('dragstart', function(event) {
-                    event.dataTransfer.setData('model', model.name);
-                    event.dataTransfer.setData('article', model.article);
-                    console.log('Drag started for model:', model.name);
-                });            
-                modelsContainer.appendChild(modelElement);
-            });
-            
-            // Добавляем все элементы категории
-            categoryElement.appendChild(categoryHeader);
-            categoryElement.appendChild(modelsContainer);
-            categoriesList.appendChild(categoryElement);
-            
-            // Добавляем обработчик клика для категории
-            categoryHeader.addEventListener('click', function() {
-                // Если категория уже активна, закрываем её
-                if (categoryElement.classList.contains('active')) {
-                    categoryElement.classList.remove('active');
-                } else {
-                    // Открываем выбранную категорию
-                    categoryElement.classList.add('active');
-                }
-            });
+            // Добавляем обработчик drag-and-drop
+            modelElement.addEventListener('dragstart', function(event) {
+                event.dataTransfer.setData('model', model.name);
+                event.dataTransfer.setData('article', model.article);
+                console.log('Drag started for model:', model.name);
+            });            
+            categoriesList.appendChild(modelElement);
         });
         
         // Добавляем все элементы в сайдбар
