@@ -505,22 +505,44 @@ function showDeleteButtonForObject(object, event) {
     removeDeleteButton();
     // Получаем 2D позицию центра объекта
     const { x, y } = toScreenPosition(object, camera);
-    // Создаем кнопку
+    // Создаем кнопку удаления с улучшенным дизайном
     const btn = document.createElement('button');
     btn.id = 'modelDeleteButton';
     btn.className = 'delete-button';
-    btn.innerHTML = '✖';
+    btn.innerHTML = '×'; // Используем более изящный символ умножения
     btn.style.position = 'fixed';
-    // Смещаем кнопку чуть выше и правее центра модели
-    btn.style.left = `${x + 30}px`;
-    btn.style.top = `${y - 50}px`;
+    // Позиционируем кнопку выше и правее центра модели
+    btn.style.left = `${x + 20}px`;
+    btn.style.top = `${y - 45}px`;
     btn.style.zIndex = 2000;
     btn.title = 'Удалить объект';
-    // Делаем кнопку ярко-красной
-    btn.style.background = "red";
-    btn.style.color = '#fff';
+    // Стилизация кнопки
+    btn.style.background = 'linear-gradient(145deg, #ff4d4d, #ff1a1a)';
+    btn.color = 'white';
     btn.style.border = 'none';
-    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    btn.style.borderRadius = '50%';
+    btn.style.width = '28px';
+    btn.style.height = '28px';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)';
+    btn.style.transition = 'all 0.3s cubic-bezier(.25,.8,.25,1)';
+    btn.style.fontSize = '18px';
+    btn.style.fontWeight = 'bold';
+    btn.style.lineHeight = '1';
+    // Эффекты при наведении
+    btn.onmouseover = function() {
+        this.style.transform = 'scale(1.15) rotate(90deg)';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2), 0 6px 12px rgba(0,0,0,0.19)';
+        this.style.background = 'linear-gradient(145deg, #ff3333, #e60000)';
+    };
+    btn.onmouseout = function() {
+        this.style.transform = 'scale(1) rotate(0)';
+        this.style.boxShadow = '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)';
+        this.style.background = 'linear-gradient(145deg, #ff4d4d, #ff1a1a)';
+    };
     btn.onclick = function(e) {
         e.stopPropagation();
         handleObjectDeletion(object);
