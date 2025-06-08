@@ -1912,14 +1912,14 @@ color: #333 !important;
 
 /* Стиль для полукруглой кнопки настроек */
 #controlPanel .tool-circle {
-    /* Позиционирование вверху справа */
+    /* Позиционирование справа на уровне с левой панелью */
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important; /* Выравниваем по левому краю */
     position: fixed !important;
     width: 130px !important; /* Ещё больше увеличиваем ширину */
     height: 100px !important;
-    top: 20px !important;
+    top: 50px !important; /* Выравниваем по вертикали с левой панелью (#sidebar) */
     right: -30px !important; /* Увеличиваем сдвиг для лучшей видимости */
     z-index: 2100 !important;
     padding-left: 10px !important; /* Уменьшаем отступ слева */
@@ -1978,7 +1978,7 @@ color: #333 !important;
     padding: 15px 10px;
     box-shadow: none;
     position: absolute;
-    top: 95px; /* 20px (top of tool-circle) + 60px (height of tool-circle) + 15px (margin) */
+    top: 125px; /* 50px (top of tool-circle) + 60px (height of tool-circle) + 15px (margin) */
     right: 10px;
 }
 
