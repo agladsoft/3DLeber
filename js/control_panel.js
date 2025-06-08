@@ -3,11 +3,31 @@
  */
 import { toggleTopView } from './scene.js';
 
+// Описания для инструментов
+const TOOL_DESCRIPTIONS = {
+    'resetView': 'Сбросить вид',
+    'toggleDimensions': 'Показать размеры',
+    'toggleSafetyZone': 'Показать зоны безопасности',
+    'saveScreenshot': 'Сохранить скриншот',
+    'deleteAllModels': 'Удалить все объекты',
+    'closeAppButton': 'Закрыть приложение',
+    'exportModel': 'Вид сверху',
+    'playgroundButton': 'Настройки площадки'
+};
+
 // Глобальные переменные для настроек площадки
 let selectedColor = '#d9d9d9'; // Цвет по умолчанию - серый
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Control Panel v2 loaded');
+    
+    // Создаем контейнер для информативных блоков
+    const tooltipContainer = document.createElement('div');
+    tooltipContainer.id = 'tool-tooltip-container';
+    tooltipContainer.className = 'tool-tooltip-container';
+    // Скрываем подсказку при инициализации
+    tooltipContainer.style.display = 'none';
+    document.body.appendChild(tooltipContainer);
     
     // Функционал настройки площадки инициализируется отдельно
     
@@ -42,9 +62,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Контейнер кнопок не найден при загрузке!');
     }
     
-    // Добавляем эффект нажатия для кнопок
+    // Добавляем эффект нажатия и информативные блоки для кнопок
     const allButtons = document.querySelectorAll('.tool-button-new');
     allButtons.forEach(button => {
+        // Добавляем эффект нажатия
         button.addEventListener('mousedown', function() {
             this.style.transform = 'scale(0.95)';
         });
@@ -56,7 +77,64 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('mouseleave', function() {
             this.style.transform = 'scale(1)';
         });
+        
+        // Добавляем обработку наведения для информативных блоков
+        // Пропускаем кнопку настроек
+        if (button.id !== 'settingsButton') {
+            button.addEventListener('mouseenter', function(event) {
+                showToolTooltip(event, this.id);
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                hideToolTooltip();
+            });
+        }
     });
+    
+    // Функция для показа информативного блока при наведении на инструмент
+    function showToolTooltip(event, toolId) {
+        const tooltipContainer = document.getElementById('tool-tooltip-container');
+        if (!tooltipContainer) return;
+        
+        // Получаем описание инструмента
+        const description = TOOL_DESCRIPTIONS[toolId] || 'Инструмент';
+        
+        // Устанавливаем содержимое
+        tooltipContainer.innerHTML = description;
+        
+        // Позиционируем блок относительно кнопки
+        const buttonRect = event.target.closest('button').getBoundingClientRect();
+        
+        // Показываем блок для измерения его реальных размеров
+        tooltipContainer.style.display = 'flex';
+        tooltipContainer.style.visibility = 'hidden'; // Скрываем визуально, но можем измерить
+        
+        // Задержка для вычисления размеров
+        setTimeout(() => {
+            // Получаем реальные размеры подсказки после рендеринга
+            const tooltipRect = tooltipContainer.getBoundingClientRect();
+            const tooltipWidth = tooltipRect.width;
+            const tooltipHeight = tooltipRect.height;
+            const gap = 10; // Отступ между подсказкой и кнопкой
+            
+            // Позиция по горизонтали: слева от кнопки с отступом
+            tooltipContainer.style.left = (buttonRect.left - tooltipWidth - gap) + 'px';
+            
+            // Позиция по вертикали: центрируем по вертикали относительно кнопки
+            tooltipContainer.style.top = (buttonRect.top + (buttonRect.height - tooltipHeight) / 2) + 'px';
+            
+            // Теперь показываем
+            tooltipContainer.style.visibility = 'visible';
+        }, 0);
+    }
+    
+    // Функция для скрытия информативного блока
+    function hideToolTooltip() {
+        const tooltipContainer = document.getElementById('tool-tooltip-container');
+        if (tooltipContainer) {
+            tooltipContainer.style.display = 'none';
+        }
+    }
     
     // Функция для показа всплывающего уведомления
     function showNotification(message) {
