@@ -290,14 +290,60 @@ export async function restorePlacedObjects(session) {
     }
     
     try {
+        // Получаем текущие модели из sessionStorage для фильтрации
+        const currentModels = JSON.parse(sessionStorage.getItem('models') || '[]');
+        
+        // Если нет данных о текущих моделях, выходим
+        if (!currentModels || currentModels.length === 0) {
+            console.log("Нет данных о текущих моделях, пропускаем восстановление объектов");
+            return;
+        }
+        
+        // Получаем полные данные моделей через API для сопоставления
+        const { API_BASE_URL } = await import('./api/serverConfig.js');
+        const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ models: currentModels }),
+        });
+
+        if (!matchResponse.ok) {
+            console.error('Failed to match models with database');
+            return;
+        }
+
+        const { models: matchedModels } = await matchResponse.json();
+        
+        // Создаем набор доступных имен моделей для быстрой проверки
+        const availableModelNames = new Set();
+        matchedModels.forEach(model => {
+            const modelName = `${model.name}.glb`;
+            availableModelNames.add(modelName);
+        });
+        
+        console.log('Доступные модели для восстановления:', Array.from(availableModelNames));
+        
         // Импортируем необходимые модули
         const objectManager = await import('./modules/objectManager.js');
         const collisionModule = await import('./modules/collisionDetection.js');
         
         console.log('Восстанавливаем размещенные объекты:', session.placedObjects);
         
-        // Восстанавливаем каждый объект
-        for (const objectData of session.placedObjects) {
+        // Фильтруем объекты - восстанавливаем только те, модели которых есть в текущих modelsData
+        const objectsToRestore = session.placedObjects.filter(objectData => {
+            const isAvailable = availableModelNames.has(objectData.modelName);
+            if (!isAvailable) {
+                console.log(`Пропускаем восстановление объекта ${objectData.modelName} - модель не найдена в текущих данных`);
+            }
+            return isAvailable;
+        });
+        
+        console.log(`Будет восстановлено ${objectsToRestore.length} из ${session.placedObjects.length} объектов`);
+        
+        // Восстанавливаем только отфильтрованные объекты
+        for (const objectData of objectsToRestore) {
             // Создаем объект позиции из сохраненных координат
             const position = {
                 x: parseFloat(objectData.coordinates.x),
@@ -325,7 +371,63 @@ export async function restorePlacedObjects(session) {
         // Проверяем все объекты на коллизии после восстановления
         collisionModule.checkAllObjectsPositions();
         
-        console.log("Размещенные объекты успешно восстановлены");
+        // Если некоторые объекты были отфильтрованы, обновляем сессию в базе данных
+        if (objectsToRestore.length < session.placedObjects.length) {
+            try {
+                // Получаем user_id из sessionStorage
+                const userId = sessionStorage.getItem('userId');
+                
+                if (userId) {
+                    // Найдем объекты, которые не были восстановлены
+                    const filteredOutObjects = session.placedObjects.filter(objectData => 
+                        !availableModelNames.has(objectData.modelName)
+                    );
+                    
+                    // Обновляем сессию, сохраняя только восстановленные объекты
+                    const updatedSessionData = {
+                        ...session,
+                        placedObjects: objectsToRestore
+                    };
+                    
+                    // Возвращаем количества для моделей, объекты которых не были восстановлены
+                    // Но только если эти модели есть в текущих modelsData
+                    const updatedQuantities = { ...session.quantities };
+                    filteredOutObjects.forEach(objectData => {
+                        const modelName = objectData.modelName;
+                        // Проверяем, есть ли эта модель в текущих данных
+                        if (availableModelNames.has(modelName)) {
+                            // Если модель доступна, но объект не восстановлен (что не должно происходить)
+                            // То увеличиваем количество
+                            const currentQuantity = updatedQuantities[modelName] || 0;
+                            updatedQuantities[modelName] = currentQuantity + 1;
+                        }
+                        // Если модели нет в доступных, просто не возвращаем количество
+                    });
+                    
+                    updatedSessionData.quantities = updatedQuantities;
+                    
+                    // Сохраняем обновленную сессию
+                    const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userId, sessionData: updatedSessionData }),
+                    });
+
+                    if (saveResponse.ok) {
+                        console.log(`Сессия обновлена: удалено ${session.placedObjects.length - objectsToRestore.length} недоступных объектов`);
+                        console.log('Отфильтрованные объекты:', filteredOutObjects.map(obj => obj.modelName));
+                    } else {
+                        console.error('Failed to update session after filtering');
+                    }
+                }
+            } catch (updateError) {
+                console.error('Error updating session after filtering:', updateError);
+            }
+        }
+        
+        console.log(`Размещенные объекты успешно восстановлены: ${objectsToRestore.length} объектов`);
     } catch (error) {
         console.error("Ошибка при восстановлении размещенных объектов:", error);
         console.log("Ошибка при восстановлении объектов");
