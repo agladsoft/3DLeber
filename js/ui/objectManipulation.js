@@ -6,8 +6,7 @@ import { ground } from '../playground.js';
 import { 
     saveInitialPosition, 
     checkAndHighlightObject, 
-    checkAllObjectsPositions,
-    removeObject
+    checkAllObjectsPositions 
 } from '../objects.js';
 import { 
     canvas, 
@@ -31,7 +30,6 @@ import {
 } from './uiCore.js';
 import * as THREE from 'three';
 import { showModelDimensions, updateModelDimensions } from '../modules/dimensionDisplay/index.js';
-import { updateModelQuantityOnRemove } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
 
 /**
@@ -298,9 +296,6 @@ function prepareObjectForManipulation(object, event) {
         setRotatingState(true);
         updateInitialRotationY(object.rotation.y);
         
-        // Показываем кнопку удаления при начале вращения
-        showDeleteButtonForObject(object, event);
-        
         // Сообщаем контроллеру вида сверху, что перемещаем объект
         setObjectDraggingState(true);
         
@@ -389,8 +384,9 @@ function handleObjectDragging(event) {
         }
     }
 
-    // --- Обновляем позицию крестика во время перетаскивания ---
+    // --- Обновляем позицию крестика (кнопки удаления) во время перетаскивания ---
     if (selectedObject) {
+        // Обновляем позицию крестика, но не пересоздаем его постоянно
         updateDeleteButtonPosition(selectedObject);
     }
 }
@@ -422,11 +418,6 @@ function handleObjectRotation(event) {
     // Обновляем положение размеров при вращении ТОЛЬКО если не скрыты
     if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
         updateModelDimensions(selectedObject);
-    }
-    
-    // Обновляем позицию кнопки удаления при вращении
-    if (selectedObject) {
-        updateDeleteButtonPosition(selectedObject);
     }
 }
 
@@ -490,11 +481,14 @@ function removeDeleteButton() {
 // Обновляет позицию кнопки удаления без её пересоздания
 function updateDeleteButtonPosition(object) {
     const btn = document.getElementById('modelDeleteButton');
-    if (btn && object) {
-        const { x, y } = toScreenPosition(object, camera);
-        btn.style.left = `${x + 20}px`;
-        btn.style.top = `${y - 45}px`;
-    }
+    if (!btn) return;
+    
+    // Получаем 2D позицию центра объекта
+    const { x, y } = toScreenPosition(object, camera);
+    
+    // Обновляем позицию кнопки
+    btn.style.left = `${x + 20}px`;
+    btn.style.top = `${y - 45}px`;
 }
 
 // Обработчик двойного клика по canvas
@@ -519,6 +513,15 @@ function showDeleteButtonForObject(object, event) {
         (object.parent && object.parent.userData && object.parent.userData.isTopViewGrid)) {
         console.log('Попытка удаления размерной сетки заблокирована');
         return; // Не показываем кнопку удаления для размерной сетки
+    }
+    
+    // Если кнопка уже существует, обновляем её позицию и объект
+    const existingBtn = document.getElementById('modelDeleteButton');
+    if (existingBtn) {
+        updateDeleteButtonPosition(object);
+        // Сохраняем ссылку на новый объект в кнопке
+        existingBtn._targetObject = object;
+        return;
     }
     
     // Перед созданием новой кнопки всегда удаляем старую
@@ -552,6 +555,10 @@ function showDeleteButtonForObject(object, event) {
     btn.style.fontSize = '18px';
     btn.style.fontWeight = 'bold';
     btn.style.lineHeight = '1';
+    
+    // Сохраняем ссылку на объект в кнопке
+    btn._targetObject = object;
+    
     // Эффекты при наведении
     btn.onmouseover = function() {
         this.style.transform = 'scale(1.15) rotate(90deg)';
@@ -563,35 +570,17 @@ function showDeleteButtonForObject(object, event) {
         this.style.boxShadow = '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)';
         this.style.background = 'linear-gradient(145deg, #ff4d4d, #ff1a1a)';
     };
-    btn.onclick = function(e) {
+    
+    // Обработчик клика с использованием сохраненной ссылки на объект
+    btn.addEventListener('click', function(e) {
         e.stopPropagation();
         e.preventDefault();
-        
-        handleObjectDeletion(object);
-        removeDeleteButton();
-    };
-    
-    // Предотвращаем всплытие событий мыши для кнопки
-    btn.onmousedown = function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-    };
-    
-    btn.onmouseup = function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-    };
-    
-    // Удаляем кнопку при клике вне её
-    setTimeout(() => {
-        document.addEventListener('mousedown', onOutsideClick, { once: true });
-    }, 100);
-    
-    function onOutsideClick(e) {
-        if (!btn.contains(e.target)) {
-            removeDeleteButton();
+        if (this._targetObject) {
+            handleObjectDeletion(this._targetObject);
         }
-    }
+        removeDeleteButton();
+    });
+    
     document.body.appendChild(btn);
 }
 
@@ -600,30 +589,34 @@ function showDeleteButtonForObject(object, event) {
  * @param {THREE.Object3D} object - Объект для удаления
  */
 function handleObjectDeletion(object) {
+    console.log('handleObjectDeletion called with object:', object); // Для отладки
+    
     if (!object) {
-        console.error('Object is null or undefined');
+        console.log('No object to delete');
         return;
     }
     
-    console.log('Starting deletion for object:', object.userData.modelName);
-    
     // Сохраняем имя модели перед удалением
     const modelName = object.userData.modelName;
+    console.log('Deleting model:', modelName); // Для отладки
     
-    try {
-        // Удаляем объект
-        console.log('Calling removeObject');
-        removeObject(object);
-        console.log('Object removed from scene');
-        
-        // Обновляем количество в сайдбаре
-        if (modelName) {
-            console.log('Updating model quantity for:', modelName);
-            updateModelQuantityOnRemove(modelName);
-        }
-        
-        console.log('Object deletion completed successfully');
-    } catch (error) {
+    // Удаляем объект
+    import('../objects.js').then(module => {
+        console.log('Objects module loaded, calling removeObject'); // Для отладки
+        module.removeObject(object);
+    }).catch(error => {
         console.error('Ошибка при удалении объекта:', error);
+    });
+    
+    // Обновляем количество в сайдбаре
+    if (modelName) {
+        // Динамически импортируем функцию обновления количества
+        import('./dragAndDrop.js').then(module => {
+            if (typeof module.updateModelQuantityOnRemove === 'function') {
+                module.updateModelQuantityOnRemove(modelName);
+            }
+        }).catch(error => {
+            console.error('Ошибка при обновлении количества модели:', error);
+        });
     }
 }
