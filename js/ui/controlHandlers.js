@@ -16,6 +16,18 @@ import { showNotification } from '../utils/notifications.js';
 import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from '../core/safetyManager.js';
 
+// Описания для инструментов
+const TOOL_DESCRIPTIONS = {
+    'resetView': 'Сбросить вид',
+    'toggleDimensions': 'Показать размеры',
+    'toggleSafetyZone': 'Показать зоны безопасности',
+    'saveScreenshot': 'Сохранить скриншот',
+    'deleteAllModels': 'Удалить все объекты',
+    'closeAppButton': 'Закрыть приложение',
+    'exportModel': 'Вид сверху',
+    'playgroundButton': 'Настройки площадки'
+};
+
 // Флаг для защиты от повторной инициализации
 let controlHandlersInitialized = false;
 
@@ -39,6 +51,9 @@ export function initControlHandlers() {
 function setupControlHandlers() {
     console.log('Setting up control handlers...');
     
+    // Создаем контейнер для подсказок
+    createTooltipContainer();
+    
     // Устанавливаем обработчики для различных элементов управления
     setupScreenshotButton();
     setupPlaygroundSizeInputs();
@@ -47,7 +62,7 @@ function setupControlHandlers() {
     setupPlaygroundButton();
     setupDeleteAllButton();
     
-    // Новые обработчики из control_panel.js
+    // Обработчики для элементов панели инструментов
     setupSettingsButton();
     setupExportModelButton();
     setupToggleDimensionsButton();
@@ -58,11 +73,109 @@ function setupControlHandlers() {
 }
 
 /**
+ * Создает контейнер для подсказок инструментов
+ */
+function createTooltipContainer() {
+    // Проверяем, не создан ли уже контейнер
+    if (document.getElementById('tool-tooltip-container')) {
+        return;
+    }
+    
+    const tooltipContainer = document.createElement('div');
+    tooltipContainer.id = 'tool-tooltip-container';
+    tooltipContainer.className = 'tool-tooltip-container';
+    // Скрываем подсказку при инициализации
+    tooltipContainer.style.display = 'none';
+    
+    // Добавляем базовые стили
+    tooltipContainer.style.position = 'fixed';
+    tooltipContainer.style.backgroundColor = 'white';
+    tooltipContainer.style.color = 'black';
+    tooltipContainer.style.padding = '8px 12px';
+    tooltipContainer.style.borderRadius = '12px';
+    tooltipContainer.style.fontSize = '14px';
+    tooltipContainer.style.fontFamily = 'Arial, sans-serif';
+    tooltipContainer.style.whiteSpace = 'nowrap';
+    tooltipContainer.style.zIndex = '10000';
+    tooltipContainer.style.pointerEvents = 'none';
+    tooltipContainer.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
+    
+    document.body.appendChild(tooltipContainer);
+}
+
+/**
+ * Показывает подсказку для инструмента
+ */
+function showToolTooltip(event, toolId) {
+    const tooltipContainer = document.getElementById('tool-tooltip-container');
+    if (!tooltipContainer) return;
+    
+    // Получаем описание инструмента
+    const description = TOOL_DESCRIPTIONS[toolId] || 'Инструмент';
+    
+    // Устанавливаем содержимое
+    tooltipContainer.innerHTML = description;
+    
+    // Позиционируем блок относительно кнопки
+    const buttonRect = event.target.closest('button').getBoundingClientRect();
+    
+    // Показываем блок для измерения его реальных размеров
+    tooltipContainer.style.display = 'flex';
+    tooltipContainer.style.visibility = 'hidden'; // Скрываем визуально, но можем измерить
+    
+    // Задержка для вычисления размеров
+    setTimeout(() => {
+        // Получаем реальные размеры подсказки после рендеринга
+        const tooltipRect = tooltipContainer.getBoundingClientRect();
+        const tooltipWidth = tooltipRect.width;
+        const tooltipHeight = tooltipRect.height;
+        const gap = 10; // Отступ между подсказкой и кнопкой
+        
+        // Позиция по горизонтали: слева от кнопки с отступом
+        let leftPos = buttonRect.left - tooltipWidth - gap;
+        
+        // Проверяем, не выходит ли подсказка за левый край экрана
+        if (leftPos < 10) {
+            // Если выходит, показываем справа от кнопки
+            leftPos = buttonRect.right + gap;
+        }
+        
+        tooltipContainer.style.left = leftPos + 'px';
+        
+        // Позиция по вертикали: центрируем по вертикали относительно кнопки
+        let topPos = buttonRect.top + (buttonRect.height - tooltipHeight) / 2;
+        
+        // Проверяем границы экрана по вертикали
+        if (topPos < 10) {
+            topPos = 10;
+        } else if (topPos + tooltipHeight > window.innerHeight - 10) {
+            topPos = window.innerHeight - tooltipHeight - 10;
+        }
+        
+        tooltipContainer.style.top = topPos + 'px';
+        
+        // Теперь показываем
+        tooltipContainer.style.visibility = 'visible';
+    }, 0);
+}
+
+/**
+ * Скрывает подсказку инструмента
+ */
+function hideToolTooltip() {
+    const tooltipContainer = document.getElementById('tool-tooltip-container');
+    if (tooltipContainer) {
+        tooltipContainer.style.display = 'none';
+    }
+}
+
+/**
  * Настраивает эффекты нажатия для всех кнопок инструментов
  */
 function setupToolButtonsEffects() {
     const allButtons = document.querySelectorAll('.tool-button-new');
     allButtons.forEach(button => {
+        // Добавляем эффект нажатия
         button.addEventListener('mousedown', function() {
             this.style.transform = 'scale(0.95)';
         });
@@ -73,7 +186,21 @@ function setupToolButtonsEffects() {
         
         button.addEventListener('mouseleave', function() {
             this.style.transform = 'scale(1)';
+            // Также скрываем подсказку при уходе курсора
+            hideToolTooltip();
         });
+        
+        // Добавляем обработчики для подсказок
+        // Пропускаем кнопку настроек
+        if (button.id !== 'settingsButton') {
+            button.addEventListener('mouseenter', function(event) {
+                showToolTooltip(event, this.id);
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                hideToolTooltip();
+            });
+        }
     });
 }
 
@@ -207,11 +334,9 @@ function setupExportModelButton() {
                 // Визуальная обратная связь на кнопке
                 if (isActive) {
                     this.classList.add('active');
-                    this.title = 'Выйти из вида сверху';
                     console.log('Кнопка активирована (режим вида сверху включен)');
                 } else {
                     this.classList.remove('active');
-                    this.title = 'Экспорт';
                     console.log('Кнопка деактивирована (режим вида сверху выключен)');
                 }
             } catch (error) {
@@ -239,7 +364,6 @@ function setupToggleDimensionsButton() {
                 dimensionLabels.style.display = 'none';
                 hideAllDimensions();
                 toggleDimensionsButton.classList.add('active');
-                toggleDimensionsButton.title = 'Показать размеры';
             } else {
                 dimensionLabels.style.display = '';
                 // Показываем размеры для всех объектов
@@ -247,7 +371,6 @@ function setupToggleDimensionsButton() {
                     placedObjects.forEach(obj => showModelDimensions(obj));
                 }
                 toggleDimensionsButton.classList.remove('active');
-                toggleDimensionsButton.title = 'Скрыть размеры';
             }
         }
         
@@ -264,14 +387,12 @@ function setupToggleDimensionsButton() {
                     placedObjects.forEach(obj => showModelDimensions(obj));
                 }
                 this.classList.remove('active');
-                this.title = 'Скрыть размеры';
                 localStorage.setItem('dimensionLabelsHidden', 'false');
             } else {
                 // Скрываем размеры
                 dimensionLabels.style.display = 'none';
                 hideAllDimensions();
                 this.classList.add('active');
-                this.title = 'Показать размеры';
                 localStorage.setItem('dimensionLabelsHidden', 'true');
             }
         });
@@ -291,11 +412,9 @@ function setupToggleSafetyZoneButton() {
         if (isHidden) {
             removeAllSafetyZones();
             toggleSafetyZoneButton.classList.add('active');
-            toggleSafetyZoneButton.title = 'Показать зоны безопасности';
         } else {
             showAllSafetyZones();
             toggleSafetyZoneButton.classList.remove('active');
-            toggleSafetyZoneButton.title = 'Скрыть зоны безопасности';
         }
         
         toggleSafetyZoneButton.addEventListener('click', function() {
@@ -304,12 +423,10 @@ function setupToggleSafetyZoneButton() {
             if (isVisible) {
                 // Зоны безопасности показаны
                 this.classList.remove('active');
-                this.title = 'Скрыть зоны безопасности';
                 localStorage.setItem('safetyZoneHidden', 'false');
             } else {
                 // Зоны безопасности скрыты
                 this.classList.add('active');
-                this.title = 'Показать зоны безопасности';
                 localStorage.setItem('safetyZoneHidden', 'true');
             }
         });
