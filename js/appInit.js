@@ -1,7 +1,6 @@
 /**
  * Модуль для инициализации всех компонентов приложения
  */
-import { initSidebar } from './sidebar.js';
 
 /**
  * Инициализирует все компоненты приложения
@@ -9,8 +8,8 @@ import { initSidebar } from './sidebar.js';
 function initializeApp() {
     console.log('Initializing application components...');
     
-    // Инициализируем сайдбар
-    initSidebar();
+    // Сайдбар теперь инициализируется из modal.js
+    // чтобы избежать дублирования моделей
     
     console.log('Application components initialized successfully');
 }
