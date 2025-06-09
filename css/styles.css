@@ -845,24 +845,7 @@ body, html {
     left: 20px;
 }
 
-/* Правая панель управления */
-#controlPanel {
-    position: absolute;
-    width: 100px;
-    height: 600px; /* По умолчанию панель развернута */
-    right: 0;
-    top: 50px;
-    background: #FFFFFF;
-    border-radius: 50px 0px 0px 50px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 30px;
-    z-index: 2000;
-    transition: height 0.35s ease;
-    overflow: hidden;
-}
+/* Правая панель управления - удалено, используется новое определение ниже */
 
 #controlPanel.collapsed {
     height: 100px; /* В свернутом состоянии показываем только кнопку */
@@ -1955,20 +1938,7 @@ model-viewer::part(default-progress-mask) {
 }
 
 
-/* Стили для обновленной правой панели инструментов */
-#controlPanel {
-    position: absolute !important;
-    top: 50px !important;
-    right: 20px !important;
-    z-index: 100 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    background-color: white !important;
-    border-radius: 15px !important;
-    padding: 15px !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
-}
+/* Стили для обновленной правой панели инструментов - удалено, используется финальное определение ниже */
 
 /* Контейнер для кнопок */
 .tool-buttons-container {
@@ -2205,17 +2175,21 @@ color: #333 !important;
     opacity: 0; /* Скрываем подсказки, так как на макете их нет */
 }
 
-/* Переопределение предыдущих стилей для корректной работы новой панели */
+/* Финальные стили для корректной работы новой панели */
 #controlPanel {
-    /* width: 70px !important; */
+    width: auto !important;
     height: 100% !important;
     background: transparent !important;
+    border: none !important;
     border-radius: 0 !important;
+    box-shadow: none !important;
     overflow: visible !important;
     position: fixed !important;
     right: 0 !important;
     top: 0 !important;
     bottom: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 #controlPanel.collapsed {

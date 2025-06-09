@@ -363,14 +363,14 @@ function setupToggleDimensionsButton() {
             if (isHidden) {
                 dimensionLabels.style.display = 'none';
                 hideAllDimensions();
-                toggleDimensionsButton.classList.add('active');
+                toggleDimensionsButton.classList.remove('active');
             } else {
                 dimensionLabels.style.display = '';
                 // Показываем размеры для всех объектов
                 if (Array.isArray(placedObjects)) {
                     placedObjects.forEach(obj => showModelDimensions(obj));
                 }
-                toggleDimensionsButton.classList.remove('active');
+                toggleDimensionsButton.classList.add('active');
             }
         }
         
@@ -386,13 +386,13 @@ function setupToggleDimensionsButton() {
                 if (Array.isArray(placedObjects)) {
                     placedObjects.forEach(obj => showModelDimensions(obj));
                 }
-                this.classList.remove('active');
+                this.classList.add('active');
                 localStorage.setItem('dimensionLabelsHidden', 'false');
             } else {
                 // Скрываем размеры
                 dimensionLabels.style.display = 'none';
                 hideAllDimensions();
-                this.classList.add('active');
+                this.classList.remove('active');
                 localStorage.setItem('dimensionLabelsHidden', 'true');
             }
         });
@@ -411,10 +411,10 @@ function setupToggleSafetyZoneButton() {
         // Устанавливаем начальное состояние
         if (isHidden) {
             removeAllSafetyZones();
-            toggleSafetyZoneButton.classList.add('active');
+            toggleSafetyZoneButton.classList.remove('active');
         } else {
             showAllSafetyZones();
-            toggleSafetyZoneButton.classList.remove('active');
+            toggleSafetyZoneButton.classList.add('active');
         }
         
         toggleSafetyZoneButton.addEventListener('click', function() {
@@ -422,11 +422,11 @@ function setupToggleSafetyZoneButton() {
             
             if (isVisible) {
                 // Зоны безопасности показаны
-                this.classList.remove('active');
+                this.classList.add('active');
                 localStorage.setItem('safetyZoneHidden', 'false');
             } else {
                 // Зоны безопасности скрыты
-                this.classList.add('active');
+                this.classList.remove('active');
                 localStorage.setItem('safetyZoneHidden', 'true');
             }
         });
