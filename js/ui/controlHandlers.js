@@ -502,10 +502,10 @@ function setupChangePlaygroundButton() {
         changePlaygroundButton.addEventListener("click", async () => {
             try {
                 // Импортируем функцию показа модального окна из модуля modal.js
-                import('../modal.js').then(modalModule => {
+                import('../modal.js').then(async modalModule => {
                     if (typeof modalModule.showPlatformSelectModal === 'function') {
                         // Вызываем функцию показа модального окна
-                        modalModule.showPlatformSelectModal();
+                        await modalModule.showPlatformSelectModal();
                     } else {
                         console.error("Функция showPlatformSelectModal не найдена в модуле");
                     }

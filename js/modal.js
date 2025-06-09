@@ -9,11 +9,24 @@ import { loadModels } from './models.js';
 import { clearModelCache } from './modules/objectManager.js';
 
 // Экспортируем функцию для показа модального окна выбора площадки
-export function showPlatformSelectModal() {
+export async function showPlatformSelectModal() {
     const platformSelectModal = document.getElementById('platformSelectModal');
     const appModal = document.getElementById('appModal');
     
     if (platformSelectModal) {
+        // Загружаем модели если они есть в sessionStorage
+        const userId = sessionStorage.getItem('userId');
+        const models = JSON.parse(sessionStorage.getItem('models'));
+        if (userId && models) {
+            try {
+                // Сначала инициализируем sidebar
+                const { initSidebar } = await import('./sidebar.js');
+                initSidebar();
+            } catch (error) {
+                console.error('Error loading models in showPlatformSelectModal:', error);
+            }
+        }
+        
         // Восстанавливаем значения из текущей площадки
         updateModalValuesFromCurrent();
         
@@ -68,6 +81,76 @@ function updateModalValuesFromCurrent() {
     });
 }
 
+// Функция для загрузки моделей если они есть в sessionStorage
+async function ensureModelsLoaded() {
+    const userId = sessionStorage.getItem('userId');
+    const models = JSON.parse(sessionStorage.getItem('models'));
+    if (userId && models) {
+        try {
+            console.log('Loading models from sessionStorage...');
+            // Сначала инициализируем sidebar
+            const { initSidebar } = await import('./sidebar.js');
+            initSidebar();
+        } catch (error) {
+            console.error('Error loading models from sessionStorage:', error);
+        }
+    }
+}
+
+// Функция для гарантированной инициализации sidebar при показе приложения
+async function ensureSidebarInitialized() {
+    const userId = sessionStorage.getItem('userId');
+    const models = JSON.parse(sessionStorage.getItem('models'));
+    if (userId && models) {
+        try {
+            console.log('Ensuring sidebar is initialized...');
+            const { initSidebar } = await import('./sidebar.js');
+            initSidebar();
+        } catch (error) {
+            console.error('Error initializing sidebar:', error);
+        }
+    }
+}
+
+// Наблюдатель за изменениями видимости приложения
+function setupAppVisibilityObserver() {
+    const appModal = document.getElementById('appModal');
+    if (appModal) {
+        // Создаем MutationObserver для отслеживания изменения стиля display
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const isVisible = appModal.style.display === 'block';
+                    if (isVisible) {
+                        console.log('App modal became visible, ensuring sidebar is initialized...');
+                        setTimeout(() => {
+                            ensureSidebarInitialized();
+                        }, 100);
+                    }
+                }
+            });
+        });
+        
+        // Настраиваем наблюдение за изменением атрибута style
+        observer.observe(appModal, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
+        
+        console.log('App visibility observer setup complete');
+    }
+}
+
+// Обработчик события pageshow для загрузки моделей при возвращении на страницу
+window.addEventListener('pageshow', async function(event) {
+    // Проверяем, не загружены ли уже модели
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.innerHTML.trim() === '') {
+        console.log('Pageshow event: Loading models...');
+        await ensureModelsLoaded();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Получаем элементы DOM
     const launchContainer = document.getElementById('launchContainer');
@@ -82,6 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Инициализация превью площадки
     initializePlaygroundPreview();
+    
+    // Настраиваем наблюдатель за видимостью приложения
+    setupAppVisibilityObserver();
 
     // Добавляем обработчики для цветных квадратиков
     colorSquares.forEach(square => {
@@ -202,11 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
     if (cancelAppButton) {
-        cancelAppButton.addEventListener('click', () => {
+        cancelAppButton.addEventListener('click', async () => {
             platformSelectModal.style.display = 'none';
             
             // Проверяем, нужно ли вернуться к приложению
             if (window.returnToApp) {
+                // Загружаем модели перед возвратом к приложению
+                await ensureModelsLoaded();
                 // Возвращаемся к приложению
                 appModal.style.display = 'block';
             } else {
@@ -285,13 +373,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Запускаем приложение
-                if (window.initApp) {
-                    window.initApp();
-                    setTimeout(initializeTopViewButtonWithDelay, 1000);
-                    setTimeout(() => {
-                        console.log("Запуск проверки сцены после открытия модального окна");
-                        startSceneChecks();
-                    }, 3000);
+                if (window.returnToApp) {
+                    try {
+                        import('./playground.js').then(module => {
+                            // Загружаем площадку с сохраненными параметрами
+                            module.loadPlayground(
+                                window.selectedPlaygroundType,
+                                window.selectedPlaygroundWidth,
+                                window.selectedPlaygroundLength,
+                                window.selectedPlaygroundColor
+                            ).then(() => {
+                                console.log('Площадка успешно восстановлена');
+                            });
+                        });
+                    } catch (error) {
+                        console.error('Ошибка при загрузке площадки:', error);
+                    }
+                    
+                    // Также инициализируем sidebar при возврате к приложению
+                    setTimeout(async () => {
+                        console.log('Reinitializing sidebar for returnToApp...');
+                        const { initSidebar } = await import('./sidebar.js');
+                        initSidebar();
+                    }, 500);
+                } else {
+                    if (window.initApp) {
+                        window.initApp();
+                        setTimeout(initializeTopViewButtonWithDelay, 1000);
+                        setTimeout(() => {
+                            console.log("Запуск проверки сцены после открытия модального окна");
+                            startSceneChecks();
+                        }, 3000);
+                        
+                        // Инициализируем sidebar после запуска приложения
+                        setTimeout(async () => {
+                            const { initSidebar } = await import('./sidebar.js');
+                            initSidebar();
+                            console.log('Sidebar reinitialized after app start');
+                        }, 500);
+                    }
                 }
                 
                 // Восстанавливаем состояние кнопки после задержки
@@ -375,6 +495,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('No user ID found');
                 }
 
+                // Получаем модели из sessionStorage и загружаем их
+                const models = JSON.parse(sessionStorage.getItem('models'));
+                if (models) {
+                    // Сначала инициализируем sidebar
+                    const { initSidebar } = await import('./sidebar.js');
+                    initSidebar();
+                }
+
                 // Получаем данные сессии из БД
                 const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
                 if (!sessionResponse.ok) {
@@ -432,6 +560,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (error) {
                         console.error('Ошибка при загрузке площадки:', error);
                     }
+                    
+                    // Также инициализируем sidebar при возврате к приложению
+                    setTimeout(async () => {
+                        console.log('Reinitializing sidebar for returnToApp...');
+                        const { initSidebar } = await import('./sidebar.js');
+                        initSidebar();
+                    }, 500);
                 } else {
                     if (window.initApp) {
                         window.initApp();
@@ -440,6 +575,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.log("Запуск проверки сцены после открытия модального окна");
                             startSceneChecks();
                         }, 3000);
+                        
+                        // Инициализируем sidebar после запуска приложения
+                        setTimeout(async () => {
+                            const { initSidebar } = await import('./sidebar.js');
+                            initSidebar();
+                            console.log('Sidebar reinitialized after app start');
+                        }, 500);
                     }
                 }
             } catch (error) {
