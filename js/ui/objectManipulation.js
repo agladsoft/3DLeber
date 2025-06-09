@@ -6,7 +6,8 @@ import { ground } from '../playground.js';
 import { 
     saveInitialPosition, 
     checkAndHighlightObject, 
-    checkAllObjectsPositions 
+    checkAllObjectsPositions,
+    removeObject
 } from '../objects.js';
 import { 
     canvas, 
@@ -30,6 +31,7 @@ import {
 } from './uiCore.js';
 import * as THREE from 'three';
 import { showModelDimensions, updateModelDimensions } from '../modules/dimensionDisplay/index.js';
+import { updateModelQuantityOnRemove } from './dragAndDrop.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
 
 /**
@@ -279,6 +281,9 @@ function prepareObjectForManipulation(object, event) {
     if (event.button === 0) {
         setDraggingState(true);
         
+        // Показываем кнопку удаления при начале перетаскивания
+        showDeleteButtonForObject(object, event);
+        
         // Сообщаем контроллеру вида сверху, что перемещаем объект
         setObjectDraggingState(true);
         
@@ -292,6 +297,9 @@ function prepareObjectForManipulation(object, event) {
     else if (event.button === 2) {
         setRotatingState(true);
         updateInitialRotationY(object.rotation.y);
+        
+        // Показываем кнопку удаления при начале вращения
+        showDeleteButtonForObject(object, event);
         
         // Сообщаем контроллеру вида сверху, что перемещаем объект
         setObjectDraggingState(true);
@@ -381,10 +389,9 @@ function handleObjectDragging(event) {
         }
     }
 
-    // --- Показываем крестик (кнопку удаления) над объектом во время перетаскивания ---
+    // --- Обновляем позицию крестика во время перетаскивания ---
     if (selectedObject) {
-        // Крестик должен следовать за объектом
-        showDeleteButtonForObject(selectedObject, event);
+        updateDeleteButtonPosition(selectedObject);
     }
 }
 
@@ -415,6 +422,11 @@ function handleObjectRotation(event) {
     // Обновляем положение размеров при вращении ТОЛЬКО если не скрыты
     if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
         updateModelDimensions(selectedObject);
+    }
+    
+    // Обновляем позицию кнопки удаления при вращении
+    if (selectedObject) {
+        updateDeleteButtonPosition(selectedObject);
     }
 }
 
@@ -473,6 +485,16 @@ function toScreenPosition(obj, camera) {
 function removeDeleteButton() {
     const oldBtn = document.getElementById('modelDeleteButton');
     if (oldBtn) oldBtn.remove();
+}
+
+// Обновляет позицию кнопки удаления без её пересоздания
+function updateDeleteButtonPosition(object) {
+    const btn = document.getElementById('modelDeleteButton');
+    if (btn && object) {
+        const { x, y } = toScreenPosition(object, camera);
+        btn.style.left = `${x + 20}px`;
+        btn.style.top = `${y - 45}px`;
+    }
 }
 
 // Обработчик двойного клика по canvas
@@ -543,15 +565,32 @@ function showDeleteButtonForObject(object, event) {
     };
     btn.onclick = function(e) {
         e.stopPropagation();
+        e.preventDefault();
+        
         handleObjectDeletion(object);
         removeDeleteButton();
     };
+    
+    // Предотвращаем всплытие событий мыши для кнопки
+    btn.onmousedown = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+    };
+    
+    btn.onmouseup = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+    };
+    
     // Удаляем кнопку при клике вне её
     setTimeout(() => {
         document.addEventListener('mousedown', onOutsideClick, { once: true });
-    }, 0);
+    }, 100);
+    
     function onOutsideClick(e) {
-        if (!btn.contains(e.target)) removeDeleteButton();
+        if (!btn.contains(e.target)) {
+            removeDeleteButton();
+        }
     }
     document.body.appendChild(btn);
 }
@@ -561,27 +600,30 @@ function showDeleteButtonForObject(object, event) {
  * @param {THREE.Object3D} object - Объект для удаления
  */
 function handleObjectDeletion(object) {
-    if (!object) return;
+    if (!object) {
+        console.error('Object is null or undefined');
+        return;
+    }
+    
+    console.log('Starting deletion for object:', object.userData.modelName);
     
     // Сохраняем имя модели перед удалением
     const modelName = object.userData.modelName;
     
-    // Удаляем объект
-    import('../objects.js').then(module => {
-        module.removeObject(object);
-    }).catch(error => {
+    try {
+        // Удаляем объект
+        console.log('Calling removeObject');
+        removeObject(object);
+        console.log('Object removed from scene');
+        
+        // Обновляем количество в сайдбаре
+        if (modelName) {
+            console.log('Updating model quantity for:', modelName);
+            updateModelQuantityOnRemove(modelName);
+        }
+        
+        console.log('Object deletion completed successfully');
+    } catch (error) {
         console.error('Ошибка при удалении объекта:', error);
-    });
-    
-    // Обновляем количество в сайдбаре
-    if (modelName) {
-        // Динамически импортируем функцию обновления количества
-        import('./dragAndDrop.js').then(module => {
-            if (typeof module.updateModelQuantityOnRemove === 'function') {
-                module.updateModelQuantityOnRemove(modelName);
-            }
-        }).catch(error => {
-            console.error('Ошибка при обновлении количества модели:', error);
-        });
     }
 }
