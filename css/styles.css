@@ -2013,8 +2013,12 @@ color: #333 !important;
 }
 
 .tool-button-new.active {
-    background: #f0f0f0;
+    background: #F05323 !important; /* Оранжевый цвет для активного состояния */
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tool-button-new.active svg path {
+    stroke: #FFFFFF !important; /* Белый цвет для иконок в активном состоянии */
 }
 
 /* Специальные стили для отображения подсказок */

@@ -237,4 +237,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Добавляем обработчик для кнопки "Показать размеры"
+    if (toggleDimensionsButton) {
+        toggleDimensionsButton.addEventListener('click', function() {
+            // Добавляем/удаляем класс active для изменения цвета кнопки
+            this.classList.toggle('active');
+        });
+    }
+
+    // Добавляем обработчик для кнопки "Показать зону безопасности"
+    if (toggleSafetyZoneButton) {
+        toggleSafetyZoneButton.addEventListener('click', function() {
+            // Добавляем/удаляем класс active для изменения цвета кнопки
+            this.classList.toggle('active');
+        });
+    }
+
+    // Добавляем обработчик для кнопки "Настройки площадки"
+    if (playgroundButton) {
+        playgroundButton.addEventListener('click', function() {
+            // Добавляем/удаляем класс active для изменения цвета кнопки
+            this.classList.toggle('active');
+        });
+    }
 });
