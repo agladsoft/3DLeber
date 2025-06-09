@@ -53,11 +53,11 @@ export const RENDERER_SETTINGS = {
 export const LIGHTING = {
     ambientLight: {
         color: 0xffffff,    // Белый цвет
-        intensity: 0.5      // Интенсивность
+        intensity: 0.8      // Интенсивность (увеличена с 0.5 до 0.7)
     },
     directionalLight: {
         color: 0xffffff,    // Белый цвет
-        intensity: 0.8,     // Интенсивность
+        intensity: 1.1,     // Интенсивность (увеличена с 0.8 до 1.1)
         position: {         // Позиция источника света
             x: 50,
             y: 50,

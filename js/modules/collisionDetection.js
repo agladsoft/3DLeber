@@ -194,6 +194,7 @@ export function checkAndHighlightObject(object) {
     
     // Проверяем коллизии с другими объектами
     let hasCollision = false;
+    let collidingObjects = [];
     
     for (let otherObject of placedObjects) {
         // Пропускаем проверку с самим собой
@@ -202,8 +203,35 @@ export function checkAndHighlightObject(object) {
         // Проверяем пересечение с другим объектом
         if (checkObjectsIntersection(object, otherObject)) {
             hasCollision = true;
-            break;
+            collidingObjects.push(otherObject);
         }
+    }
+    
+    // Сначала снимаем подсветку коллизий со всех объектов, кроме тех, которые сейчас пересекаются
+    for (let otherObject of placedObjects) {
+        if (otherObject === object) continue;
+        
+        // Снимаем подсветку с объектов, которые не пересекаются с текущим
+        if (!collidingObjects.includes(otherObject)) {
+            // Проверяем, не пересекается ли этот объект с другими объектами
+            let hasOtherCollisions = false;
+            for (let thirdObject of placedObjects) {
+                if (thirdObject === otherObject || thirdObject === object) continue;
+                if (checkObjectsIntersection(otherObject, thirdObject)) {
+                    hasOtherCollisions = true;
+                    break;
+                }
+            }
+            // Если нет других коллизий, снимаем подсветку
+            if (!hasOtherCollisions) {
+                highlightObjectCollision(otherObject, false);
+            }
+        }
+    }
+    
+    // Подсвечиваем все пересекающиеся объекты
+    for (let collidingObject of collidingObjects) {
+        highlightObjectCollision(collidingObject, true);
     }
     
     // Проверяем, находится ли объект в пределах площадки
