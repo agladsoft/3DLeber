@@ -331,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     if (window.initApp) {
                         window.initApp();
-                        setTimeout(initializeTopViewButtonWithDelay, 1000);
                         setTimeout(() => {
                             console.log("Запуск проверки сцены после открытия модального окна");
                             startSceneChecks();
@@ -480,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     if (window.initApp) {
                         window.initApp();
-                        setTimeout(initializeTopViewButtonWithDelay, 1000);
                         setTimeout(() => {
                             console.log("Запуск проверки сцены после открытия модального окна");
                             startSceneChecks();
@@ -538,25 +536,6 @@ function updatePlaygroundPreview(modelName) {
         // Заменяем расширение .glb на .png
         const imageName = modelName.replace('.glb', '.png');
         playgroundPreview.src = `textures/${imageName}`;
-    }
-}
-
-/**
- * Инициализирует кнопку "Вид сверху" с задержкой после открытия модального окна
- */
-function initializeTopViewButtonWithDelay() {
-    console.log("Инициализация кнопки вида сверху в модальном окне...");
-    const topViewButton = document.getElementById("topView");
-    
-    if (topViewButton) {
-        console.log("Кнопка вида сверху найдена, устанавливаем базовый стиль");
-        
-        topViewButton.textContent = "🔝 Вид сверху (сетка 1×1м)";
-        topViewButton.classList.remove("active");
-        
-        console.log("Базовый стиль кнопки установлен:", topViewButton.style.backgroundColor);
-    } else {
-        console.error("Кнопка вида сверху не найдена при инициализации модального окна");
     }
 }
 
