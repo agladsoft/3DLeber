@@ -92,6 +92,15 @@ function animateResize(oldWidth, oldLength, newWidth, newLength) {
  * @param {Number} length - Текущая длина в процессе анимации
  */
 function updateDuringAnimation(width, length) {
+    // Обновляем глобальные переменные для правильной проверки коллизий во время анимации
+    window.selectedPlaygroundWidth = width;
+    window.selectedPlaygroundLength = length;
+    
+    // Также обновляем window.app переменные
+    if (!window.app) window.app = {};
+    window.app.playgroundWidth = width;
+    window.app.playgroundLength = length;
+    
     // Если ground существует и имеет оригинальные размеры, масштабируем его
     if (ground && ground.userData.originalWidth && ground.userData.originalDepth) {
         const scaleX = width / ground.userData.originalWidth;
@@ -101,6 +110,9 @@ function updateDuringAnimation(width, length) {
     
     // Обновляем метки размеров
     updateLabelsDuringAnimation(width, length);
+    
+    // Проверяем позиции объектов во время анимации для правильного отображения подсветки
+    checkAllObjectsPositions(width, length);
 }
 
 /**
@@ -113,7 +125,7 @@ function finalizeResize(newWidth, newLength) {
     createPlayground(newWidth, newLength);
     
     // Проверяем позиции всех объектов после изменения размеров
-    checkAllObjectsPositions();
+    checkAllObjectsPositions(newWidth, newLength);
     
     // Удаляем все желтые элементы после обновления
     removeAllYellowElements();

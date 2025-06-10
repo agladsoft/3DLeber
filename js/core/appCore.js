@@ -132,13 +132,9 @@ export async function initializeApp() {
             console.error('Ошибка при инициализации UI:', uiError);
         }
         
-        try {
-            // Проверяем позиции всех объектов после инициализации
-            console.log('Проверка позиций объектов');
-            checkAllObjectsPositions();
-        } catch (positionError) {
-            console.error('Ошибка при проверке позиций объектов:', positionError);
-        }
+        // Проверяем позиции всех объектов после загрузки сессии
+        const dimensions = getCurrentPlaygroundDimensions();
+        checkAllObjectsPositions(dimensions.width, dimensions.length);
         
         try {
             // Инициализируем модуль отображения размеров объектов
@@ -322,4 +318,12 @@ export function updateRendererSize() {
             // Код проверки сетки удален - вид сверху работает без сетки
         }
     }
+}
+
+// Вспомогательная функция для получения текущих размеров площадки
+function getCurrentPlaygroundDimensions() {
+    return {
+        width: window.selectedPlaygroundWidth || (window.app && window.app.playgroundWidth) || 40,
+        length: window.selectedPlaygroundLength || (window.app && window.app.playgroundLength) || 30
+    };
 }

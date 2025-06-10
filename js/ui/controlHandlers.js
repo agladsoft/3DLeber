@@ -728,9 +728,23 @@ function setupPlaygroundButton() {
             return; // Размеры не изменились, ничего не делаем
         }
         
-        // Сохраняем новые размеры
+        // Сохраняем новые размеры в обеих переменных
         window.selectedPlaygroundWidth = newWidth;
         window.selectedPlaygroundLength = newLength;
+        
+        // Также обновляем window.app переменные
+        if (!window.app) window.app = {};
+        window.app.playgroundWidth = newWidth;
+        window.app.playgroundLength = newLength;
+        
+        // Сразу проверяем коллизии с новыми размерами
+        try {
+            const { checkAllObjectsPositions } = await import('../objects.js');
+            checkAllObjectsPositions(newWidth, newLength);
+            console.log('Проверка коллизий выполнена с новыми размерами:', { newWidth, newLength });
+        } catch (error) {
+            console.error('Ошибка при проверке коллизий:', error);
+        }
         
         // Получаем текущий цвет
         const currentColor = window.selectedPlaygroundColor || 'серый';

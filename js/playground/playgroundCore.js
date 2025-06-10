@@ -26,8 +26,32 @@ export function updatePlaygroundDimensions(width, length) {
     playgroundWidth = parseFloat(width);
     playgroundLength = parseFloat(length);
     
+    // Обновляем глобальные переменные для проверки коллизий
+    window.selectedPlaygroundWidth = playgroundWidth;
+    window.selectedPlaygroundLength = playgroundLength;
+    
+    // Также обновляем window.app переменные
+    if (!window.app) window.app = {};
+    window.app.playgroundWidth = playgroundWidth;
+    window.app.playgroundLength = playgroundLength;
+    
+    console.log('Обновлены размеры площадки:', {
+        width: playgroundWidth,
+        length: playgroundLength,
+        windowWidth: window.selectedPlaygroundWidth,
+        windowLength: window.selectedPlaygroundLength,
+        appWidth: window.app.playgroundWidth,
+        appLength: window.app.playgroundLength
+    });
+    
     // Обновляем метки с правильными значениями
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
+    
+    // Принудительно проверяем позиции всех объектов после обновления размеров
+    setTimeout(() => {
+        checkAllObjectsPositions(playgroundWidth, playgroundLength);
+        console.log('Проверка коллизий выполнена после обновления размеров');
+    }, 10);
 }
 
 /**
@@ -40,6 +64,15 @@ export function createPlayground(width, length) {
     // Обновляем размеры площадки
     playgroundWidth = width;
     playgroundLength = length;
+    
+    // Обновляем глобальные переменные для проверки коллизий
+    window.selectedPlaygroundWidth = playgroundWidth;
+    window.selectedPlaygroundLength = playgroundLength;
+    
+    // Также обновляем window.app переменные
+    if (!window.app) window.app = {};
+    window.app.playgroundWidth = playgroundWidth;
+    window.app.playgroundLength = playgroundLength;
     
     // Обновляем текстовый статус и метки размеров
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
@@ -104,13 +137,23 @@ export function resetPlayground(width, length) {
     // Обновляем текстовый статус и метки размеров
     playgroundWidth = width;
     playgroundLength = length;
+    
+    // Обновляем глобальные переменные для проверки коллизий
+    window.selectedPlaygroundWidth = playgroundWidth;
+    window.selectedPlaygroundLength = playgroundLength;
+    
+    // Также обновляем window.app переменные
+    if (!window.app) window.app = {};
+    window.app.playgroundWidth = playgroundWidth;
+    window.app.playgroundLength = playgroundLength;
+    
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
     
     // Удаляем все желтые элементы
     removeAllYellowElements();
     
     // Проверяем позиции всех объектов после изменения размеров
-    checkAllObjectsPositions();
+    checkAllObjectsPositions(width, length);
     
     // Получаем цвет площадки, если доступен
     let groundColor = 'серый';

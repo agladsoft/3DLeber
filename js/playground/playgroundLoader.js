@@ -5,6 +5,7 @@ import { scene } from '../scene.js';
 import { ground, updateGroundReferences, updatePlaygroundDimensions } from './playgroundCore.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import { PLAYGROUND } from '../config.js';
+import { checkAllObjectsPositions } from '../objects.js';
 
 
 /**
@@ -20,13 +21,15 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
     let userLength = PLAYGROUND.defaultLength;
     let userColor = 'серый'; // Добавляем переменную с цветом по умолчанию
     
-    // Получаем размеры площадки
-    if (width && length) {
+    // Получаем размеры площадки - приоритет у переданных параметров
+    if (width !== null && length !== null) {
         userWidth = width;
         userLength = length;
+        console.log('Используем переданные размеры:', { width, length });
     } else if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
         userWidth = window.selectedPlaygroundWidth;
         userLength = window.selectedPlaygroundLength;
+        console.log('Используем глобальные размеры:', { userWidth, userLength });
     } else {
         const widthInput = document.getElementById("playgroundWidth");
         const lengthInput = document.getElementById("playgroundLength");
@@ -34,6 +37,7 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
             userWidth = parseFloat(widthInput.value) || PLAYGROUND.defaultWidth;
             userLength = parseFloat(lengthInput.value) || PLAYGROUND.defaultLength;
         }
+        console.log('Используем размеры из DOM или по умолчанию:', { userWidth, userLength });
     }
     
     // Получаем цвет площадки
@@ -47,12 +51,20 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
     const simplePlane = createSimplePlayground(userWidth, userLength, userColor);
     // Устанавливаем позицию площадки на Y=0
     if (simplePlane && simplePlane.position) simplePlane.position.y = 0;
+    
     updatePlaygroundDimensions(userWidth, userLength);
     
     // Сохраняем цвет площадки в userData
     if (simplePlane && simplePlane.userData) {
         simplePlane.userData.groundColor = userColor;
     }
+    
+    // Проверяем позиции всех объектов после загрузки площадки
+    setTimeout(() => {
+        checkAllObjectsPositions(userWidth, userLength);
+        console.log('Проверка коллизий выполнена после загрузки площадки с размерами:', { userWidth, userLength });
+    }, 100);
+    
     setTimeout(() => {
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {

@@ -25,6 +25,16 @@ const MAX_CACHE_SIZE = 10;
 let nextObjectId = 1;
 
 /**
+ * Вспомогательная функция для получения текущих размеров площадки
+ */
+function getCurrentPlaygroundDimensions() {
+    return {
+        width: window.selectedPlaygroundWidth || (window.app && window.app.playgroundWidth) || 40,
+        length: window.selectedPlaygroundLength || (window.app && window.app.playgroundLength) || 30
+    };
+}
+
+/**
  * Обрабатывает загруженную модель
  * @param {Object} container - Контейнер модели
  * @param {String} modelName - Имя файла модели
@@ -91,8 +101,9 @@ function processLoadedModel(container, modelName, position) {
     // Логируем общее количество размещенных объектов
     console.log("Всего размещено объектов:", placedObjects.length);
     
-    // Проверяем все объекты на коллизии
-    checkAllObjectsPositions();
+    // Проверяем все объекты на коллизии с текущими размерами площадки
+    const dimensions = getCurrentPlaygroundDimensions();
+    checkAllObjectsPositions(dimensions.width, dimensions.length);
     
     // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
     if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
@@ -439,8 +450,9 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Логируем общее количество размещенных объектов
                 console.log("Всего размещено объектов:", placedObjects.length);
                 
-                // Проверяем все объекты на коллизии
-                checkAllObjectsPositions();
+                // Проверяем все объекты на коллизии с текущими размерами площадки
+                const dimensions = getCurrentPlaygroundDimensions();
+                checkAllObjectsPositions(dimensions.width, dimensions.length);
                 
                 // Автоматически показываем размеры модели при добавлении на площадку, если пользователь не скрыл размеры
                 if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
@@ -638,7 +650,8 @@ export function removeObject(container, isMassRemoval = false) {
         }
         
         // Перепроверяем все объекты
-        checkAllObjectsPositions();
+        const dimensions = getCurrentPlaygroundDimensions();
+        checkAllObjectsPositions(dimensions.width, dimensions.length);
     }).catch(error => {
         console.error('Ошибка при удалении размеров модели:', error);
         
@@ -650,7 +663,8 @@ export function removeObject(container, isMassRemoval = false) {
             placedObjects.splice(index, 1);
         }
         
-        checkAllObjectsPositions();
+        const dimensions = getCurrentPlaygroundDimensions();
+        checkAllObjectsPositions(dimensions.width, dimensions.length);
     });
     
     // Дополнительно ищем и удаляем объекты размеров напрямую из сцены

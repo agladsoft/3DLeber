@@ -5,17 +5,48 @@
 import { resetPlayground, updatePlaygroundDimensions, ground } from './playground/playgroundCore.js';
 import { createSimplePlayground } from './playground/playgroundCreator.js';
 
+// Вспомогательная функция для синхронного обновления всех переменных размеров
+function updateAllPlaygroundVariables(width, length) {
+    // Обновляем window.selected переменные
+    window.selectedPlaygroundWidth = width;
+    window.selectedPlaygroundLength = length;
+    
+    // Обновляем window.app переменные
+    if (!window.app) window.app = {};
+    window.app.playgroundWidth = width;
+    window.app.playgroundLength = length;
+    
+    console.log('🔄 Все переменные размеров обновлены:', {
+        selectedWidth: window.selectedPlaygroundWidth,
+        selectedLength: window.selectedPlaygroundLength,
+        appWidth: window.app.playgroundWidth,
+        appLength: window.app.playgroundLength
+    });
+}
+
+// Вспомогательная функция для вызова проверки коллизий
+async function checkCollisionsWithCurrentSizes(width, length) {
+    try {
+        const { checkAllObjectsPositions } = await import('./objects.js');
+        checkAllObjectsPositions(width, length);
+        console.log('✅ Проверка коллизий выполнена с размерами:', { width, length });
+    } catch (error) {
+        console.error('Ошибка при проверке коллизий:', error);
+    }
+}
+
 // Создаем глобальные функции для доступа из других модулей
 window.resetPlayground = function(width, length, colorHex) {
     console.log('Вызвана глобальная функция resetPlayground:', { width, length, colorHex });
     try {
+        // СНАЧАЛА обновляем все переменные
+        updateAllPlaygroundVariables(width, length);
+        
+        // ЗАТЕМ проверяем коллизии с новыми размерами
+        checkCollisionsWithCurrentSizes(width, length);
+        
         // Применяем изменения размеров
         resetPlayground(width, length);
-        
-        // Обновляем глобальные размеры
-        window.app = window.app || {};
-        window.app.playgroundWidth = width;
-        window.app.playgroundLength = length;
         
         // Если передан цвет, обновляем цвет площадки
         if (colorHex) {
@@ -51,6 +82,12 @@ window.setPlaygroundParams = async function(width, length, colorName) {
     console.log('Вызвана глобальная функция setPlaygroundParams:', { width, length, colorName });
     
     try {
+        // СНАЧАЛА обновляем все переменные
+        updateAllPlaygroundVariables(width, length);
+        
+        // ЗАТЕМ проверяем коллизии с новыми размерами
+        await checkCollisionsWithCurrentSizes(width, length);
+        
         // Попытка 1: Использовать функцию createSimplePlayground напрямую
         const creatorModule = await import('./playground/playgroundCreator.js');
         if (creatorModule && creatorModule.createSimplePlayground) {
@@ -109,13 +146,14 @@ window.setPlaygroundParams = async function(width, length, colorName) {
 window.updatePlaygroundDimensions = function(width, length) {
     console.log('Вызвана глобальная функция updatePlaygroundDimensions:', { width, length });
     try {
-        // Обновляем размеры
-        updatePlaygroundDimensions(width, length);
+        // СНАЧАЛА обновляем все переменные
+        updateAllPlaygroundVariables(width, length);
         
-        // Обновляем глобальные размеры
-        window.app = window.app || {};
-        window.app.playgroundWidth = width;
-        window.app.playgroundLength = length;
+        // ЗАТЕМ проверяем коллизии с новыми размерами
+        checkCollisionsWithCurrentSizes(width, length);
+        
+        // Обновляем размеры через основную функцию
+        updatePlaygroundDimensions(width, length);
         
         return true;
     } catch (error) {
@@ -158,7 +196,9 @@ window.changePlaygroundColor = function(colorHex, colorName) {
         console.error('Ошибка в глобальной функции changePlaygroundColor:', error);
         return false;
     }
-};// Экспортируем функции
+};
+
+// Экспортируем функции
 export {
     resetPlayground,
     updatePlaygroundDimensions,

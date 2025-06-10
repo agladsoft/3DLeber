@@ -384,11 +384,30 @@ const PlaygroundModal = {
             
             console.log('Применяем настройки площадки:', { width, length, color, colorHex });
             
-            // Обновляем размеры в глобальных переменных приложения
+            // КРИТИЧНО: Обновляем ВСЕ переменные размеров СНАЧАЛА
+            window.selectedPlaygroundWidth = width;
+            window.selectedPlaygroundLength = length;
+            
             if (!window.app) window.app = {};
             window.app.playgroundWidth = width;
             window.app.playgroundLength = length;
             window.app.playgroundColor = color;
+            
+            console.log('🔄 Все переменные размеров обновлены из pg-modal:', {
+                selectedWidth: window.selectedPlaygroundWidth,
+                selectedLength: window.selectedPlaygroundLength,
+                appWidth: window.app.playgroundWidth,
+                appLength: window.app.playgroundLength
+            });
+            
+            // ЗАТЕМ вызываем проверку коллизий с новыми размерами
+            try {
+                const { checkAllObjectsPositions } = await import('./objects.js');
+                checkAllObjectsPositions(width, length);
+                console.log('✅ Проверка коллизий выполнена из pg-modal с размерами:', { width, length });
+            } catch (error) {
+                console.error('Ошибка при проверке коллизий из pg-modal:', error);
+            }
             
             // Флаг успешного применения
             let success = false;

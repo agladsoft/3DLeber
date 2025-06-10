@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { placedObjects } from './objectManager.js';
 import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
+import { playgroundWidth, playgroundLength } from '../playground/playgroundCore.js';
 
 /**
  * Получает границы объекта для проверки позиционирования
@@ -32,18 +33,38 @@ export function getObjectBounds(object) {
 /**
  * Проверяет, находится ли объект в пределах площадки
  * @param {Object} object - Объект для проверки
+ * @param {Number} customWidth - Кастомная ширина площадки (опционально)
+ * @param {Number} customLength - Кастомная длина площадки (опционально)
  * @returns {Boolean} Результат проверки (true - в пределах, false - за пределами)
  */
-export function isWithinPlayground(object) {
+export function isWithinPlayground(object, customWidth = null, customLength = null) {
     if (!object) return true;
     
-    // Получаем текущие размеры площадки из глобальных переменных
-    const playgroundWidth = window.selectedPlaygroundWidth || 40;
-    const playgroundLength = window.selectedPlaygroundLength || 30;
+    // Получаем текущие размеры площадки из разных источников в порядке приоритета
+    const currentPlaygroundWidth = customWidth || window.selectedPlaygroundWidth || (window.app && window.app.playgroundWidth) || playgroundWidth || 40;
+    const currentPlaygroundLength = customLength || window.selectedPlaygroundLength || (window.app && window.app.playgroundLength) || playgroundLength || 30;
+    
+    // Логирование для отладки
+    if (customWidth !== null || customLength !== null || (object.name && object.name.includes('Ball'))) {
+        console.log('isWithinPlayground проверяет объект:', {
+            objectName: object.name || 'unnamed',
+            objectPosition: { x: object.position.x, z: object.position.z },
+            customWidth,
+            customLength,
+            selectedWidth: window.selectedPlaygroundWidth,
+            selectedLength: window.selectedPlaygroundLength,
+            appWidth: window.app?.playgroundWidth,
+            appLength: window.app?.playgroundLength,
+            localWidth: playgroundWidth,
+            localLength: playgroundLength,
+            finalWidth: currentPlaygroundWidth,
+            finalLength: currentPlaygroundLength
+        });
+    }
     
     // Вычисляем границы площадки
-    const halfWidth = playgroundWidth / 2;
-    const halfLength = playgroundLength / 2;
+    const halfWidth = currentPlaygroundWidth / 2;
+    const halfLength = currentPlaygroundLength / 2;
     
     // Получаем ограничивающий бокс объекта
     const box = new THREE.Box3().setFromObject(object);
@@ -58,29 +79,33 @@ export function isWithinPlayground(object) {
     // Учитываем размер объекта (радиус)
     const radius = Math.max(size.x, size.z) / 2;
     
-    // Отладка - вывод информации в консоль
-    // console.log(`Объект: центр X=${center.x.toFixed(2)}, радиус=${radius.toFixed(2)}, границы площадки: левая=${(-halfWidth + leftBoundaryOffset).toFixed(2)}, правая=${(halfWidth + rightBoundaryOffset).toFixed(2)}`);
-    
     // Объект внутри площадки, если его крайние точки находятся внутри границы
     // Применяем различные смещения для левой и правой границ
-    return (
+    const isWithin = (
         center.x - radius >= -halfWidth && // Сдвигаем левую границу вправо
         center.x + radius <= halfWidth &&  // Сдвигаем правую границу вправо
         center.z - radius >= -halfLength &&
         center.z + radius <= halfLength
     );
+    
+    // Логирование результата
+    console.log(`🎯 ${object.name || 'unnamed'}: isWithin=${isWithin}, center=(${center.x.toFixed(2)}, ${center.z.toFixed(2)}), radius=${radius.toFixed(2)}, bounds=±${halfWidth.toFixed(2)}×±${halfLength.toFixed(2)}`);
+    
+    return isWithin;
 }
 
 /**
  * Подсвечивает границы площадки и объекта при выходе за пределы
  * @param {Object} object - Объект для проверки
  * @param {Boolean} show - Флаг, показывать ли подсветку
+ * @param {Number} customWidth - Кастомная ширина площадки (опционально)
+ * @param {Number} customLength - Кастомная длина площадки (опционально)
  */
-export function highlightPlaygroundBoundary(object, show) {
+export function highlightPlaygroundBoundary(object, show, customWidth = null, customLength = null) {
     if (!object) return;
     
     // Проверяем, находится ли объект в пределах площадки
-    const isWithin = isWithinPlayground(object);
+    const isWithin = isWithinPlayground(object, customWidth, customLength);
     
     // Применяем подсветку или снимаем её в зависимости от того,
     // находится ли объект в пределах площадки
@@ -187,9 +212,11 @@ export function highlightObjectCollision(object, highlight) {
 /**
  * Проверяет объект на коллизии с другими объектами
  * @param {Object} object - Объект для проверки
+ * @param {Number} customWidth - Кастомная ширина площадки (опционально)
+ * @param {Number} customLength - Кастомная длина площадки (опционально)
  * @returns {Boolean} Результат проверки (true - коллизий нет, false - есть коллизии)
  */
-export function checkAndHighlightObject(object) {
+export function checkAndHighlightObject(object, customWidth = null, customLength = null) {
     if (!object) return true;
     
     // Проверяем коллизии с другими объектами
@@ -235,13 +262,13 @@ export function checkAndHighlightObject(object) {
     }
     
     // Проверяем, находится ли объект в пределах площадки
-    const isWithinBoundary = isWithinPlayground(object);
+    const isWithinBoundary = isWithinPlayground(object, customWidth, customLength);
     
     // Подсвечиваем объект красным, если есть коллизия
     highlightObjectCollision(object, hasCollision);
     
     // Подсвечиваем объект красным, если он выходит за пределы площадки
-    highlightPlaygroundBoundary(object, !isWithinBoundary);
+    highlightPlaygroundBoundary(object, !isWithinBoundary, customWidth, customLength);
     
     // Возвращаем результат проверки (true - всё в порядке, false - есть проблемы)
     return !hasCollision && isWithinBoundary;
@@ -249,8 +276,20 @@ export function checkAndHighlightObject(object) {
 
 /**
  * Проверяет позиции всех размещенных объектов
+ * @param {Number} customWidth - Кастомная ширина площадки (опционально)
+ * @param {Number} customLength - Кастомная длина площадки (опционально)
  */
-export function checkAllObjectsPositions() {
+export function checkAllObjectsPositions(customWidth = null, customLength = null) {
+    console.log('🔍 checkAllObjectsPositions вызвана с параметрами:', {
+        customWidth,
+        customLength,
+        selectedWidth: window.selectedPlaygroundWidth,
+        selectedLength: window.selectedPlaygroundLength,
+        appWidth: window.app?.playgroundWidth,
+        appLength: window.app?.playgroundLength,
+        placedObjectsCount: placedObjects.length
+    });
+
     // Сначала сбрасываем подсветку для всех объектов
     for (let object of placedObjects) {
         highlightObjectCollision(object, false);
@@ -289,13 +328,13 @@ export function checkAllObjectsPositions() {
         // === КОНЕЦ ИЗМЕНЕНИЯ ===
 
         // Проверяем, находится ли объект в пределах площадки
-        const isWithinBoundary = isWithinPlayground(object);
+        const isWithinBoundary = isWithinPlayground(object, customWidth, customLength);
         
         // Подсвечиваем объект красным, если есть коллизия
         highlightObjectCollision(object, hasCollision);
         
         // Подсвечиваем объект красным, если он выходит за пределы площадки
-        highlightPlaygroundBoundary(object, !isWithinBoundary);
+        highlightPlaygroundBoundary(object, !isWithinBoundary, customWidth, customLength);
     }
 
     // === ИЗМЕНЕНО: Проверка пересечений с деревьями и скамейками playground ===

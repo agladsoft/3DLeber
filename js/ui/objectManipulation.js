@@ -435,7 +435,8 @@ function finishObjectManipulation() {
     }
     
     // Проверяем все объекты на коллизии
-    checkAllObjectsPositions();
+    const dimensions = getCurrentPlaygroundDimensions();
+    checkAllObjectsPositions(dimensions.width, dimensions.length);
     
     // Логируем финальные координаты после завершения манипуляций
     if (selectedObject) {
@@ -619,4 +620,12 @@ function handleObjectDeletion(object) {
             console.error('Ошибка при обновлении количества модели:', error);
         });
     }
+}
+
+// Вспомогательная функция для получения текущих размеров площадки
+function getCurrentPlaygroundDimensions() {
+    return {
+        width: window.selectedPlaygroundWidth || (window.app && window.app.playgroundWidth) || 40,
+        length: window.selectedPlaygroundLength || (window.app && window.app.playgroundLength) || 30
+    };
 }
