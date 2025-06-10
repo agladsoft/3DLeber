@@ -476,6 +476,18 @@ const PlaygroundModal = {
                 }
             }
             
+            // Обновляем глобальные переменные для проверки границ площадки
+            window.selectedPlaygroundWidth = width;
+            window.selectedPlaygroundLength = length;
+            
+            // Проверяем все объекты на соответствие новым границам площадки
+            try {
+                const { checkAllObjectsPositions } = await import('./objects.js');
+                checkAllObjectsPositions();
+            } catch (error) {
+                console.error('Ошибка при проверке позиций объектов:', error);
+            }
+            
             // Обновляем метки размеров и статус
             const widthLabel = document.getElementById('widthLabel');
             const lengthLabel = document.getElementById('lengthLabel');
@@ -579,6 +591,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Вызвана глобальная функция applyPlaygroundChanges:', { width, length, colorHex });
             
             try {
+                // Обновляем глобальные переменные для проверки границ площадки
+                window.selectedPlaygroundWidth = width;
+                window.selectedPlaygroundLength = length;
+                
                 // Вызываем новую функцию setPlaygroundParams, если она доступна
                 if (typeof window.setPlaygroundParams === 'function') {
                     // Определяем название цвета по hex-коду
@@ -616,6 +632,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Обновляем глобальные переменные
                 playgroundModule.updatePlaygroundDimensions(width, length);
                 
+                // Проверяем все объекты на соответствие новым границам площадки
+                const { checkAllObjectsPositions } = await import('./objects.js');
+                checkAllObjectsPositions();
+                
                 return true;
             } catch (error) {
                 console.error('Ошибка в глобальной функции applyPlaygroundChanges:', error);
@@ -636,6 +656,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 window.app.ground.material.color.set(colorHex);
                             }
                         }
+                    }
+                    
+                    // Проверяем все объекты на соответствие новым границам площадки
+                    try {
+                        const { checkAllObjectsPositions } = await import('./objects.js');
+                        checkAllObjectsPositions();
+                    } catch (checkError) {
+                        console.error('Ошибка при проверке позиций объектов:', checkError);
                     }
                     
                     return true;

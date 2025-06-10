@@ -4,6 +4,7 @@
  */
 import { resetPlayground, updatePlaygroundDimensions, ground } from './playground/playgroundCore.js';
 import { createSimplePlayground } from './playground/playgroundCreator.js';
+import { checkAllObjectsPositions } from './objects.js';
 
 // Создаем глобальные функции для доступа из других модулей
 window.resetPlayground = function(width, length, colorHex) {
@@ -16,6 +17,10 @@ window.resetPlayground = function(width, length, colorHex) {
         window.app = window.app || {};
         window.app.playgroundWidth = width;
         window.app.playgroundLength = length;
+        
+        // Обновляем глобальные переменные для проверки границ
+        window.selectedPlaygroundWidth = width;
+        window.selectedPlaygroundLength = length;
         
         // Если передан цвет, обновляем цвет площадки
         if (colorHex) {
@@ -39,6 +44,9 @@ window.resetPlayground = function(width, length, colorHex) {
             }
         }
         
+        // Проверяем все объекты на соответствие новым границам площадки
+        checkAllObjectsPositions();
+        
         return true;
     } catch (error) {
         console.error('Ошибка в глобальной функции resetPlayground:', error);
@@ -51,11 +59,19 @@ window.setPlaygroundParams = async function(width, length, colorName) {
     console.log('Вызвана глобальная функция setPlaygroundParams:', { width, length, colorName });
     
     try {
+        // Обновляем глобальные переменные для проверки границ
+        window.selectedPlaygroundWidth = width;
+        window.selectedPlaygroundLength = length;
+        
         // Попытка 1: Использовать функцию createSimplePlayground напрямую
         const creatorModule = await import('./playground/playgroundCreator.js');
         if (creatorModule && creatorModule.createSimplePlayground) {
             const playground = creatorModule.createSimplePlayground(width, length, colorName);
             console.log('Площадка создана через createSimplePlayground');
+            
+            // Проверяем все объекты на соответствие новым границам площадки
+            checkAllObjectsPositions();
+            
             return playground;
         }
         
@@ -94,6 +110,9 @@ window.setPlaygroundParams = async function(width, length, colorName) {
                 console.log('Цвет площадки изменен на', colorName);
             }
             
+            // Проверяем все объекты на соответствие новым границам площадки
+            checkAllObjectsPositions();
+            
             return coreModule.ground;
         }
         
@@ -116,6 +135,13 @@ window.updatePlaygroundDimensions = function(width, length) {
         window.app = window.app || {};
         window.app.playgroundWidth = width;
         window.app.playgroundLength = length;
+        
+        // Обновляем глобальные переменные для проверки границ
+        window.selectedPlaygroundWidth = width;
+        window.selectedPlaygroundLength = length;
+        
+        // Проверяем все объекты на соответствие новым границам площадки
+        checkAllObjectsPositions();
         
         return true;
     } catch (error) {
