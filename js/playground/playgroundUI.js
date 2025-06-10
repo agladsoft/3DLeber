@@ -13,12 +13,12 @@ export function updatePlaygroundLabels(width, length) {
     const statusElement = document.getElementById('playgroundStatus');
     
     if (widthLabel && lengthLabel) {
-        widthLabel.textContent = `Ширина: ${length.toFixed(2)} м`;
-        lengthLabel.textContent = `Длина: ${width.toFixed(2)} м`;
+        widthLabel.textContent = `Ширина: ${width.toFixed(2)} м`;
+        lengthLabel.textContent = `Длина: ${length.toFixed(2)} м`;
     }
     
     if (statusElement) {
-        statusElement.textContent = `Размеры площадки: ${length.toFixed(2)}м x ${width.toFixed(2)}м`;
+        statusElement.textContent = `Размеры площадки: ${width.toFixed(2)}м x ${length.toFixed(2)}м`;
     }
 
     updateInputFields(width, length);
@@ -57,10 +57,10 @@ export function updateLabelsDuringAnimation(width, length) {
     const lengthLabel = document.getElementById("lengthLabel");
     
     if (widthLabel) {
-        widthLabel.textContent = `${formattedWidth}м`;
+        widthLabel.textContent = `Ширина: ${formattedWidth}м`;
     }
     
     if (lengthLabel) {
-        lengthLabel.textContent = `${formattedLength}м`;
+        lengthLabel.textContent = `Длина: ${formattedLength}м`;
     }
 }
