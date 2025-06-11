@@ -393,10 +393,8 @@ function updateTopViewButtonStyle(isActive) {
             if (exportButton) {
                 if (isActive) {
                     exportButton.classList.add("active");
-                    exportButton.title = "Выйти из вида сверху";
                 } else {
                     exportButton.classList.remove("active");
-                    exportButton.title = "Экспорт";
                 }
             } else {
                 if (attempts < maxAttempts) {
