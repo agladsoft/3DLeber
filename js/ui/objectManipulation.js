@@ -26,7 +26,8 @@ import {
     setRotatingState,
     updateInitialMousePosition,
     updateInitialObjectPosition,
-    updateInitialRotationY
+    updateInitialRotationY,
+    removeDeleteButton
 } from './uiCore.js';
 import * as THREE from 'three';
 import { showModelDimensions, updateModelDimensions } from '../modules/dimensionDisplay/index.js';
@@ -472,11 +473,7 @@ function toScreenPosition(obj, camera) {
     return { x, y };
 }
 
-// Удаляем старую кнопку, если она есть
-function removeDeleteButton() {
-    const oldBtn = document.getElementById('modelDeleteButton');
-    if (oldBtn) oldBtn.remove();
-}
+
 
 // Обновляет позицию кнопки удаления без её пересоздания
 function updateDeleteButtonPosition(object) {

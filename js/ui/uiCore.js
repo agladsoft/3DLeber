@@ -52,6 +52,9 @@ export function initUI() {
     // Инициализируем обработчики клавиатуры
     initKeyboardHandlers();
     
+    // Добавляем глобальный обработчик кликов для скрытия кнопки удаления
+    initGlobalClickHandler();
+    
     console.log('UI инициализирован успешно');
 }
 
@@ -81,6 +84,23 @@ function initKeyboardHandlers() {
     // Обработчик отпускания клавиш (если понадобится в будущем)
     document.addEventListener('keyup', (event) => {
         // Пока пусто, но можно добавить функциональность при необходимости
+    });
+}
+
+/**
+ * Инициализирует глобальный обработчик кликов для управления кнопкой удаления
+ */
+function initGlobalClickHandler() {
+    document.addEventListener('click', function(event) {
+        // Проверяем, что клик был не по самой кнопке удаления
+        const deleteButton = document.getElementById('modelDeleteButton');
+        if (deleteButton && !deleteButton.contains(event.target)) {
+            // Проверяем, что клик был не по canvas (canvas обрабатывается отдельно)
+            if (event.target !== canvas && !canvas.contains(event.target)) {
+                // Клик по элементам интерфейса - скрываем кнопку удаления
+                removeDeleteButton();
+            }
+        }
     });
 }
 
@@ -250,6 +270,17 @@ export function resetObjectSelection() {
     selectedObject = null;
     isDragging = false;
     isRotating = false;
+    
+    // Удаляем кнопку удаления при сбросе выбора
+    removeDeleteButton();
+}
+
+/**
+ * Удаляет кнопку удаления объекта
+ */
+export function removeDeleteButton() {
+    const oldBtn = document.getElementById('modelDeleteButton');
+    if (oldBtn) oldBtn.remove();
 }
 
 /**
