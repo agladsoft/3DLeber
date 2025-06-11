@@ -442,7 +442,7 @@ function setupToggleSafetyZoneButton() {
 function setupCloseAppButton() {
     const closeAppButton = document.getElementById('closeAppButton');
     if (closeAppButton) {
-        closeAppButton.addEventListener('click', function() {
+        closeAppButton.addEventListener('click', async function() {
             if (confirm('Вы действительно хотите закрыть приложение?')) {
                 // Закрываем модальное окно приложения
                 const appModal = document.getElementById('appModal');
@@ -450,11 +450,9 @@ function setupCloseAppButton() {
                     appModal.style.display = 'none';
                 }
                 
-                // Показываем начальный экран
-                const launchContainer = document.getElementById('launchContainer');
-                if (launchContainer) {
-                    launchContainer.style.display = 'flex';
-                }
+                // Если нет токена, показываем ошибку токена
+                const { showTokenError } = await import('../tokenHandler.js');
+                showTokenError();
             }
         });
     }

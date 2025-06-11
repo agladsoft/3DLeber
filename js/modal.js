@@ -19,6 +19,7 @@ export async function showPlatformSelectModal() {
         // Инициализируем sidebar только если он еще не инициализирован
         const userId = sessionStorage.getItem('userId');
         const models = JSON.parse(sessionStorage.getItem('models'));
+        
         if (userId && models && !sidebarInitialized) {
             try {
                 console.log('Initializing sidebar for the first time...');
@@ -27,6 +28,27 @@ export async function showPlatformSelectModal() {
                 sidebarInitialized = true;
             } catch (error) {
                 console.error('Error loading models in showPlatformSelectModal:', error);
+            }
+        }
+        
+        // Проверяем наличие сессии и решаем что показать
+        if (userId) {
+            try {
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                if (sessionResponse.ok) {
+                    const { session } = await sessionResponse.json();
+                    
+                    if (session) {
+                        // Если есть сессия, показываем модальное окно управления сессией
+                        const sessionModal = document.getElementById('sessionModal');
+                        if (sessionModal) {
+                            sessionModal.style.display = 'block';
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Error checking session, proceeding with platform selection:', error);
             }
         }
         
@@ -41,6 +63,14 @@ export async function showPlatformSelectModal() {
             appModal.style.display = 'none';
         } else {
             window.returnToApp = false;
+        }
+        
+        // Сбрасываем значения в полях ввода для новых сессий
+        if (!window.returnToApp) {
+            const widthInput = document.getElementById('modalPlaygroundWidth');
+            const lengthInput = document.getElementById('modalPlaygroundLength');
+            if (widthInput) widthInput.value = '40';
+            if (lengthInput) lengthInput.value = '30';
         }
         
         // Показываем модальное окно
@@ -88,8 +118,6 @@ function updateModalValuesFromCurrent() {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Получаем элементы DOM
-    const launchContainer = document.getElementById('launchContainer');
-    const launchButton = document.getElementById('launchApp');
     const platformSelectModal = document.getElementById('platformSelectModal');
     const appModal = document.getElementById('appModal');
     const startAppButton = document.getElementById('startAppButton');
@@ -120,112 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Запуск модального окна выбора площадки
-    if (launchButton) {
-        launchButton.addEventListener('click', async () => {
-            try {
-                // Подготавливаем данные для отправки
-                const modelsData = {
-                    "user_id": "id_12345678",
-                    "models": [
-                        {"article": "ЛГД-19", "quantity": 2},
-                        {"article": "ЛГК-24.7","quantity": 1},
-                        {"article": "ЛГИК-7.26", "quantity": 1},
-                        {"article": "ЛГИК-7.03", "quantity": 1},
-                        {"article": "ЛГИК-7.01", "quantity": 1},
-                        {"article": "ЛГД-29", "quantity": 1},
-                        {"article": "ЛГД-25", "quantity": 1},
-                        {"article": "ЛГД-23", "quantity": 1},
-                        {"article": "ЛГД-14", "quantity": 1},
-                        {"article": "ЛГВО-421", "quantity": 1},
-                        {"article": "ЛГИК-02.01", "quantity": 2},
-                        {"article": "ЛГИК-02.18", "quantity": 2},
-                        {"article": "ЛГИК-02.17-1", "quantity": 2},
-                        {"article": "ЛГИК-02.17", "quantity": 1},
-                        {"article": "ЛГИК-02.16", "quantity": 1},
-                        {"article": "ЛГИК-02.14", "quantity": 1},
-                        {"article": "ЛГИК-02.13", "quantity": 1},
-                        {"article": "ЛГИК-02.12", "quantity": 1},
-                        {"article": "ЛГИК-02.11", "quantity": 1},
-                        {"article": "ЛГИК-02.10", "quantity": 1},
-                        {"article": "ЛГИК-02.08", "quantity": 1},
-                        {"article": "ЛГИК-02.07", "quantity": 1},
-                        {"article": "ЛГИК-02.06", "quantity": 1},
-                        {"article": "ЛГИК-02.05", "quantity": 1},
-                        {"article": "ЛГИК-02.04", "quantity": 1},
-                        {"article": "ЛГИК-02.03", "quantity": 1},
-                        {"article": "ЛГИК-02.02", "quantity": 1},
-                        {"article": "ЛГИК-16.06", "quantity": 1},
-                        {"article": "ЛГИК-16.07", "quantity": 1},
-                        {"article": "ЛГИК-16.08", "quantity": 1},
-                        {"article": "ЛГИК-16.09", "quantity": 1},
-                        {"article": "ЛГИК-16.10", "quantity": 1},
-                        {"article": "ЛГИК-16.11", "quantity": 1},
-                        {"article": "ЛГИК-16.12", "quantity": 1},
-                        {"article": "ЛГИК-16.13", "quantity": 1},
-                        {"article": "ЛГИК-16.14", "quantity": 1},
-                        {"article": "ЛГИК-16.15", "quantity": 1}
-                    ]
-                };
 
-                // Сохраняем userId в sessionStorage
-                sessionStorage.setItem('userId', modelsData.user_id);
-                sessionStorage.setItem('models', JSON.stringify(modelsData.models));
-
-                // Инициализируем sidebar (только один раз)
-                if (!sidebarInitialized) {
-                    console.log('Initializing sidebar with models...');
-                    const { initSidebar } = await import('./sidebar.js');
-                    initSidebar();
-                    sidebarInitialized = true;
-                }
-
-                // Проверяем наличие сессии
-                const sessionResponse = await fetch(`${API_BASE_URL}/session/${modelsData.user_id}`);
-                if (!sessionResponse.ok) {
-                    throw new Error('Failed to get session');
-                }
-
-                const { session } = await sessionResponse.json();
-                
-                if (session) {
-                    // Если есть сессия, показываем модальное окно управления сессией
-                    if (launchContainer) {
-                        launchContainer.style.display = 'none';
-                    }
-                    const sessionModal = document.getElementById('sessionModal');
-                    if (sessionModal) {
-                        sessionModal.style.display = 'block';
-                    }
-                } else {
-                    // Если сессии нет, сразу показываем окно выбора площадки
-                    if (launchContainer) {
-                        launchContainer.style.display = 'none';
-                    }
-                    const platformSelectModal = document.getElementById('platformSelectModal');
-                    if (platformSelectModal) {
-                        // Сбрасываем значения в полях ввода
-                        const widthInput = document.getElementById('modalPlaygroundWidth');
-                        const lengthInput = document.getElementById('modalPlaygroundLength');
-                        if (widthInput) widthInput.value = '40';
-                        if (lengthInput) lengthInput.value = '30';
-                        
-                        platformSelectModal.style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking session:', error);
-                // В случае ошибки показываем окно выбора площадки
-                if (launchContainer) {
-                    launchContainer.style.display = 'none';
-                }
-                const platformSelectModal = document.getElementById('platformSelectModal');
-                if (platformSelectModal) {
-                    platformSelectModal.style.display = 'block';
-                }
-            }
-        });
-    }
     
     // Обработчик для кнопки "Отмена" в модальном окне выбора площадки
     if (cancelAppButton) {
@@ -237,8 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Возвращаемся к приложению (sidebar уже инициализирован)
                 appModal.style.display = 'block';
             } else {
-                // Возвращаемся к начальному экрану
-                launchContainer.style.display = 'flex';
+                // Если отменили, показываем ошибку токена (пользователь должен иметь валидный токен)
+                const { showTokenError } = await import('./tokenHandler.js');
+                showTokenError();
             }
         });
     }
