@@ -186,11 +186,8 @@ export function resetCameraView(width, length, fromToggleTopView = false) {
     if (isTopViewActive && !fromToggleTopView) {
         console.log('Сброс вида из режима вида сверху напрямую');
         
-        // Очищаем обработчики вручную без запуска анимации
-        if (window.topViewLeftClickHandler) {
-            document.removeEventListener('mousedown', window.topViewLeftClickHandler, true);
-            window.topViewLeftClickHandler = null;
-        }
+        // В новой реализации мы не блокируем левую кнопку мыши
+        // поэтому нет необходимости удалять обработчики
         
         // Очищаем обработчики вида сверху
         cleanupEventListeners();
@@ -446,22 +443,9 @@ function enableTopView(width, length) {
         y: 0,
         z: 0
     }, () => {
-        // Добавляем обработчик для левой кнопки мыши, чтобы блокировать стандартное поведение
-        const leftClickHandler = (event) => {
-            if (event.button === 0) {
-                // Предотвращаем стандартные действия при нажатии левой кнопки мыши
-                // Но разрешаем выделение объектов
-                if (!window.objectBeingDragged) {
-                    event.stopPropagation();
-                }
-            }
-        };
-        
-        // Добавляем обработчик на документ
-        document.addEventListener('mousedown', leftClickHandler, true);
-        
-        // Сохраняем ссылку на обработчик для последующего удаления
-        window.topViewLeftClickHandler = leftClickHandler;
+        // В режиме вида сверху левая кнопка мыши используется для взаимодействия с объектами
+        // Мы не блокируем её, позволяя объектам перемещаться
+        // Панорамирование камеры выполняется правой кнопкой мыши в topViewController
         
         // Полностью ОТКЛЮЧАЕМ стандартные OrbitControls
         controls.enabled = false;
@@ -508,12 +492,8 @@ function enableTopView(width, length) {
 function disableTopView() {
     console.log("Выключение режима вида сверху");
     
-    // Удаляем обработчик левой кнопки мыши, если он был добавлен
-    if (window.topViewLeftClickHandler) {
-        document.removeEventListener('mousedown', window.topViewLeftClickHandler, true);
-        window.topViewLeftClickHandler = null;
-        console.log("Обработчик левой кнопки мыши удален");
-    }
+    // В новой реализации мы не блокируем левую кнопку мыши
+    // поэтому нет необходимости удалять обработчики
     
     // Удаляем размерную сетку через gridManager
     import('../scene/gridManager.js').then(gridManagerModule => {
