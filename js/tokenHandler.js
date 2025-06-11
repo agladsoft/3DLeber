@@ -21,56 +21,53 @@ export function getTokenFromURL() {
  * @returns {Promise<{isValid: boolean, userData?: object}>} результат валидации и данные пользователя
  */
 export async function validateToken(token) {
-    if (!token) {
-        if (DEVELOPMENT_MODE) {
-            console.warn('Development mode: skipping token validation');
-            return {
-                isValid: true,
-                userData: {
-                    user: { id: "id_12345678" },
-                    project: { models: [
-                        {"article": "ЛГД-19", "quantity": 2},
-                        {"article": "ЛГК-24.7","quantity": 1},
-                        {"article": "ЛГИК-7.26", "quantity": 1},
-                        {"article": "ЛГИК-7.03", "quantity": 1},
-                        {"article": "ЛГИК-7.01", "quantity": 1},
-                        {"article": "ЛГД-29", "quantity": 1},
-                        {"article": "ЛГД-25", "quantity": 1},
-                        {"article": "ЛГД-23", "quantity": 1},
-                        {"article": "ЛГД-14", "quantity": 1},
-                        {"article": "ЛГВО-421", "quantity": 1},
-                        {"article": "ЛГИК-02.01", "quantity": 2},
-                        {"article": "ЛГИК-02.18", "quantity": 2},
-                        {"article": "ЛГИК-02.17-1", "quantity": 2},
-                        {"article": "ЛГИК-02.17", "quantity": 1},
-                        {"article": "ЛГИК-02.16", "quantity": 1},
-                        {"article": "ЛГИК-02.14", "quantity": 1},
-                        {"article": "ЛГИК-02.13", "quantity": 1},
-                        {"article": "ЛГИК-02.12", "quantity": 1},
-                        {"article": "ЛГИК-02.11", "quantity": 1},
-                        {"article": "ЛГИК-02.10", "quantity": 1},
-                        {"article": "ЛГИК-02.08", "quantity": 1},
-                        {"article": "ЛГИК-02.07", "quantity": 1},
-                        {"article": "ЛГИК-02.06", "quantity": 1},
-                        {"article": "ЛГИК-02.05", "quantity": 1},
-                        {"article": "ЛГИК-02.04", "quantity": 1},
-                        {"article": "ЛГИК-02.03", "quantity": 1},
-                        {"article": "ЛГИК-02.02", "quantity": 1},
-                        {"article": "ЛГИК-16.06", "quantity": 1},
-                        {"article": "ЛГИК-16.07", "quantity": 1},
-                        {"article": "ЛГИК-16.08", "quantity": 1},
-                        {"article": "ЛГИК-16.09", "quantity": 1},
-                        {"article": "ЛГИК-16.10", "quantity": 1},
-                        {"article": "ЛГИК-16.11", "quantity": 1},
-                        {"article": "ЛГИК-16.12", "quantity": 1},
-                        {"article": "ЛГИК-16.13", "quantity": 1},
-                        {"article": "ЛГИК-16.14", "quantity": 1},
-                        {"article": "ЛГИК-16.15", "quantity": 1}
-                    ]}
-                }
-            };
-        }
-        return { isValid: false };
+    if (DEVELOPMENT_MODE) {
+        console.warn('Development mode: skipping token validation');
+        return {
+            isValid: true,
+            userData: {
+                user: { id: "id_12345678" },
+                project: { models: [
+                    {"article": "ЛГД-19", "quantity": 2},
+                    {"article": "ЛГК-24.7","quantity": 1},
+                    {"article": "ЛГИК-7.26", "quantity": 1},
+                    {"article": "ЛГИК-7.03", "quantity": 1},
+                    {"article": "ЛГИК-7.01", "quantity": 1},
+                    {"article": "ЛГД-29", "quantity": 1},
+                    {"article": "ЛГД-25", "quantity": 1},
+                    {"article": "ЛГД-23", "quantity": 1},
+                    {"article": "ЛГД-14", "quantity": 1},
+                    {"article": "ЛГВО-421", "quantity": 1},
+                    {"article": "ЛГИК-02.01", "quantity": 2},
+                    {"article": "ЛГИК-02.18", "quantity": 2},
+                    {"article": "ЛГИК-02.17-1", "quantity": 2},
+                    {"article": "ЛГИК-02.17", "quantity": 1},
+                    {"article": "ЛГИК-02.16", "quantity": 1},
+                    {"article": "ЛГИК-02.14", "quantity": 1},
+                    {"article": "ЛГИК-02.13", "quantity": 1},
+                    {"article": "ЛГИК-02.12", "quantity": 1},
+                    {"article": "ЛГИК-02.11", "quantity": 1},
+                    {"article": "ЛГИК-02.10", "quantity": 1},
+                    {"article": "ЛГИК-02.08", "quantity": 1},
+                    {"article": "ЛГИК-02.07", "quantity": 1},
+                    {"article": "ЛГИК-02.06", "quantity": 1},
+                    {"article": "ЛГИК-02.05", "quantity": 1},
+                    {"article": "ЛГИК-02.04", "quantity": 1},
+                    {"article": "ЛГИК-02.03", "quantity": 1},
+                    {"article": "ЛГИК-02.02", "quantity": 1},
+                    {"article": "ЛГИК-16.06", "quantity": 1},
+                    {"article": "ЛГИК-16.07", "quantity": 1},
+                    {"article": "ЛГИК-16.08", "quantity": 1},
+                    {"article": "ЛГИК-16.09", "quantity": 1},
+                    {"article": "ЛГИК-16.10", "quantity": 1},
+                    {"article": "ЛГИК-16.11", "quantity": 1},
+                    {"article": "ЛГИК-16.12", "quantity": 1},
+                    {"article": "ЛГИК-16.13", "quantity": 1},
+                    {"article": "ЛГИК-16.14", "quantity": 1},
+                    {"article": "ЛГИК-16.15", "quantity": 1}
+                ]}
+            }
+        };
     }
 
     try {
