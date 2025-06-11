@@ -1,7 +1,7 @@
 /**
  * Основные функции ядра приложения
  */
-import { removeAllSafetyZones } from './safetyManager.js';
+import { updateSafetyZonesVisibility } from './safetyManager.js';
 import { initScene } from '../scene.js';
 import { loadPlayground } from '../playground.js';
 import { initUI } from '../ui.js';
@@ -150,11 +150,11 @@ export async function initializeApp() {
         }
         
         try {
-            // Удаляем все элементы с классом safety-zone
-            console.log('Удаление safety zones');
-            removeAllSafetyZones();
+            // Обновляем видимость safety zones в соответствии с настройками пользователя
+            console.log('Обновление состояния safety zones');
+            updateSafetyZonesVisibility();
         } catch (safetyError) {
-            console.error('Ошибка при удалении safety zones:', safetyError);
+            console.error('Ошибка при обновлении safety zones:', safetyError);
         }
         
         // Запускаем цикл рендеринга Three.js

@@ -1,9 +1,11 @@
 /**
  * Модуль для управления безопасными зонами и удалением нежелательных элементов
  */
+import { scene } from '../scene.js';
 
-// Состояние видимости безопасных зон (по умолчанию показаны)
-let safetyZonesVisible = true;
+// Инициализируем состояние видимости безопасных зон из localStorage
+// По умолчанию показаны, если нет сохраненного состояния
+let safetyZonesVisible = localStorage.getItem('safetyZoneHidden') !== 'true';
 
 /**
  * Переключает видимость безопасных зон
@@ -26,8 +28,8 @@ export function toggleSafetyZones() {
  */
 export function showAllSafetyZones() {
     // Показываем все объекты с именем, заканчивающимся на safety_zone в Three.js сцене
-    if (window.app && window.app.scene) {
-        window.app.scene.traverse((object) => {
+    if (scene) {
+        scene.traverse((object) => {
             if (object.isMesh && object.name && object.name.endsWith('safety_zone')) {
                 object.visible = true;
             }
@@ -47,8 +49,8 @@ export function removeAllSafetyZones() {
  * Удаляет объекты безопасной зоны из Three.js сцены
  */
 function removeSafetyZonesFromScene() {
-    if (window.app && window.app.scene) {
-        window.app.scene.traverse((object) => {
+    if (scene) {
+        scene.traverse((object) => {
             if (object.isMesh && object.name && object.name.endsWith('safety_zone')) {
                 object.visible = false;
             }
@@ -61,7 +63,18 @@ function removeSafetyZonesFromScene() {
  * Эта функция должна вызываться при загрузке новых моделей или изменении сцены
  */
 export function updateSafetyZonesVisibility() {
-    if (!safetyZonesVisible) {
+    if (safetyZonesVisible) {
+        showAllSafetyZones();
+    } else {
         removeAllSafetyZones();
     }
+}
+
+/**
+ * Синхронизирует внутреннее состояние с localStorage
+ * Вызывается при инициализации UI
+ */
+export function syncSafetyZonesState() {
+    const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
+    safetyZonesVisible = !isHidden;
 }

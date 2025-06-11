@@ -2,7 +2,7 @@
  * Модуль для обработки событий приложения
  */
 import { updateRendererSize } from './appCore.js';
-import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from './safetyManager.js';
+import { updateSafetyZonesVisibility, toggleSafetyZones, showAllSafetyZones } from './safetyManager.js';
 import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 
 /**
@@ -111,8 +111,8 @@ function setupToggleSidebarButton() {
  * Обработчик полной загрузки окна
  */
 function handleWindowLoad() {
-    // Удаляем все элементы безопасной зоны после полной загрузки
-    removeAllSafetyZones();
+    // Обновляем видимость зон безопасности в соответствии с настройками
+    updateSafetyZonesVisibility();
     
     // Добавляем обработчик изменения размеров окна
     window.addEventListener('resize', handleWindowResize);
@@ -122,8 +122,8 @@ function handleWindowLoad() {
  * Обработчик изменения размера окна
  */
 function handleWindowResize() {
-    // Удаляем все элементы безопасной зоны при изменении размера
-    removeAllSafetyZones();
+    // Обновляем видимость зон безопасности в соответствии с настройками
+    updateSafetyZonesVisibility();
     
     // Обновляем размер рендерера
     updateRendererSize();

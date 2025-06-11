@@ -14,7 +14,7 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 import { updateModelPlacementCounter } from '../sidebar.js';
 import { showNotification } from '../utils/notifications.js';
 import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
-import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones } from '../core/safetyManager.js';
+import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones, syncSafetyZonesState } from '../core/safetyManager.js';
 
 // Описания для инструментов
 const TOOL_DESCRIPTIONS = {
@@ -405,6 +405,9 @@ function setupToggleDimensionsButton() {
 function setupToggleSafetyZoneButton() {
     const toggleSafetyZoneButton = document.getElementById('toggleSafetyZone');
     if (toggleSafetyZoneButton) {
+        // Синхронизируем внутреннее состояние с localStorage
+        syncSafetyZonesState();
+        
         // Восстанавливаем состояние из localStorage
         const isHidden = localStorage.getItem('safetyZoneHidden') === 'true';
         
