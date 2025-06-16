@@ -3,8 +3,9 @@
  * Обрабатывает токен из URL и валидирует его
  */
 
-const VALIDATION_API_URL = 'http://inertia.leber.click/api/v2/project/builder/validate';
-const DEVELOPMENT_MODE = false;
+const VALIDATION_API_URL = 'https://inertia.leber.click/api/v2/project/builder/validate';
+const DEVELOPMENT_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 /**
  * Получает токен из URL параметров
  * @returns {string|null} токен или null если не найден
