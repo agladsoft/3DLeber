@@ -190,7 +190,8 @@ app.get('/api/validate-token', async (req, res) => {
             });
             
             httpsRes.on('end', () => {
-                if (httpsRes.statusCode === 200) {
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
+                if (httpsRes.statusCode === 200 || httpsRes.statusCode === 204) {
                     console.log('Token validation successful');
                     // Если ответ пустой или не JSON, просто возвращаем успех
                     if (!data || data.trim() === '') {
@@ -201,7 +202,7 @@ app.get('/api/validate-token', async (req, res) => {
                             console.log('Token validation response:', jsonData);
                             res.json({ isValid: true, userData: jsonData });
                         } catch (parseError) {
-                            console.log('Response is not JSON, but status is 200 - token is valid');
+                            console.log('Response is not JSON, but status is 200/204 - token is valid');
                             res.json({ isValid: true });
                         }
                     }
@@ -337,8 +338,10 @@ async function validateTokenInternal(token) {
             
             httpsRes.on('end', () => {
                 console.log('Response data:', data);
-                console.log('Token validation result:', httpsRes.statusCode === 200);
-                resolve(httpsRes.statusCode === 200);
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
+                const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
+                console.log('Token validation result:', isValid);
+                resolve(isValid);
             });
         });
 
