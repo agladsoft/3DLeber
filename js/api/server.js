@@ -264,6 +264,7 @@ app.post('/api/launch', async (req, res) => {
             user_id,
             models,
             timestamp: new Date().toISOString(),
+            lastAccessed: new Date().toISOString(),
             validated: true
         };
         
@@ -278,13 +279,8 @@ app.post('/api/launch', async (req, res) => {
         console.log('SessionStore size after save:', global.sessionStore.size);
         console.log('Available sessions after save:', Array.from(global.sessionStore.keys()));
         
-        // Устанавливаем таймаут удаления сессии (5 минут)
-        const timeoutId = setTimeout(() => {
-            if (global.sessionStore && global.sessionStore.has(sessionId)) {
-                global.sessionStore.delete(sessionId);
-                console.log('Session expired and deleted:', sessionId);
-            }
-        }, 5 * 60 * 1000);
+        // Устанавливаем начальный таймаут (скользящий)
+        updateSessionTimeout(sessionId, sessionData);
         
         console.log('Session timeout set for 5 minutes');
 
@@ -369,6 +365,22 @@ function generateSessionId() {
     return sessionId;
 }
 
+// Функция для обновления таймаута сессии (скользящий таймаут)
+function updateSessionTimeout(sessionId, sessionData) {
+    // Очищаем предыдущий таймаут если есть
+    if (sessionData.timeoutId) {
+        clearTimeout(sessionData.timeoutId);
+    }
+    
+    // Устанавливаем новый таймаут (5 минут с момента последнего доступа)
+    sessionData.timeoutId = setTimeout(() => {
+        if (global.sessionStore && global.sessionStore.has(sessionId)) {
+            global.sessionStore.delete(sessionId);
+            console.log('Session expired and deleted:', sessionId);
+        }
+    }, 5 * 60 * 1000);
+}
+
 // Debug endpoint для просмотра всех активных сессий (только для разработки)
 app.get('/api/debug/sessions', (req, res) => {
     const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
@@ -409,13 +421,23 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         }
         
         const sessionData = global.sessionStore.get(sessionId);
-        console.log('Found session data:', sessionData);
         
-        // Удаляем сессию после получения (одноразовое использование)
-        global.sessionStore.delete(sessionId);
-        console.log('Session deleted from store');
+        // Обновляем время последнего доступа и продлеваем сессию
+        sessionData.lastAccessed = new Date().toISOString();
+        updateSessionTimeout(sessionId, sessionData);
+        global.sessionStore.set(sessionId, sessionData);
+        console.log('Session accessed, timestamp and timeout updated');
         
-        res.json(sessionData);
+        // Создаем копию данных без timeoutId для отправки клиенту
+        const responseData = {
+            user_id: sessionData.user_id,
+            models: sessionData.models,
+            timestamp: sessionData.timestamp,
+            lastAccessed: sessionData.lastAccessed,
+            validated: sessionData.validated
+        };
+        
+        res.json(responseData);
     } catch (error) {
         console.error('Error getting session data:', error);
         res.status(500).json({ error: 'Internal server error' });
