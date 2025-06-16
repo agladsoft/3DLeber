@@ -79,14 +79,31 @@ export async function validateToken(token) {
         });
 
         if (response.ok) {
-            const data = await response.json();
-            console.log('Token validation response:', data);
-            
-            // Возвращаем как результат валидации, так и данные пользователя
-            return {
-                isValid: true,
-                userData: data
-            };
+            try {
+                const data = await response.json();
+                console.log('Token validation response:', data);
+                
+                // Если сервер вернул структуру с isValid
+                if (data.hasOwnProperty('isValid')) {
+                    return {
+                        isValid: data.isValid,
+                        userData: data.userData || null
+                    };
+                }
+                
+                // Иначе считаем, что токен валиден, если статус 200
+                return {
+                    isValid: true,
+                    userData: data
+                };
+            } catch (parseError) {
+                // Если не удалось распарсить JSON, но статус 200 - токен валиден
+                console.log('Token validation successful (no JSON response)');
+                return {
+                    isValid: true,
+                    userData: null
+                };
+            }
         } else {
             console.error('Token validation failed:', response.status, response.statusText);
             return { isValid: false };

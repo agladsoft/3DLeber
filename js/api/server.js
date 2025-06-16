@@ -190,18 +190,24 @@ app.get('/api/validate-token', async (req, res) => {
             });
             
             httpsRes.on('end', () => {
-                try {
-                    if (httpsRes.statusCode === 200) {
-                        const jsonData = JSON.parse(data);
-                        console.log('Token validation response:', jsonData);
-                        res.json(jsonData);
+                if (httpsRes.statusCode === 200) {
+                    console.log('Token validation successful');
+                    // Если ответ пустой или не JSON, просто возвращаем успех
+                    if (!data || data.trim() === '') {
+                        res.json({ isValid: true });
                     } else {
-                        console.error('Token validation failed:', httpsRes.statusCode, data);
-                        res.status(httpsRes.statusCode).json({ error: 'Token validation failed' });
+                        try {
+                            const jsonData = JSON.parse(data);
+                            console.log('Token validation response:', jsonData);
+                            res.json({ isValid: true, userData: jsonData });
+                        } catch (parseError) {
+                            console.log('Response is not JSON, but status is 200 - token is valid');
+                            res.json({ isValid: true });
+                        }
                     }
-                } catch (parseError) {
-                    console.error('Error parsing response:', parseError);
-                    res.status(500).json({ error: 'Error parsing validation response' });
+                } else {
+                    console.error('Token validation failed:', httpsRes.statusCode, data);
+                    res.status(httpsRes.statusCode).json({ error: 'Token validation failed' });
                 }
             });
         });
