@@ -1643,7 +1643,7 @@ model-viewer::part(default-progress-mask) {
 }
 
 #sidebar.categories-sidebar .back-button {
-    width: 60px !important; /* Increased button width */
+    width: 50px !important; /* Increased button width */
     height: 50px !important; /* Added fixed height to keep button circular */
     background-color: white !important;
     border-radius: 50% !important; /* Changed to 50% for perfect circle */
@@ -2424,5 +2424,11 @@ color: #333 !important;
 }
 
 .hidden {
+    display: none !important;
+}
+
+/* Hide age and area information in left panel */
+.model-specs,
+.model-spec {
     display: none !important;
 }

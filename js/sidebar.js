@@ -35,13 +35,13 @@ async function createNewSidebar() {
                 <path d="M19 12H5M12 19l-7-7 7-7" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
-        <h3 class="sidebar-title">КАТЕГОРИИ ОБЪЕКТОВ</h3>
+        <h3 class="sidebar-title">ИЗДЕЛИЯ</h3>
     `;
     
     // Создаем вертикальный текст для схлопнутого состояния
     const verticalTitle = document.createElement('div');
     verticalTitle.className = 'vertical-title';
-    verticalTitle.textContent = 'КАТЕГОРИИ ОБЪЕКТОВ';
+    verticalTitle.textContent = 'ИЗДЕЛИЯ';
     
     const categoriesList = document.createElement('div');
     categoriesList.className = 'categories-list';
@@ -121,16 +121,6 @@ async function createNewSidebar() {
                 <div class="model-article">${model.article}</div>
                 <div class="model-title">${model.description}</div>
                 <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
-                <div class="model-specs">
-                    <div class="model-spec">
-                        <span class="model-spec-icon">👤</span>
-                        <span>${model.age || '5+ лет'}</span>
-                    </div>
-                    <div class="model-spec">
-                        <span class="model-spec-icon">📏</span>
-                        <span>${model.size || '63.2 м²'}</span>
-                    </div>
-                </div>
             `;
             
             // Добавляем обработчик drag-and-drop
