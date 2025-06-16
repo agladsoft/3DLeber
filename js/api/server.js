@@ -157,6 +157,40 @@ app.post('/api/models/match', async (req, res) => {
     }
 });
 
+// Прокси для валидации токенов (решает проблему CORS)
+app.get('/api/validate-token', async (req, res) => {
+    try {
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        const VALIDATION_API_URL = 'https://inertia.leber.click/api/v2/project/builder/validate';
+        const credentials = Buffer.from('leber:leber').toString('base64');
+        
+        const response = await fetch(`${VALIDATION_API_URL}?token=${encodeURIComponent(token)}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Basic ${credentials}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Token validation response:', data);
+            res.json(data);
+        } else {
+            console.error('Token validation failed:', response.status, response.statusText);
+            res.status(response.status).json({ error: 'Token validation failed' });
+        }
+    } catch (error) {
+        console.error('Error validating token:', error);
+        res.status(500).json({ error: 'Internal server error during token validation' });
+    }
+});
+
 // Получение сессии пользователя
 app.get('/api/session/:userId', async (req, res) => {
     try {

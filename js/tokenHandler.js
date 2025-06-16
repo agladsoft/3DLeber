@@ -3,7 +3,7 @@
  * Обрабатывает токен из URL и валидирует его
  */
 
-const VALIDATION_API_URL = 'https://inertia.leber.click/api/v2/project/builder/validate';
+const VALIDATION_API_URL = '/api/validate-token';
 const DEVELOPMENT_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 /**
@@ -71,14 +71,10 @@ export async function validateToken(token) {
     }
 
     try {
-        // Создаем базовую аутентификацию
-        const credentials = btoa('leber:leber');
-        
         const response = await fetch(`${VALIDATION_API_URL}?token=${encodeURIComponent(token)}`, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Accept': 'application/json'
             }
         });
 
