@@ -9,7 +9,7 @@ const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'admin';
 
 // Database configuration
 const DB_CONFIG = {
-    host: POSTGRES_DB,
+    host: POSTGRES_HOST,
     port: 5432,
     user: POSTGRES_USER,
     database: POSTGRES_DB,
