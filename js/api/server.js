@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
@@ -166,25 +167,51 @@ app.get('/api/validate-token', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        const VALIDATION_API_URL = 'https://inertia.leber.click/api/v2/project/builder/validate';
         const credentials = Buffer.from('leber:leber').toString('base64');
+        const hostname = 'inertia.leber.click';
+        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
         
-        const response = await fetch(`${VALIDATION_API_URL}?token=${encodeURIComponent(token)}`, {
+        const options = {
+            hostname: hostname,
+            port: 443,
+            path: path,
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
                 'Authorization': `Basic ${credentials}`
             }
+        };
+
+        const httpsReq = https.request(options, (httpsRes) => {
+            let data = '';
+            
+            httpsRes.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            httpsRes.on('end', () => {
+                try {
+                    if (httpsRes.statusCode === 200) {
+                        const jsonData = JSON.parse(data);
+                        console.log('Token validation response:', jsonData);
+                        res.json(jsonData);
+                    } else {
+                        console.error('Token validation failed:', httpsRes.statusCode, data);
+                        res.status(httpsRes.statusCode).json({ error: 'Token validation failed' });
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing response:', parseError);
+                    res.status(500).json({ error: 'Error parsing validation response' });
+                }
+            });
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Token validation response:', data);
-            res.json(data);
-        } else {
-            console.error('Token validation failed:', response.status, response.statusText);
-            res.status(response.status).json({ error: 'Token validation failed' });
-        }
+        httpsReq.on('error', (error) => {
+            console.error('HTTPS request error:', error);
+            res.status(500).json({ error: 'Internal server error during token validation' });
+        });
+
+        httpsReq.end();
     } catch (error) {
         console.error('Error validating token:', error);
         res.status(500).json({ error: 'Internal server error during token validation' });
