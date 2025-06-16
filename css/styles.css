@@ -2459,3 +2459,9 @@ color: #333 !important;
 .hidden {
     display: none !important;
 }
+
+/* Hide age and area information in left panel */
+.model-specs,
+.model-spec {
+    display: none !important;
+}
