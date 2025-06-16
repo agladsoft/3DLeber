@@ -288,7 +288,7 @@ app.post('/api/launch', async (req, res) => {
         console.log('Session timeout set for 5 minutes');
 
         // Возвращаем ссылку для редиректа
-        const redirectUrl = `${req.protocol}://${SERVER_NAME}:5173/?sessionId=${sessionId}`;
+        const redirectUrl = `https://${SERVER_NAME}?sessionId=${sessionId}`;
         
         res.json({ 
             success: true, 
