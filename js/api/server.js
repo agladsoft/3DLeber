@@ -224,9 +224,32 @@ app.get('/api/validate-token', async (req, res) => {
     }
 });
 
+// Debug endpoint для GET запросов на /api/launch (должны быть POST)
+app.get('/api/launch', (req, res) => {
+    console.log('❌ GET request received on /api/launch (should be POST)');
+    console.log('Query params:', req.query);
+    console.log('Headers:', req.headers);
+    console.log('Origin:', req.get('origin'));
+    console.log('User-Agent:', req.get('user-agent'));
+    
+    res.status(405).json({ 
+        error: 'Method Not Allowed. Use POST instead of GET',
+        received_method: 'GET',
+        expected_method: 'POST',
+        endpoint: '/api/launch',
+        message: 'This endpoint only accepts POST requests with JSON body'
+    });
+});
+
 // Новый endpoint для запуска приложения с данными из внешнего сайта
 app.post('/api/launch', async (req, res) => {
     try {
+        console.log('✅ POST request received on /api/launch');
+        console.log('Headers:', req.headers);
+        console.log('Body:', req.body);
+        console.log('Content-Type:', req.get('content-type'));
+        console.log('Origin:', req.get('origin'));
+        
         const { token, user_id, models } = req.body;
         
         if (!token || !user_id || !models) {
