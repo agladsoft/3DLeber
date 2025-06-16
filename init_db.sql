@@ -1,7 +1,7 @@
 -- Создание таблицы пользователей
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS projects (
     id SERIAL PRIMARY KEY,
-    user_id VARCHAR(50) UNIQUE NOT NULL,
+    project_id VARCHAR(50) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS models (
 
 -- Создание таблицы сессий
 CREATE TABLE IF NOT EXISTS sessions (
-    user_id INTEGER REFERENCES users(id) UNIQUE,
+    project_id INTEGER REFERENCES projects(id) UNIQUE,
     session_data JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -31,21 +31,21 @@ CREATE INDEX IF NOT EXISTS idx_models_name ON models(name);
 CREATE INDEX IF NOT EXISTS idx_models_category ON models(category);
 
 -- Добавление комментариев к таблицам
-COMMENT ON TABLE users IS 'Таблица пользователей';
+COMMENT ON TABLE projects IS 'Таблица проектов';
 COMMENT ON TABLE models IS 'Таблица моделей игрового оборудования';
 COMMENT ON TABLE sessions IS 'Таблица сессий, связывающая пользователей и модели';
 
 -- Добавление комментариев к колонкам
-COMMENT ON COLUMN users.user_id IS 'Уникальный идентификатор пользователя';
+COMMENT ON COLUMN projects.project_id IS 'Уникальный идентификатор проекта';
 COMMENT ON COLUMN models.article IS 'Артикул модели';
 COMMENT ON COLUMN models.name IS 'Название модели';
 COMMENT ON COLUMN models.description IS 'Описание модели';
 COMMENT ON COLUMN models.category IS 'Категория модели';
 
--- Вставка тестового пользователя
-INSERT INTO users (user_id) 
+-- Вставка тестового проекта
+INSERT INTO projects (project_id) 
 VALUES ('id_12345678')
-ON CONFLICT (user_id) DO NOTHING;
+ON CONFLICT (project_id) DO NOTHING;
 
 -- Вставка моделей
 INSERT INTO models (article, name, description, category) VALUES

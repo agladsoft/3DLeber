@@ -105,7 +105,7 @@ async function initializeWithData(modelsData, loadingScreen) {
     }
 
     // Сохраняем данные в sessionStorage
-    sessionStorage.setItem('userId', modelsData.user_id);
+    sessionStorage.setItem('userId', modelsData.project_id);
     sessionStorage.setItem('models', JSON.stringify(modelsData.models));
     
     // Автоматически открываем модальное окно выбора площадки

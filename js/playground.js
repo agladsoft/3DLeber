@@ -36,7 +36,7 @@ export {
  */
 export async function savePlaygroundParameters(modelName, width, length, color) {
     try {
-        // Получаем user_id из sessionStorage
+        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
 
         if (!userId) {

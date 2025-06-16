@@ -374,7 +374,7 @@ export async function restorePlacedObjects(session) {
         // Если некоторые объекты были отфильтрованы, обновляем сессию в базе данных
         if (objectsToRestore.length < session.placedObjects.length) {
             try {
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
                 
                 if (userId) {
@@ -451,7 +451,7 @@ export function applyAllFixes() {
     
     // Восстанавливаем размещенные объекты, если есть сессия
     try {
-        // Получаем user_id из sessionStorage
+        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
         if (userId) {
             // Получаем данные сессии

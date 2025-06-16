@@ -214,7 +214,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
             // Обновляем сессию в базе данных только если это не восстановление
             if (!isRestoring) {
                 try {
-                    // Получаем user_id из sessionStorage
+                    // Получаем project_id из sessionStorage
                     const userId = sessionStorage.getItem('userId');
 
                     if (!userId) {
@@ -453,7 +453,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
                     try {
-                        // Получаем user_id из sessionStorage
+                        // Получаем project_id из sessionStorage
                         const userId = sessionStorage.getItem('userId');
 
                         if (!userId) {
@@ -578,7 +578,7 @@ export function removeObject(container, isMassRemoval = false) {
 
         // Обновляем сессию в базе данных после удаления объекта
         try {
-            // Получаем user_id из sessionStorage
+            // Получаем project_id из sessionStorage
             const userId = sessionStorage.getItem('userId');
 
             if (!userId) {

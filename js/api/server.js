@@ -77,7 +77,7 @@ app.get('/api/models/:userId', async (req, res) => {
         const { userId } = req.params;
         const models = await getModelsWithSessions(userId);
         console.log(`models: ${JSON.stringify(models)}`);
-        res.json({ user_id: userId, models });
+        res.json({ project_id: userId, models });
     } catch (err) {
         console.error('Error fetching models:', err);
         res.status(500).json({ error: 'Error fetching models from database' });
@@ -228,13 +228,13 @@ app.get('/api/validate-token', async (req, res) => {
 // Новый endpoint для запуска приложения с данными из внешнего сайта
 app.post('/api/launch', async (req, res) => {
     try {
-        const { token, user_id, models } = req.body;
+        const { token, project_id, models } = req.body;
         
-        if (!token || !user_id || !models) {
-            return res.status(400).json({ error: 'Token, user_id and models are required' });
+        if (!token || !project_id || !models) {
+            return res.status(400).json({ error: 'Token, project_id and models are required' });
         }
 
-        console.log('Launch request received:', { user_id, modelsCount: models.length });
+        console.log('Launch request received:', { project_id, modelsCount: models.length });
 
         // Проверяем режим разработки
         const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
@@ -253,7 +253,7 @@ app.post('/api/launch', async (req, res) => {
             return res.status(401).json({ error: 'Invalid token' });
         }
 
-        console.log('Token validated successfully for user:', user_id);
+        console.log('Token validated successfully for user:', project_id);
 
         // Создаем уникальный sessionId для этого запуска
         const sessionId = generateSessionId();
@@ -261,7 +261,7 @@ app.post('/api/launch', async (req, res) => {
         
         // Сохраняем данные в временное хранилище (можно использовать Redis или просто память)
         const sessionData = {
-            user_id,
+            project_id,
             models,
             timestamp: new Date().toISOString(),
             lastAccessed: new Date().toISOString(),
@@ -395,7 +395,7 @@ app.get('/api/debug/sessions', (req, res) => {
         sessions: sessions.map(([id, data]) => ({
             sessionId: id,
             timestamp: data.timestamp,
-            user_id: data.user_id,
+            project_id: data.project_id,
             modelsCount: data.models ? data.models.length : 0
         }))
     });
@@ -430,7 +430,7 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         
         // Создаем копию данных без timeoutId для отправки клиенту
         const responseData = {
-            user_id: sessionData.user_id,
+            project_id: sessionData.project_id,
             models: sessionData.models,
             timestamp: sessionData.timestamp,
             lastAccessed: sessionData.lastAccessed,
@@ -487,7 +487,7 @@ app.delete('/api/session/:userId', async (req, res) => {
 
         const query = `
             DELETE FROM sessions
-            WHERE user_id = (SELECT id FROM users WHERE user_id = $1)
+            WHERE project_id = (SELECT id FROM projects WHERE project_id = $1)
         `;
         await pool.query(query, [userId]);
         res.json({ success: true });

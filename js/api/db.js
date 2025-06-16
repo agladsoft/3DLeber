@@ -27,11 +27,11 @@ export async function getModelByArticle(article) {
 
 export async function createOrUpdateSession(userId, modelId, quantity) {
     const query = `
-        INSERT INTO sessions (user_id, model_id, quantity)
+        INSERT INTO sessions (project_id, model_id, quantity)
         SELECT u.id, m.id, $3
-        FROM users u, models m
-        WHERE u.user_id = $1 AND m.id = $2
-        ON CONFLICT (user_id, model_id) 
+        FROM projects u, models m
+        WHERE u.project_id = $1 AND m.id = $2
+        ON CONFLICT (project_id, model_id) 
         DO UPDATE SET quantity = $3
         RETURNING id
     `;
@@ -43,15 +43,15 @@ export async function getOrCreateUser(userId) {
     // Используем INSERT ... ON CONFLICT DO UPDATE чтобы всегда получать id
     const query = `
         WITH inserted AS (
-            INSERT INTO users (user_id)
+            INSERT INTO projects (project_id)
             VALUES ($1)
-            ON CONFLICT (user_id) DO UPDATE 
-            SET user_id = EXCLUDED.user_id
+            ON CONFLICT (project_id) DO UPDATE 
+            SET project_id = EXCLUDED.project_id
             RETURNING id
         )
         SELECT id FROM inserted
         UNION ALL
-        SELECT id FROM users WHERE user_id = $1 AND NOT EXISTS (SELECT 1 FROM inserted)
+        SELECT id FROM projects WHERE project_id = $1 AND NOT EXISTS (SELECT 1 FROM inserted)
         LIMIT 1
     `;
     const result = await pool.query(query, [userId]);
@@ -63,8 +63,8 @@ export async function getModelsWithSessions(userId) {
         SELECT m.*, COALESCE(s.quantity, 0) as quantity
         FROM models m
         LEFT JOIN sessions s ON m.id = s.model_id
-        LEFT JOIN users u ON s.user_id = u.id
-        WHERE u.user_id = $1
+        LEFT JOIN projects u ON s.project_id = u.id
+        WHERE u.project_id = $1
     `;
     const result = await pool.query(query, [userId]);
     console.log(result.rows);
@@ -81,11 +81,11 @@ export async function saveSession(userId, sessionData) {
         }
 
         const query = `
-            INSERT INTO sessions (user_id, session_data)
+            INSERT INTO sessions (project_id, session_data)
             VALUES ($1, $2)
-            ON CONFLICT (user_id) 
+            ON CONFLICT (project_id) 
             DO UPDATE SET session_data = $2
-            RETURNING user_id
+            RETURNING project_id
         `;
         const result = await pool.query(query, [user.id, sessionData]);
         return result.rows[0];
@@ -107,7 +107,7 @@ export async function getSession(userId) {
         const query = `
             SELECT session_data
             FROM sessions
-            WHERE user_id = $1
+            WHERE project_id = $1
         `;
         const result = await pool.query(query, [user.id]);
         return result.rows[0]?.session_data;

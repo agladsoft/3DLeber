@@ -180,7 +180,7 @@ async function handleArrowKeyMovement(event) {
  */
 async function updateSessionInDatabase(object) {
     try {
-        // Получаем user_id из sessionStorage
+        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
 
         if (!userId) {

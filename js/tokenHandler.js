@@ -188,11 +188,11 @@ export async function validateToken(token) {
 /**
  * Извлекает модели из данных сессии
  * @param {object} sessionData - данные сессии
- * @returns {object} объект с user_id и моделями
+ * @returns {object} объект с project_id и моделями
  */
 export function extractModelsDataFromSession(sessionData) {
     return {
-        "user_id": sessionData?.user_id || "id_12345678",
+        "project_id": sessionData?.project_id || "id_12345678",
         "models": sessionData?.models || []
     };
 }
@@ -200,13 +200,13 @@ export function extractModelsDataFromSession(sessionData) {
 /**
  * Извлекает модели из данных API (старый метод для совместимости)
  * @param {object} userData - данные пользователя от API
- * @returns {object} объект с user_id и моделями
+ * @returns {object} объект с project_id и моделями
  */
 export function extractModelsData(userData) {
     // Это нужно будет адаптировать под фактическую структуру ответа API
     // Пока используем заглушку
     return {
-        "user_id": userData?.user?.id || "id_12345678",
+        "project_id": userData?.user?.id || "id_12345678",
         "models": userData?.project?.models || []
     };
 }

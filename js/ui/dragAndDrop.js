@@ -25,7 +25,7 @@ let modelQuantitiesCache = {};
  */
 export async function getQuantityFromDatabase(modelName) {
     try {
-        // Получаем user_id из sessionStorage
+        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
 
         if (!userId) {
@@ -59,7 +59,7 @@ export async function getQuantityFromDatabase(modelName) {
  */
 export async function saveQuantityToDatabase(modelName, quantity) {
     try {
-        // Получаем user_id из sessionStorage
+        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
 
         if (!userId) {

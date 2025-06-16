@@ -470,7 +470,7 @@ function setupDeleteAllButton() {
             }
             
             try {
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
 
                 if (!userId) {
@@ -747,7 +747,7 @@ function setupPlaygroundButton() {
 
             // Обновляем сессию в базе данных
             try {
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
 
                 if (!userId) {
@@ -910,7 +910,7 @@ function setupPlaygroundButton() {
 
                 // Обновляем сессию в базе данных
                 try {
-                    // Получаем user_id из sessionStorage
+                    // Получаем project_id из sessionStorage
                     const userId = sessionStorage.getItem('userId');
 
                     if (!userId) {

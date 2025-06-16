@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.selectedPlaygroundLength = parseFloat(selectedLength);
                 window.selectedPlaygroundColor = selectedColor;
                     
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
                 const models = JSON.parse(sessionStorage.getItem('models'));
 
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newSessionButton) {
         newSessionButton.addEventListener('click', async () => {
             try {
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
                 const models = JSON.parse(sessionStorage.getItem('models'))
 
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (continueSessionButton) {
         continueSessionButton.addEventListener('click', async () => {
             try {
-                // Получаем user_id из sessionStorage
+                // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
 
                 if (!userId) {
