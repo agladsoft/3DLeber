@@ -6,7 +6,7 @@ import https from 'https';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
-import { SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
+import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 
 const { Pool } = pg;
 
@@ -221,6 +221,201 @@ app.get('/api/validate-token', async (req, res) => {
     } catch (error) {
         console.error('Error validating token:', error);
         res.status(500).json({ error: 'Internal server error during token validation' });
+    }
+});
+
+// Новый endpoint для запуска приложения с данными из внешнего сайта
+app.post('/api/launch', async (req, res) => {
+    try {
+        const { token, user_id, models } = req.body;
+        
+        if (!token || !user_id || !models) {
+            return res.status(400).json({ error: 'Token, user_id and models are required' });
+        }
+
+        console.log('Launch request received:', { user_id, modelsCount: models.length });
+
+        // Проверяем режим разработки
+        const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+        let isTokenValid = false;
+
+        if (isDevelopment) {
+            console.log('Development mode: skipping token validation');
+            isTokenValid = true;
+        } else {
+            // Валидируем токен через внешний API
+            isTokenValid = await validateTokenInternal(token);
+            console.log('Token validation result:', isTokenValid);
+        }
+        
+        if (!isTokenValid) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        console.log('Token validated successfully for user:', user_id);
+
+        // Создаем уникальный sessionId для этого запуска
+        const sessionId = generateSessionId();
+        console.log('Generated sessionId:', sessionId);
+        
+        // Сохраняем данные в временное хранилище (можно использовать Redis или просто память)
+        const sessionData = {
+            user_id,
+            models,
+            timestamp: new Date().toISOString(),
+            validated: true
+        };
+        
+        // Сохраняем в память (для продакшена лучше использовать Redis)
+        if (!global.sessionStore) {
+            global.sessionStore = new Map();
+            console.log('Created new sessionStore');
+        }
+        
+        global.sessionStore.set(sessionId, sessionData);
+        console.log('Session saved to store');
+        console.log('SessionStore size after save:', global.sessionStore.size);
+        console.log('Available sessions after save:', Array.from(global.sessionStore.keys()));
+        
+        // Устанавливаем таймаут удаления сессии (5 минут)
+        const timeoutId = setTimeout(() => {
+            if (global.sessionStore && global.sessionStore.has(sessionId)) {
+                global.sessionStore.delete(sessionId);
+                console.log('Session expired and deleted:', sessionId);
+            }
+        }, 5 * 60 * 1000);
+        
+        console.log('Session timeout set for 5 minutes');
+
+        // Возвращаем ссылку для редиректа
+        const redirectUrl = `${req.protocol}://${SERVER_NAME}:5173/?sessionId=${sessionId}`;
+        
+        res.json({ 
+            success: true, 
+            redirectUrl,
+            sessionId 
+        });
+
+    } catch (error) {
+        console.error('Error in launch endpoint:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Функция для валидации токена (внутренняя)
+async function validateTokenInternal(token) {
+    return new Promise((resolve) => {
+        const credentials = Buffer.from('leber:leber').toString('base64');
+        const hostname = 'inertia.leber.click';
+        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        
+        console.log('Validating token...');
+        console.log('Hostname:', hostname);
+        console.log('Path:', path);
+        console.log('Token (first 50 chars):', token.substring(0, 50) + '...');
+        
+        const options = {
+            hostname: hostname,
+            port: 443,
+            path: path,
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Basic ${credentials}`
+            }
+        };
+
+        const httpsReq = https.request(options, (httpsRes) => {
+            let data = '';
+            
+            console.log('Response status code:', httpsRes.statusCode);
+            console.log('Response headers:', httpsRes.headers);
+            
+            httpsRes.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            httpsRes.on('end', () => {
+                console.log('Response data:', data);
+                console.log('Token validation result:', httpsRes.statusCode === 200);
+                resolve(httpsRes.statusCode === 200);
+            });
+        });
+
+        httpsReq.on('error', (error) => {
+            console.error('Token validation error:', error);
+            resolve(false);
+        });
+
+        httpsReq.setTimeout(10000, () => {
+            console.error('Token validation timeout');
+            httpsReq.destroy();
+            resolve(false);
+        });
+
+        httpsReq.end();
+    });
+}
+
+// Функция для генерации уникального ID сессии
+function generateSessionId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2);
+    const sessionId = timestamp + random;
+    console.log('SessionId components:', { timestamp, random, sessionId });
+    return sessionId;
+}
+
+// Debug endpoint для просмотра всех активных сессий (только для разработки)
+app.get('/api/debug/sessions', (req, res) => {
+    const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+    
+    if (!isDevelopment) {
+        return res.status(403).json({ error: 'Debug endpoint only available in development' });
+    }
+    
+    const sessions = global.sessionStore ? Array.from(global.sessionStore.entries()) : [];
+    res.json({
+        count: sessions.length,
+        sessions: sessions.map(([id, data]) => ({
+            sessionId: id,
+            timestamp: data.timestamp,
+            user_id: data.user_id,
+            modelsCount: data.models ? data.models.length : 0
+        }))
+    });
+});
+
+// Endpoint для получения данных сессии по sessionId
+app.get('/api/session-data/:sessionId', (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        
+        console.log('=== SESSION DATA REQUEST ===');
+        console.log('Requested sessionId:', sessionId);
+        console.log('SessionStore exists:', !!global.sessionStore);
+        console.log('SessionStore size:', global.sessionStore ? global.sessionStore.size : 0);
+        
+        if (global.sessionStore) {
+            console.log('Available sessions:', Array.from(global.sessionStore.keys()));
+        }
+        
+        if (!global.sessionStore || !global.sessionStore.has(sessionId)) {
+            console.log('Session not found in store');
+            return res.status(404).json({ error: 'Session not found or expired' });
+        }
+        
+        const sessionData = global.sessionStore.get(sessionId);
+        console.log('Found session data:', sessionData);
+        
+        // Удаляем сессию после получения (одноразовое использование)
+        global.sessionStore.delete(sessionId);
+        console.log('Session deleted from store');
+        
+        res.json(sessionData);
+    } catch (error) {
+        console.error('Error getting session data:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
