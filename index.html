@@ -198,6 +198,15 @@
                         </svg>
                     </button>
                     
+                    <!-- Кнопка помощи -->
+                    <button class="tool-button-new" id="helpButton">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="#000000" stroke-width="2"/>
+                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="17" r="1" fill="#000000"/>
+                        </svg>
+                    </button>
+                    
                     <!-- Кнопка для закрытия -->
                     <button class="tool-button-new" id="closeAppButton">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -298,10 +307,41 @@
         <button class="pg-close-button" id="pgCloseButton">&times;</button>
     </div>
 
+    <!-- Модальное окно помощи с видео -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-modal-content">
+            <div class="help-modal-header">
+                <h3>Как пользоваться приложением</h3>
+                <button class="help-close-button" id="helpCloseButton">&times;</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="video-container">
+                    <video id="helpVideo" controls preload="metadata" poster="videos/help-tutorial.jpg">
+                        <source src="videos/help-tutorial.mp4" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                </div>
+                <div class="help-content">
+                    <h4>Основные возможности:</h4>
+                    <ul>
+                        <li>Перетаскивайте элементы из каталога на площадку</li>
+                        <li>Изменяйте размеры и цвет площадки</li>
+                        <li>Поворачивайте и перемещайте объекты</li>
+                        <li>Включайте отображение безопасных зон</li>
+                        <li>Делайте скриншоты готового проекта</li>
+                        <li>Сохраняйте и загружайте конфигурации</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Подключаем модуль для управления модальным окном -->
     <script type="module" src="js/modal.js"></script>
     <!-- Подключаем модуль для управления настройками площадки -->
     <script type="module" src="js/pg-modal.js"></script>
+    <!-- Подключаем модуль для управления модальным окном помощи -->
+    <script type="module" src="js/helpModal.js"></script>
     <!-- Подключаем единый модуль инициализации приложения -->
     <script type="module" src="js/appInit.js"></script>
 </body>
