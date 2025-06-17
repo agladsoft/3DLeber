@@ -3,12 +3,81 @@
  * Отвечает за запуск приложения в модальном режиме
  */
 import { startSceneChecks } from './sceneCheck.js';
-import { initializeNewSession } from './models.js';
 import { API_BASE_URL } from './api/serverConfig.js';
 import { clearModelCache } from './modules/objectManager.js';
 
 // Флаг для отслеживания инициализации sidebar
 let sidebarInitialized = false;
+
+/**
+ * Инициализирует новую сессию данными из JSON
+ * @param {string} userId - ID пользователя
+ * @param {Array} models - Массив моделей из JSON
+ */
+export async function initializeNewSession(userId, models) {
+    try {
+        console.log('Initializing new session with models:', models);
+        
+        // Сначала получаем полные данные моделей через API
+        const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ models }),
+        });
+
+        if (!matchResponse.ok) {
+            throw new Error('Failed to match models with database');
+        }
+
+        const { models: matchedModels } = await matchResponse.json();
+        console.log('Matched models:', matchedModels);
+
+        // Создаем начальные данные сессии
+        const sessionData = {
+            quantities: {},
+            placedObjects: []
+        };
+
+        // Заполняем количества из JSON, используя article для сопоставления
+        models.forEach(jsonModel => {
+            const matchedModel = matchedModels.find(m => m.article === jsonModel.article);
+            if (matchedModel && matchedModel.name) {
+                const modelName = `${matchedModel.name}.glb`;
+                sessionData.quantities[modelName] = jsonModel.quantity;
+                console.log(`Setting quantity for ${modelName}: ${jsonModel.quantity}`);
+            }
+        });
+
+        console.log('Final session data to save:', sessionData);
+
+        // Сохраняем сессию в БД
+        const response = await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save session');
+        }
+
+        // Проверяем, что данные сохранились
+        const verifyResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (verifyResponse.ok) {
+            const { session } = await verifyResponse.json();
+            console.log('Verified saved session data:', session);
+        }
+
+        return sessionData;
+    } catch (error) {
+        console.error('Error initializing new session:', error);
+        return null;
+    }
+}
 
 // Экспортируем функцию для показа модального окна выбора площадки
 export async function showPlatformSelectModal() {
