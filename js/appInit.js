@@ -12,6 +12,7 @@ import {
     extractModelsDataFromSession 
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
+import { initHelpModal } from './helpModal.js';
 
 /**
  * Инициализирует все компоненты приложения
@@ -20,6 +21,9 @@ async function initializeApp() {
     console.log('Initializing application components...');
     
     const loadingScreen = document.getElementById('loadingScreen');
+
+    // Инициализируем модальное окно помощиAdd commentMore actions
+    initHelpModal();
     
     try {
         // Сначала проверяем новый метод с sessionId

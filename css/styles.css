@@ -2427,6 +2427,102 @@ color: #333 !important;
     display: none !important;
 }
 
+/* Модальное окно помощи */
+.help-modal-content {
+    width: 800px;
+    max-width: 90vw;
+    max-height: 90vh;
+    padding: 0;
+    overflow: hidden;
+}
+
+.help-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30px 30px 20px 30px;
+    border-bottom: 1px solid rgba(16, 15, 15, 0.1);
+}
+
+.help-modal-header h3 {
+    font-family: 'TT Lakes Neue', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #100F0F;
+    margin: 0;
+}
+
+.help-close-button {
+    background: none;
+    border: none;
+    font-size: 32px;
+    cursor: pointer;
+    color: rgba(16, 15, 15, 0.4);
+    transition: color 0.3s ease;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.help-close-button:hover {
+    color: #100F0F;
+}
+
+.help-modal-body {
+    padding: 30px;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+}
+
+.video-container {
+    width: 100%;
+    margin-bottom: 30px;
+    background: #000;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.video-container video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.help-content h4 {
+    font-family: 'TT Lakes Neue', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: #100F0F;
+    margin: 0 0 15px 0;
+}
+
+.help-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.help-content li {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 16px;
+    color: #100F0F;
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+}
+
+.help-content li::before {
+    content: '•';
+    color: #F05323;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    top: 8px;
+}
+
 /* Hide age and area information in left panel */
 .model-specs,
 .model-spec {

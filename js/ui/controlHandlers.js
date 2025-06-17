@@ -23,6 +23,7 @@ const TOOL_DESCRIPTIONS = {
     'toggleSafetyZone': 'Показать зоны безопасности',
     'saveScreenshot': 'Сохранить скриншот',
     'deleteAllModels': 'Удалить все объекты',
+    'helpButton': 'Справка',
     'closeAppButton': 'Закрыть приложение',
     'exportModel': 'Вид сверху',
     'playgroundButton': 'Настройки площадки'
@@ -61,6 +62,7 @@ function setupControlHandlers() {
     setupResetViewButton();
     setupPlaygroundButton();
     setupDeleteAllButton();
+    setupHelpButton();
     
     // Обработчики для элементов панели инструментов
     setupSettingsButton();
@@ -966,5 +968,33 @@ function setupPlaygroundButton() {
                 square.classList.add('selected');
             }
         });
+    }
+}
+
+/**
+ * Настраивает обработчик для кнопки справки
+ */
+function setupHelpButton() {
+    const helpButton = document.getElementById('helpButton');
+    
+    if (helpButton) {
+        helpButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Help button clicked');
+            
+            try {
+                // Динамически импортируем модуль helpModal
+                const { showHelpModal } = await import('../helpModal.js');
+                showHelpModal();
+            } catch (error) {
+                console.error('Error loading help modal:', error);
+            }
+        });
+        
+        console.log('Help button handler setup complete');
+    } else {
+        console.warn('Help button not found');
     }
 }
