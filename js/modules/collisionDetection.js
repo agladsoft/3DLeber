@@ -2,8 +2,14 @@
  * Модуль для проверки коллизий между объектами и с границами площадки
  */
 import * as THREE from 'three';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { placedObjects } from './objectManager.js';
 import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
+
+// Расширяем THREE.BufferGeometry с методами BVH
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 /**
  * Получает границы объекта для проверки позиционирования
@@ -122,7 +128,69 @@ export function highlightPlaygroundBoundary(object, show) {
 }
 
 /**
+ * Получает все safety_zone мэши из объекта
+ * @param {Object} object - Объект для поиска safety_zone мэшей
+ * @returns {Array} Массив safety_zone мэшей
+ */
+function getSafetyZoneMeshes(object) {
+    const safetyZones = [];
+    
+    object.traverse((child) => {
+        if (child.isMesh && child.name && child.name.endsWith('safety_zone')) {
+            safetyZones.push(child);
+        }
+    });
+    
+    return safetyZones;
+}
+
+/**
+ * Проверяет пересечение между двумя мэшами используя BVH
+ * @param {THREE.Mesh} mesh1 - Первый мэш
+ * @param {THREE.Mesh} mesh2 - Второй мэш
+ * @returns {Boolean} true, если мэши пересекаются
+ */
+function checkMeshIntersection(mesh1, mesh2) {
+    try {
+        // Убеждаемся, что у мэшей есть BVH
+        if (!mesh1.geometry.boundsTree) {
+            mesh1.geometry.computeBoundsTree();
+        }
+        if (!mesh2.geometry.boundsTree) {
+            mesh2.geometry.computeBoundsTree();
+        }
+
+        // Получаем мировые матрицы трансформации
+        mesh1.updateMatrixWorld(true);
+        mesh2.updateMatrixWorld(true);
+
+        // Создаем временную матрицу для правильного преобразования координат
+        const tempMatrix = new THREE.Matrix4();
+        tempMatrix.copy(mesh1.matrixWorld).invert().multiply(mesh2.matrixWorld);
+
+        // Проверяем пересечение с помощью BVH
+        const intersection = mesh1.geometry.boundsTree.intersectsGeometry(
+            mesh2.geometry,
+            tempMatrix
+        );
+
+        return intersection;
+    } catch (error) {
+        console.warn('Ошибка при точной проверке пересечения, используем bounding box:', error);
+        
+        // Fallback на bounding box проверку
+        const box1 = new THREE.Box3().setFromObject(mesh1);
+        const box2 = new THREE.Box3().setFromObject(mesh2);
+        return box1.intersectsBox(box2);
+    }
+}
+
+/**
  * Проверяет пересечение (коллизию) между двумя объектами
+ * Приоритет проверки:
+ * 1. Safety zones между объектами (если есть)
+ * 2. Safety zones против обычных мешей
+ * 3. Fallback на bounding box (только если нет safety zones)
  * @param {Object} object1 - Первый объект для проверки
  * @param {Object} object2 - Второй объект для проверки
  * @returns {Boolean} true, если объекты пересекаются, иначе false
@@ -130,12 +198,82 @@ export function highlightPlaygroundBoundary(object, show) {
 export function checkObjectsIntersection(object1, object2) {
     if (!object1 || !object2) return false;
     
-    // Создаем ограничивающие боксы для обоих объектов
-    const box1 = new THREE.Box3().setFromObject(object1);
-    const box2 = new THREE.Box3().setFromObject(object2);
-    
-    // Проверяем пересечение
-    return box1.intersectsBox(box2);
+    try {
+        // Получаем safety zone мэши из обоих объектов
+        const safetyZones1 = getSafetyZoneMeshes(object1);
+        const safetyZones2 = getSafetyZoneMeshes(object2);
+        
+        // Отладка: выводим информацию только если есть safety zones
+        if (safetyZones1.length > 0 || safetyZones2.length > 0) {
+            console.log(`Проверка коллизий: ${object1.name || object1.uuid} (${safetyZones1.length} safety zones) vs ${object2.name || object2.uuid} (${safetyZones2.length} safety zones)`);
+        }
+        
+        // Случай 1: Оба объекта имеют safety zones - проверяем их пересечения
+        if (safetyZones1.length > 0 && safetyZones2.length > 0) {
+            for (const zone1 of safetyZones1) {
+                for (const zone2 of safetyZones2) {
+                    if (checkMeshIntersection(zone1, zone2)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Случай 2: Один объект имеет safety zone, другой - нет
+        // Проверяем safety zone против всех мешей второго объекта
+        if (safetyZones1.length > 0) {
+            const allMeshes2 = [];
+            object2.traverse((child) => {
+                if (child.isMesh && child.geometry && !child.name.endsWith('safety_zone')) {
+                    allMeshes2.push(child);
+                }
+            });
+            
+            for (const zone1 of safetyZones1) {
+                for (const mesh2 of allMeshes2) {
+                    if (checkMeshIntersection(zone1, mesh2)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        if (safetyZones2.length > 0) {
+            const allMeshes1 = [];
+            object1.traverse((child) => {
+                if (child.isMesh && child.geometry && !child.name.endsWith('safety_zone')) {
+                    allMeshes1.push(child);
+                }
+            });
+            
+            for (const zone2 of safetyZones2) {
+                for (const mesh1 of allMeshes1) {
+                    if (checkMeshIntersection(zone2, mesh1)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Случай 3: Ни у одного объекта нет safety zones
+        // Используем простую bounding box проверку как fallback
+        const box1 = new THREE.Box3().setFromObject(object1);
+        const box2 = new THREE.Box3().setFromObject(object2);
+        
+        return box1.intersectsBox(box2);
+        
+    } catch (error) {
+        console.warn('Ошибка при проверке коллизий, используем bounding box fallback:', error);
+        
+        // В случае любой ошибки используем простую bounding box проверку
+        const box1 = new THREE.Box3().setFromObject(object1);
+        const box2 = new THREE.Box3().setFromObject(object2);
+        
+        return box1.intersectsBox(box2);
+    }
 }
 
 /**
