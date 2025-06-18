@@ -98,6 +98,30 @@ export function createEmergencyGround() {
                 case 'коричневый':
                     groundColor = 0x5D4037; // Коричневый
                     break;
+                case 'синий':
+                    groundColor = 0x1976D2; // Синий
+                    break;
+                case 'красный':
+                    groundColor = 0xD32F2F; // Красный
+                    break;
+                case 'фиолетовый':
+                    groundColor = 0x7B1FA2; // Фиолетовый
+                    break;
+                case 'оранжевый':
+                    groundColor = 0xF57C00; // Оранжевый
+                    break;
+                case 'желтый':
+                    groundColor = 0xFBC02D; // Желтый
+                    break;
+                case 'розовый':
+                    groundColor = 0xC2185B; // Розовый
+                    break;
+                case 'бирюзовый':
+                    groundColor = 0x00ACC1; // Бирюзовый
+                    break;
+                case 'лайм':
+                    groundColor = 0x689F38; // Лайм
+                    break;
                 case 'серый':
                     groundColor = 0xAAAAAA; // Серый
                     break;

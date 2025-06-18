@@ -229,6 +229,30 @@ const PlaygroundModal = {
                 case 'коричневый':
                     colorHex = '#5D4037';
                     break;
+                case 'синий':
+                    colorHex = '#1976D2';
+                    break;
+                case 'красный':
+                    colorHex = '#D32F2F';
+                    break;
+                case 'фиолетовый':
+                    colorHex = '#7B1FA2';
+                    break;
+                case 'оранжевый':
+                    colorHex = '#F57C00';
+                    break;
+                case 'желтый':
+                    colorHex = '#FBC02D';
+                    break;
+                case 'розовый':
+                    colorHex = '#C2185B';
+                    break;
+                case 'бирюзовый':
+                    colorHex = '#00ACC1';
+                    break;
+                case 'лайм':
+                    colorHex = '#689F38';
+                    break;
                 case 'серый':
                 default:
                     colorHex = '#D9D9D9';

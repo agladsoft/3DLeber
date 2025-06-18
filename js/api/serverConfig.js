@@ -25,4 +25,4 @@ export {
     POSTGRES_USER,
     POSTGRES_PASSWORD,
     DB_CONFIG
-}; 
+};
