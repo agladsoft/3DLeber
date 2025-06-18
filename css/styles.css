@@ -2294,7 +2294,7 @@ color: #333 !important;
 .pg-color-picker {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
     margin-bottom: 30px;
     overflow-x: auto;
