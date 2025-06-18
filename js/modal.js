@@ -184,6 +184,24 @@ function updateModalValuesFromCurrent() {
 }
 
 
+async function checkMissingModelsAfterStart() {
+    try {
+        // Динамически импортируем модуль проверки отсутствующих моделей
+        const { autoCheckAndShowMissingModels } = await import('./checkMissingModelsModal.js');
+        
+        // Запускаем автоматическую проверку
+        const result = await autoCheckAndShowMissingModels();
+        
+        if (result.hasMissing) {
+            console.log(`Found ${result.stats.missing} missing models out of ${result.stats.total} total`);
+        } else {
+            console.log(`No missing models found`);
+        }
+        
+    } catch (error) {
+        console.error(`Error checking missing models after start:`, error);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Получаем элементы DOM
@@ -330,6 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }, 3000);
                     }
                 }
+                
+                // Проверяем отсутствующие модели после запуска приложения (один раз)
+                setTimeout(() => {
+                    console.log('Calling checkMissingModelsAfterStart from startAppButton handler');
+                    checkMissingModelsAfterStart('startAppButton');
+                }, 3000);
                 
                 // Восстанавливаем состояние кнопки после задержки
                 setTimeout(() => {
@@ -478,6 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }, 3000);
                     }
                 }
+                
+                // Проверяем отсутствующие модели после восстановления сессии (один раз)
+                setTimeout(() => {
+                    console.log('Calling checkMissingModelsAfterStart from continueSessionButton handler');
+                    checkMissingModelsAfterStart('continueSessionButton');
+                }, 3000);
             } catch (error) {
                 console.error('Error continuing session:', error);
                 // Если произошла ошибка, показываем модальное окно выбора площадки

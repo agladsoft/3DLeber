@@ -255,6 +255,16 @@
                         </svg>
                     </button>
                     
+                    <!-- Кнопка проверки отсутствующих моделей -->
+                    <button class="tool-button-new" id="checkMissingModelsButton">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="8" stroke="#000000" stroke-width="2"/>
+                            <path d="M21 21l-4.35-4.35" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 11h4" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M11 9v4" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    
                     <!-- Кнопка для закрытия -->
                     <button class="tool-button-new" id="closeAppButton">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -379,6 +389,38 @@
                         <li>Делайте скриншоты готового проекта</li>
                         <li>Сохраняйте и загружайте конфигурации</li>
                     </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно отсутствующих моделей -->
+    <div id="missingModelsModal" class="modal">
+        <div class="modal-content missing-models-content">
+            <div class="missing-models-header">
+                <h3>Отсутствующие модели</h3>
+                <button class="missing-models-close-button" id="missingModelsCloseButton">&times;</button>
+            </div>
+            <div class="missing-models-body">
+                <div class="missing-models-stats">
+                    <div class="stats-item">
+                        <span class="stats-label">Всего моделей:</span>
+                        <span class="stats-value" id="totalModelsCount">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">Найдено:</span>
+                        <span class="stats-value found" id="foundModelsCount">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">Отсутствует:</span>
+                        <span class="stats-value missing" id="missingModelsCount">0</span>
+                    </div>
+                </div>
+                <div class="missing-models-list" id="missingModelsList">
+                    <div class="missing-models-loading">
+                        <div class="loading-spinner"></div>
+                        <span>Проверка моделей...</span>
+                    </div>
                 </div>
             </div>
         </div>

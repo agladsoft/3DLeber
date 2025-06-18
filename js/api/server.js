@@ -23,7 +23,12 @@ const pool = new Pool(DB_CONFIG);
 app.use(cors());
 app.use(express.json());
 
-const modelsDir = path.join(__dirname, '..', 'models');
+const modelsDir = path.join(__dirname, '..', '..', 'models');
+
+// Логирование для отладки
+console.log('Server __dirname:', __dirname);
+console.log('Models directory path:', modelsDir);
+console.log('Models directory exists:', fs.existsSync(modelsDir));
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -494,6 +499,90 @@ app.delete('/api/session/:userId', async (req, res) => {
     } catch (err) {
         console.error('Error deleting session:', err);
         res.status(500).json({ error: 'Error deleting session from database' });
+    }
+});
+
+// Получение списка отсутствующих моделей
+app.get('/api/missing-models/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        console.log('Missing models request for userId:', userId);
+        console.log('Query models:', req.query.models);
+        
+        // Получаем модели из sessionStorage (переданы в запросе)
+        const requestedModels = JSON.parse(req.query.models || '[]');
+        
+        if (!Array.isArray(requestedModels)) {
+            return res.status(400).json({ error: 'Invalid models data' });
+        }
+        
+        console.log('Requested models:', requestedModels);
+        
+        // Получаем список файлов из папки models
+        const filesInFolder = collectGlbModels(modelsDir);
+        const fileNamesInFolder = filesInFolder.map(file => path.basename(file));
+        
+        console.log('Files in folder:', fileNamesInFolder);
+        
+        // Получаем все модели из базы данных
+        const allDbModels = await pool.query('SELECT name, article FROM models');
+        const dbModelNames = allDbModels.rows.map(model => model.name);
+        
+        console.log('DB models:', allDbModels.rows);
+        console.log('DB model names:', dbModelNames);
+        
+        // Находим отсутствующие модели
+        const missingModels = [];
+        
+        for (const requestedModel of requestedModels) {
+            console.log('Checking model:', requestedModel);
+            
+            // Попробуем найти модель в БД по артикулу
+            const dbModel = allDbModels.rows.find(dbModel => dbModel.article === requestedModel.article);
+            const modelName = dbModel ? dbModel.name : null;
+            
+            // Создаем имя файла для поиска
+            const possibleFileNames = [
+                `${requestedModel.article}.glb`,
+                modelName ? `${modelName}.glb` : null
+            ].filter(Boolean);
+            
+            console.log('Possible file names for', requestedModel.article, ':', possibleFileNames);
+            
+            // Проверяем наличие в папке
+            const existsInFolder = possibleFileNames.some(fileName => 
+                fileNamesInFolder.includes(fileName)
+            );
+            
+            // Проверяем наличие в базе данных
+            const existsInDb = dbModel !== undefined;
+            
+            console.log('Exists in folder:', existsInFolder, 'Exists in DB:', existsInDb);
+            
+            if (!existsInFolder || !existsInDb) {
+                missingModels.push({
+                    article: requestedModel.article,
+                    name: modelName,
+                    missingInFolder: !existsInFolder,
+                    missingInDb: !existsInDb
+                });
+            }
+        }
+        
+        console.log('Missing models result:', missingModels);
+        
+        res.json({ 
+            missingModels,
+            stats: {
+                total: requestedModels.length,
+                missing: missingModels.length,
+                found: requestedModels.length - missingModels.length
+            }
+        });
+    } catch (err) {
+        console.error('Error getting missing models:', err);
+        res.status(500).json({ error: 'Error getting missing models' });
     }
 });
 

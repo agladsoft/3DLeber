@@ -1,0 +1,348 @@
+/**
+ * Модуль управления модальным окном проверки отсутствующих моделей
+ */
+import { API_BASE_URL } from './api/serverConfig.js';
+
+/**
+ * Отображает модальное окно проверки отсутствующих моделей
+ */
+export async function showCheckMissingModelsModal() {
+    const modal = document.getElementById('missingModelsModal');
+    if (!modal) {
+        console.error('Missing models modal not found');
+        return;
+    }
+
+    // Показываем модальное окно
+    modal.style.display = 'block';
+    
+    // Активируем кнопку (делаем её оранжевой)
+    setButtonActiveState(true);
+    
+    // Устанавливаем обработчики закрытия если еще не установлены
+    setupModalEventHandlers();
+    
+    // Загружаем данные о отсутствующих моделях
+    const result = await loadMissingModelsData();
+    
+    // Обновляем индикатор на кнопке
+    if (result) {
+        setMissingModelsIndicator(result.hasMissing || false);
+    }
+}
+
+/**
+ * Скрывает модальное окно проверки отсутствующих моделей
+ */
+export function hideCheckMissingModelsModal() {
+    const modal = document.getElementById('missingModelsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    // Деактивируем кнопку (убираем оранжевый цвет)
+    setButtonActiveState(false);
+}
+
+/**
+ * Настраивает обработчики событий для модального окна
+ */
+function setupModalEventHandlers() {
+    const modal = document.getElementById('missingModelsModal');
+    const closeButton = document.getElementById('missingModelsCloseButton');
+    
+    // Обработчик для кнопки закрытия
+    if (closeButton && !closeButton.hasAttribute('data-handler-added')) {
+        closeButton.addEventListener('click', hideCheckMissingModelsModal);
+        closeButton.setAttribute('data-handler-added', 'true');
+    }
+    
+    // Обработчик клика по фону модального окна
+    if (modal && !modal.hasAttribute('data-handler-added')) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                hideCheckMissingModelsModal();
+            }
+        });
+        modal.setAttribute('data-handler-added', 'true');
+    }
+    
+    // Обработчик нажатия ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideCheckMissingModelsModal();
+        }
+    });
+}
+
+/**
+ * Загружает и отображает данные о отсутствующих моделях
+ */
+async function loadMissingModelsData() {
+    const listContainer = document.getElementById('missingModelsList');
+    const totalCountEl = document.getElementById('totalModelsCount');
+    const missingCountEl = document.getElementById('missingModelsCount');
+    const foundCountEl = document.getElementById('foundModelsCount');
+    
+    if (!listContainer) {
+        console.error('Missing models list container not found');
+        return;
+    }
+    
+    try {
+        // Показываем индикатор загрузки
+        listContainer.innerHTML = `
+            <div class="missing-models-loading">
+                <div class="loading-spinner"></div>
+                <span>Проверка моделей...</span>
+            </div>
+        `;
+        
+        // Получаем данные моделей из sessionStorage
+        const models = JSON.parse(sessionStorage.getItem('models') || '[]');
+        const userId = sessionStorage.getItem('userId');
+        
+        if (!models.length) {
+            showNoModelsMessage();
+            return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+        }
+        
+        if (!userId) {
+            showErrorMessage('Не найден ID пользователя');
+            return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+        }
+        
+        // Отправляем запрос на сервер для проверки отсутствующих моделей
+        const response = await fetch(
+            `${API_BASE_URL}/missing-models/${userId}?models=${encodeURIComponent(JSON.stringify(models))}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Обновляем статистику
+        updateStats(data.stats, totalCountEl, missingCountEl, foundCountEl);
+        
+        // Отображаем результаты
+        if (data.missingModels && data.missingModels.length > 0) {
+            displayMissingModels(data.missingModels, listContainer);
+        } else {
+            showNoMissingModelsMessage(listContainer);
+        }
+        
+        return {
+            hasMissing: data.missingModels.length > 0,
+            missingModels: data.missingModels,
+            stats: data.stats
+        };
+        
+    } catch (error) {
+        console.error('Error loading missing models data:', error);
+        showErrorMessage('Ошибка при загрузке данных о моделях: ' + error.message);
+        return null;
+    }
+}
+
+/**
+ * Обновляет статистику в модальном окне
+ */
+function updateStats(stats, totalCountEl, missingCountEl, foundCountEl) {
+    if (totalCountEl) totalCountEl.textContent = stats.total || 0;
+    if (missingCountEl) missingCountEl.textContent = stats.missing || 0;
+    if (foundCountEl) foundCountEl.textContent = stats.found || 0;
+}
+
+/**
+ * Отображает список отсутствующих моделей
+ */
+function displayMissingModels(missingModels, container) {
+    const html = missingModels.map(model => {
+        const statusBadges = [];
+        
+        if (model.missingInFolder) {
+            statusBadges.push('<span class="status-badge missing-folder">Нет в папке</span>');
+        }
+        
+        if (model.missingInDb) {
+            statusBadges.push('<span class="status-badge missing-db">Нет в БД</span>');
+        }
+        
+        return `
+            <div class="missing-model-item">
+                <div class="missing-model-info">
+                    <div class="missing-model-article">${model.article}</div>
+                    ${model.name ? `<div class="missing-model-name">${model.name}</div>` : ''}
+                </div>
+                <div class="missing-model-status">
+                    ${statusBadges.join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Показывает сообщение об отсутствии отсутствующих моделей
+ */
+function showNoMissingModelsMessage(container) {
+    container.innerHTML = `
+        <div class="no-missing-models">
+            <div class="success-icon">✅</div>
+            <h4>Все модели найдены!</h4>
+            <p>Все модели из списка присутствуют в папке и базе данных.</p>
+        </div>
+    `;
+}
+
+/**
+ * Показывает сообщение об отсутствии моделей
+ */
+function showNoModelsMessage() {
+    const listContainer = document.getElementById('missingModelsList');
+    if (listContainer) {
+        listContainer.innerHTML = `
+            <div class="no-missing-models">
+                <div class="success-icon">ℹ️</div>
+                <h4>Нет данных о моделях</h4>
+                <p>Список моделей пуст или не загружен.</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Показывает сообщение об ошибке
+ */
+function showErrorMessage(message) {
+    const listContainer = document.getElementById('missingModelsList');
+    if (listContainer) {
+        listContainer.innerHTML = `
+            <div class="no-missing-models" style="color: #dc3545;">
+                <div class="success-icon">❌</div>
+                <h4>Произошла ошибка</h4>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Проверяет наличие отсутствующих моделей без отображения модального окна
+ * @returns {Promise<{hasMissing: boolean, missingModels: Array, stats: Object}>}
+ */
+export async function checkMissingModelsQuiet() {
+    try {
+        // Получаем данные моделей из sessionStorage
+        const models = JSON.parse(sessionStorage.getItem('models') || '[]');
+        const userId = sessionStorage.getItem('userId');
+        
+        if (!models.length || !userId) {
+            return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+        }
+        
+        // Отправляем запрос на сервер для проверки отсутствующих моделей
+        const response = await fetch(
+            `${API_BASE_URL}/missing-models/${userId}?models=${encodeURIComponent(JSON.stringify(models))}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            console.error('Failed to check missing models:', response.status);
+            return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+        }
+        
+        const data = await response.json();
+        
+        return {
+            hasMissing: data.missingModels.length > 0,
+            missingModels: data.missingModels,
+            stats: data.stats
+        };
+        
+    } catch (error) {
+        console.error('Error checking missing models quietly:', error);
+        return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+    }
+}
+
+/**
+ * Автоматически показывает модальное окно если есть отсутствующие модели
+ */
+let autoCheckInProgress = false;
+
+export async function autoCheckAndShowMissingModels() {
+    if (autoCheckInProgress) {
+        console.log('autoCheckAndShowMissingModels already in progress, skipping...');
+        return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
+    }
+    
+    autoCheckInProgress = true;
+    console.log('Starting autoCheckAndShowMissingModels...');
+    
+    try {
+        const result = await checkMissingModelsQuiet();
+        
+        // Устанавливаем индикатор на кнопке
+        setMissingModelsIndicator(result.hasMissing);
+        
+        if (result.hasMissing) {
+            console.log('Found missing models, showing modal automatically:', result.missingModels);
+            await showCheckMissingModelsModal();
+        } else {
+            console.log('No missing models found');
+        }
+        
+        return result;
+    } finally {
+        setTimeout(() => {
+            autoCheckInProgress = false;
+            console.log('autoCheckAndShowMissingModels completed, flag reset');
+        }, 500);
+    }
+}
+
+/**
+ * Устанавливает или убирает индикатор отсутствующих моделей на кнопке
+ * @param {boolean} hasMissing - есть ли отсутствующие модели
+ */
+function setMissingModelsIndicator(hasMissing) {
+    const button = document.getElementById('checkMissingModelsButton');
+    if (button) {
+        if (hasMissing) {
+            button.classList.add('has-missing-models');
+        } else {
+            button.classList.remove('has-missing-models');
+        }
+    }
+}
+
+/**
+ * Устанавливает активное состояние кнопки
+ * @param {boolean} isActive - активна ли кнопка
+ */
+function setButtonActiveState(isActive) {
+    const button = document.getElementById('checkMissingModelsButton');
+    if (button) {
+        if (isActive) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    }
+} 

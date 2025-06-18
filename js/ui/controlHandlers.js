@@ -24,6 +24,7 @@ const TOOL_DESCRIPTIONS = {
     'saveScreenshot': 'Сохранить скриншот',
     'deleteAllModels': 'Удалить все объекты',
     'helpButton': 'Справка',
+    'checkMissingModelsButton': 'Проверить отсутствующие модели',
     'closeAppButton': 'Закрыть приложение',
     'exportModel': 'Вид сверху',
     'playgroundButton': 'Настройки площадки'
@@ -70,6 +71,7 @@ function setupControlHandlers() {
     setupToggleDimensionsButton();
     setupToggleSafetyZoneButton();
     setupCloseAppButton();
+    setupCheckMissingModelsButton();
     setupToolButtonsEffects();
     setupToolButtonsContainerState();
 }
@@ -996,5 +998,33 @@ function setupHelpButton() {
         console.log('Help button handler setup complete');
     } else {
         console.warn('Help button not found');
+    }
+}
+
+/**
+ * Настраивает обработчик для кнопки проверки отсутствующих моделей
+ */
+function setupCheckMissingModelsButton() {
+    const checkMissingModelsButton = document.getElementById('checkMissingModelsButton');
+    
+    if (checkMissingModelsButton) {
+        checkMissingModelsButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Check missing models button clicked');
+            
+            try {
+                // Динамически импортируем модуль checkMissingModelsModal
+                const { showCheckMissingModelsModal } = await import('../checkMissingModelsModal.js');
+                showCheckMissingModelsModal();
+            } catch (error) {
+                console.error('Error loading check missing models modal:', error);
+            }
+        });
+        
+        console.log('Check missing models button handler setup complete');
+    } else {
+        console.warn('Check missing models button not found');
     }
 }
