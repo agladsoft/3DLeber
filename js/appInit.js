@@ -3,12 +3,9 @@
  */
 
 import { 
-    getTokenFromURL, 
     getSessionIdFromURL, 
-    validateToken, 
     getSessionData, 
     showTokenError, 
-    extractModelsData, 
     extractModelsDataFromSession 
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
@@ -26,62 +23,34 @@ async function initializeApp() {
     initHelpModal();
     
     try {
-        // Сначала проверяем новый метод с sessionId
+        // Проверяем sessionId
         const sessionId = getSessionIdFromURL();
         
-        if (sessionId) {
-            console.log('SessionId found, retrieving session data...');
-            
-            // Получаем данные сессии
-            const sessionResult = await getSessionData(sessionId);
-            
-            if (!sessionResult.isValid) {
-                console.error('Session validation failed or session expired');
-                if (loadingScreen) loadingScreen.classList.add('hidden');
-                showTokenError();
-                return;
-            }
-            
-            console.log('Session validated successfully, extracting data...');
-            
-            // Извлекаем данные моделей из сессии
-            const modelsData = extractModelsDataFromSession(sessionResult.userData);
-            
-            console.log('Extracted models data from session:', modelsData);
-            
-            // Инициализируем приложение с данными
-            await initializeWithData(modelsData, loadingScreen);
-            return;
-        }
-        
-        // Если sessionId нет, пробуем старый метод с токеном (для совместимости)
-        const token = getTokenFromURL();
-        
-        if (!token) {
-            console.error('No sessionId or token found in URL - access denied');
+        if (!sessionId) {
+            console.error('No sessionId found in URL - access denied');
             if (loadingScreen) loadingScreen.classList.add('hidden');
             showTokenError();
             return;
         }
         
-        console.log('Token found, validating...');
+        console.log('SessionId found, retrieving session data...');
         
-        // Валидируем токен и получаем данные пользователя
-        const validationResult = await validateToken(token);
+        // Получаем данные сессии
+        const sessionResult = await getSessionData(sessionId);
         
-        if (!validationResult.isValid) {
-            console.error('Token validation failed');
+        if (!sessionResult.isValid) {
+            console.error('Session validation failed or session expired');
             if (loadingScreen) loadingScreen.classList.add('hidden');
             showTokenError();
             return;
         }
         
-        console.log('Token validated successfully, extracting user data...');
+        console.log('Session validated successfully, extracting data...');
         
-        // Извлекаем данные моделей из ответа API
-        const modelsData = extractModelsData(validationResult.userData);
+        // Извлекаем данные моделей из сессии
+        const modelsData = extractModelsDataFromSession(sessionResult.userData);
         
-        console.log('Extracted models data from token:', modelsData);
+        console.log('Extracted models data from session:', modelsData);
         
         // Инициализируем приложение с данными
         await initializeWithData(modelsData, loadingScreen);
