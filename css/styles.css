@@ -237,156 +237,12 @@ body, html {
 /* Цветовой выбор */
 .horizontal-color-picker {
     display: flex;
-    gap: 10px;
-    padding: 10px 20px;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    max-width: 100%;
-    border: 1px solid rgba(16, 15, 15, 0.1);
-    border-radius: 20px;
-    background-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Стилизация горизонтального скроллбара */
-.horizontal-color-picker::-webkit-scrollbar {
-    height: 6px;
-}
-
-.horizontal-color-picker::-webkit-scrollbar-track {
-    background: rgba(16, 15, 15, 0.1);
-    border-radius: 3px;
-}
-
-.horizontal-color-picker::-webkit-scrollbar-thumb {
-    background: rgba(240, 83, 35, 0.6);
-    border-radius: 3px;
-}
-
-.horizontal-color-picker::-webkit-scrollbar-thumb:hover {
-    background: rgba(240, 83, 35, 0.8);
-}
-
-.color-square {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    flex: none; /* Убираем flex:1 чтобы квадраты не растягивались */
-    flex-shrink: 0; /* Предотвращаем сжатие */
-}
-
-.color-square:hover {
-    transform: scale(1.05);
-}
-
-.color-square.selected {
-    border: 3px solid #F05323;
-    box-shadow: 0 5px 15px rgba(240, 83, 35, 0.3);
-}
-
-/* Современные кнопки */
-.modern-buttons {
-    display: flex;
-    justify-content: space-between;
-    gap: 30px;
-    margin-top: 50px;
-}
-
-.modern-button {
-    flex: 1;
-    height: 70px;
-    padding: 0 30px;
-    border-radius: 50px;
-    font-size: 18px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid #F05323;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.outline-button {
-    background-color: transparent !important;
-    color: #F05323 !important;
-    border: 2px solid #F05323;
-    font-weight: 600;
-}
-
-.filled-button {
-    background-color: #F05323;
-    color: white;
-    border: 2px solid #F05323;
-}
-
-.outline-button:hover {
-    background-color: rgba(240, 83, 35, 0.05);
-}
-
-.filled-button:hover {
-    background-color: #E04213;
-}
-
-/* Настройки площадки */
-.platform-settings {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    margin-bottom: 30px;
-}
-
-.control-group {
-    display: flex;
-    flex-direction: column;
     gap: 8px;
-}
-
-.control-group label {
-    font-family: 'Inter Tight', sans-serif;
-    font-weight: 400;
-    font-size: 18px;
-    line-height: 130%;
-    color: rgba(16, 15, 15, 0.6);
-    margin-left: 5px;
-    margin-bottom: 5px;
-}
-
-.control-group input[type="number"] {
-    width: 100%;
-    padding: 20px;
-    border: 1px solid rgba(16, 15, 15, 0.15);
-    border-radius: 60px;
-    font-family: 'Inter Tight', sans-serif;
-    font-size: 18px;
-    color: #100F0F;
-    outline: none;
-    transition: border-color 0.3s ease;
-    background-color: #FFFFFF;
-}
-
-.control-group input[type="number"]::placeholder {
-    color: rgba(16, 15, 15, 0.6);
-}
-
-.control-group input[type="number"]:focus {
-    border-color: #F05323;
-}
-
-/* Цветовой выбор */
-.horizontal-color-picker {
-    display: flex;
-    gap: 10px;
-    padding: 10px 20px;
+    padding: 10px 5px;
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
     max-width: 100%;
-    border: 1px solid rgba(16, 15, 15, 0.1);
-    border-radius: 20px;
     background-color: rgba(255, 255, 255, 0.5);
 }
 
@@ -425,7 +281,6 @@ body, html {
 
 .color-square.selected {
     border: 3px solid #F05323;
-    box-shadow: 0 5px 15px rgba(240, 83, 35, 0.3);
 }
 
 /* Кнопки действий */
