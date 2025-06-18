@@ -195,6 +195,22 @@ function getPlaygroundColorHex(color) {
             return 0x2e7031;
         case 'коричневый':
             return 0x7c5c36;
+        case 'синий':
+            return 0x1976D2;
+        case 'красный':
+            return 0xD32F2F;
+        case 'фиолетовый':
+            return 0x7B1FA2;
+        case 'оранжевый':
+            return 0xF57C00;
+        case 'желтый':
+            return 0xFBC02D;
+        case 'розовый':
+            return 0xC2185B;
+        case 'бирюзовый':
+            return 0x00ACC1;
+        case 'лайм':
+            return 0x689F38;
         case 'серый':
         default:
             return 0x7F7F7F;

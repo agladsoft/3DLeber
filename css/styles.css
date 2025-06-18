@@ -99,6 +99,29 @@ body, html {
     gap: 15px;
     margin-top: 10px;
     justify-content: space-between;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 5px 0;
+    scroll-behavior: smooth;
+}
+
+/* Стилизация скроллбара для modern-color-picker */
+.modern-color-picker::-webkit-scrollbar {
+    height: 6px;
+}
+
+.modern-color-picker::-webkit-scrollbar-track {
+    background: rgba(16, 15, 15, 0.1);
+    border-radius: 3px;
+}
+
+.modern-color-picker::-webkit-scrollbar-thumb {
+    background: rgba(240, 83, 35, 0.6);
+    border-radius: 3px;
+}
+
+.modern-color-picker::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 83, 35, 0.8);
 }
 
 .modern-square {
@@ -108,6 +131,8 @@ body, html {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
+    flex-shrink: 0; /* Предотвращаем сжатие */
+    min-width: 160px; /* Минимальная ширина */
 }
 
 .modern-square:hover {
@@ -213,8 +238,33 @@ body, html {
 .horizontal-color-picker {
     display: flex;
     gap: 10px;
-    padding: 0 20px;
+    padding: 10px 20px;
     align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    border: 1px solid rgba(16, 15, 15, 0.1);
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Стилизация горизонтального скроллбара */
+.horizontal-color-picker::-webkit-scrollbar {
+    height: 6px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-track {
+    background: rgba(16, 15, 15, 0.1);
+    border-radius: 3px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-thumb {
+    background: rgba(240, 83, 35, 0.6);
+    border-radius: 3px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 83, 35, 0.8);
 }
 
 .color-square {
@@ -223,7 +273,8 @@ body, html {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
-    flex: 1;
+    flex: none; /* Убираем flex:1 чтобы квадраты не растягивались */
+    flex-shrink: 0; /* Предотвращаем сжатие */
 }
 
 .color-square:hover {
@@ -329,8 +380,33 @@ body, html {
 .horizontal-color-picker {
     display: flex;
     gap: 10px;
-    padding: 0 20px;
+    padding: 10px 20px;
     align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    border: 1px solid rgba(16, 15, 15, 0.1);
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Стилизация горизонтального скроллбара */
+.horizontal-color-picker::-webkit-scrollbar {
+    height: 6px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-track {
+    background: rgba(16, 15, 15, 0.1);
+    border-radius: 3px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-thumb {
+    background: rgba(240, 83, 35, 0.6);
+    border-radius: 3px;
+}
+
+.horizontal-color-picker::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 83, 35, 0.8);
 }
 
 .color-square {
@@ -339,7 +415,8 @@ body, html {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
-    flex: 1;
+    flex: none; /* Убираем flex:1 чтобы квадраты не растягивались */
+    flex-shrink: 0; /* Предотвращаем сжатие */
 }
 
 .color-square:hover {
@@ -2365,6 +2442,29 @@ color: #333 !important;
     gap: 10px;
     width: 100%;
     margin-bottom: 30px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 0;
+    scroll-behavior: smooth;
+}
+
+/* Стилизация горизонтального скроллбара для pg-color-picker */
+.pg-color-picker::-webkit-scrollbar {
+    height: 6px;
+}
+
+.pg-color-picker::-webkit-scrollbar-track {
+    background: rgba(16, 15, 15, 0.1);
+    border-radius: 3px;
+}
+
+.pg-color-picker::-webkit-scrollbar-thumb {
+    background: rgba(240, 83, 35, 0.6);
+    border-radius: 3px;
+}
+
+.pg-color-picker::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 83, 35, 0.8);
 }
 
 /* Цветной квадрат */
@@ -2373,7 +2473,8 @@ color: #333 !important;
     height: 74.25px;
     border-radius: 20px;
     cursor: pointer;
-    flex: 1;
+    flex: none; /* Фиксированный размер, не растягивается */
+    flex-shrink: 0; /* Не сжимается */
     transition: transform 0.2s ease;
 }
 
@@ -2527,4 +2628,67 @@ color: #333 !important;
 .model-specs,
 .model-spec {
     display: none !important;
+}
+
+/* Стили для старого модального окна настроек площадки */
+.color-section {
+    margin-bottom: 20px;
+}
+
+.color-options {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 0;
+    scroll-behavior: smooth;
+}
+
+/* Стилизация скроллбара для color-options */
+.color-options::-webkit-scrollbar {
+    height: 6px;
+}
+
+.color-options::-webkit-scrollbar-track {
+    background: rgba(16, 15, 15, 0.1);
+    border-radius: 3px;
+}
+
+.color-options::-webkit-scrollbar-thumb {
+    background: rgba(240, 83, 35, 0.6);
+    border-radius: 3px;
+}
+
+.color-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 83, 35, 0.8);
+}
+
+.color-option {
+    width: 74.25px;
+    height: 74.25px;
+    border-radius: 20px;
+    cursor: pointer;
+    flex: none;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.color-option:hover {
+    transform: scale(1.05);
+}
+
+.color-option.selected {
+    border: 3px solid #F05323;
+    box-shadow: 0 5px 15px rgba(240, 83, 35, 0.3);
+}
+
+/* Важные переопределения для modern-square */
+.color-square.modern-square {
+    width: 160px !important;
+    height: 70px !important;
+    border-radius: 15px !important;
+    flex-shrink: 0 !important;
+    min-width: 160px !important;
+    flex: none !important;
 }
