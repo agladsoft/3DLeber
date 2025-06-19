@@ -287,7 +287,7 @@ app.post('/api/launch', async (req, res) => {
         // Устанавливаем начальный таймаут (скользящий)
         updateSessionTimeout(sessionId, sessionData);
         
-        console.log('Session timeout set for 5 minutes');
+        console.log('Session timeout set for 4 hours');
 
         // Возвращаем ссылку для редиректа
         const redirectUrl = `https://${SERVER_NAME}?sessionId=${sessionId}`;
@@ -377,13 +377,13 @@ function updateSessionTimeout(sessionId, sessionData) {
         clearTimeout(sessionData.timeoutId);
     }
     
-    // Устанавливаем новый таймаут (5 минут с момента последнего доступа)
+    // Устанавливаем новый таймаут (4 часа с момента последнего доступа)
     sessionData.timeoutId = setTimeout(() => {
         if (global.sessionStore && global.sessionStore.has(sessionId)) {
             global.sessionStore.delete(sessionId);
             console.log('Session expired and deleted:', sessionId);
         }
-    }, 5 * 60 * 1000);
+    }, 4 * 60 * 60 * 1000);
 }
 
 // Debug endpoint для просмотра всех активных сессий (только для разработки)
