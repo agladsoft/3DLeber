@@ -50,11 +50,18 @@ export function hideCheckMissingModelsModal() {
 function setupModalEventHandlers() {
     const modal = document.getElementById('missingModelsModal');
     const closeButton = document.getElementById('missingModelsCloseButton');
+    const reportButton = document.getElementById('reportMissingModelsButton');
     
     // Обработчик для кнопки закрытия
     if (closeButton && !closeButton.hasAttribute('data-handler-added')) {
         closeButton.addEventListener('click', hideCheckMissingModelsModal);
         closeButton.setAttribute('data-handler-added', 'true');
+    }
+    
+    // Обработчик для кнопки отправки отчета администрации
+    if (reportButton && !reportButton.hasAttribute('data-handler-added')) {
+        reportButton.addEventListener('click', handleReportToAdmin);
+        reportButton.setAttribute('data-handler-added', 'true');
     }
     
     // Обработчик клика по фону модального окна
@@ -345,4 +352,161 @@ function setButtonActiveState(isActive) {
             button.classList.remove('active');
         }
     }
+}
+
+/**
+ * Обработчик для кнопки отправки отчета администрации
+ */
+async function handleReportToAdmin() {
+    const reportButton = document.getElementById('reportMissingModelsButton');
+    
+    if (!reportButton) {
+        console.error('Report button not found');
+        return;
+    }
+    
+    try {
+        setButtonLoadingState(reportButton, true);
+        
+        const reportData = await collectReportData();
+        
+        if (!reportData.missingModels || reportData.missingModels.length === 0) {
+            showNotification('Нет отсутствующих моделей для отправки', 'info');
+            setButtonLoadingState(reportButton, false);
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/send-missing-models-report`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(reportData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        showNotification('Отчет успешно отправлен администрации!', 'success');
+        setButtonSuccessState(reportButton);
+        
+    } catch (error) {
+        console.error('Ошибка при отправке отчета:', error);
+        showNotification(`Ошибка при отправке отчета: ${error.message}`, 'error');
+        setButtonLoadingState(reportButton, false);
+    }
+}
+
+/**
+ * Собирает данные для отправки отчета
+ */
+async function collectReportData() {
+    const userId = sessionStorage.getItem('userId');
+    const models = JSON.parse(sessionStorage.getItem('models') || '[]');
+    const missingModelsResult = await checkMissingModelsQuiet();
+    
+    const projectInfo = {
+        playgroundSize: getPlaygroundSizeInfo(),
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+    };
+    
+    return {
+        userId: userId,
+        missingModels: missingModelsResult.missingModels || [],
+        stats: missingModelsResult.stats || { total: 0, missing: 0, found: 0 },
+        projectInfo: projectInfo,
+        userEmail: null
+    };
+}
+
+/**
+ * Получает информацию о размере площадки
+ */
+function getPlaygroundSizeInfo() {
+    const widthInput = document.getElementById('widthInput') || document.getElementById('pgWidthInput');
+    const lengthInput = document.getElementById('lengthInput') || document.getElementById('pgLengthInput');
+    
+    if (widthInput && lengthInput) {
+        return `${widthInput.value || 'не указано'} x ${lengthInput.value || 'не указано'} м`;
+    }
+    
+    return 'Размер не определен';
+}
+
+/**
+ * Устанавливает состояние загрузки для кнопки
+ */
+function setButtonLoadingState(button, isLoading) {
+    if (isLoading) {
+        button.classList.add('sending');
+        button.disabled = true;
+        button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Отправка отчета...
+        `;
+    } else {
+        button.classList.remove('sending');
+        button.disabled = false;
+        button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Отправить отчет администрации
+        `;
+    }
+}
+
+/**
+ * Устанавливает состояние успешной отправки для кнопки
+ */
+function setButtonSuccessState(button) {
+    button.classList.remove('sending');
+    button.classList.add('success');
+    button.disabled = true;
+    button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Отчет отправлен!
+    `;
+    
+    setTimeout(() => {
+        setButtonLoadingState(button, false);
+        button.classList.remove('success');
+    }, 5000);
+}
+
+/**
+ * Показывает уведомление пользователю
+ */
+function showNotification(message, type = 'info') {
+    let notification = document.getElementById('notification');
+    
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = 'notification';
+        document.body.appendChild(notification);
+    }
+    
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <span class="notification-close" onclick="this.parentElement.parentElement.classList.add('hidden')">&times;</span>
+        </div>
+    `;
+    
+    notification.classList.remove('hidden');
+    
+    setTimeout(() => {
+        notification.classList.add('hidden');
+    }, 5000);
 } 
