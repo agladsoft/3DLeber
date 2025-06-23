@@ -701,8 +701,7 @@ async function createMissingModelsExcel(missingModels, stats, userId, projectInf
  * Отправляет email с Excel файлом
  */
 async function sendEmailWithExcel(excelBuffer, userId, stats, userEmail) {
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
-                         process.env.NODE_ENV !== 'production';
+    const isDevelopment = process.env.NODE_ENV !== 'production';
     
     if (isDevelopment) {
         console.log('Development mode: Email would be sent to uventus_work@mail.ru');
