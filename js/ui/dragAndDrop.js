@@ -206,9 +206,40 @@ async function updateModelQuantity(modelName, newQuantity) {
 }
 
 /**
+ * Обновляет счетчик размещения модели после drop
+ * @param {string} modelName - Имя модели
+ * @param {Object} sessionData - Данные сессии
+ */
+async function updateModelPlacementAfterDrop(modelName, sessionData) {
+    // Импортируем функцию updateModelPlacementCounter из sidebar
+    const { updateModelPlacementCounter } = await import('../sidebar.js');
+    
+    // Обновляем счетчик в UI без передачи placedCount - 
+    // функция сама получит актуальные данные из БД
+    await updateModelPlacementCounter(modelName);
+}
+
+/**
  * Добавляет обработчики начала перетаскивания для элементов каталога
  */
 function addDragStartHandlers() {
+    // Проверяем наличие элементов с классом .model (новый sidebar)
+    const modelElements = document.querySelectorAll(".model");
+    if (modelElements.length > 0) {
+        console.log("Found new sidebar structure with .model elements");
+        // Для нового sidebar обработчики уже добавлены в sidebar.js
+        return;
+    }
+    
+    // Поддержка старой структуры с .item элементами
+    const itemElements = document.querySelectorAll(".item");
+    if (itemElements.length === 0) {
+        console.log("No drag-and-drop elements found");
+        return;
+    }
+    
+    console.log("Found old sidebar structure with .item elements");
+    
     // Создаем невидимый элемент для использования в качестве изображения при перетаскивании
     const invisibleDragImage = document.createElement('div');
     invisibleDragImage.style.width = '1px';
@@ -218,7 +249,7 @@ function addDragStartHandlers() {
     invisibleDragImage.style.opacity = '0';
     document.body.appendChild(invisibleDragImage);
     
-    document.querySelectorAll(".item").forEach(item => {
+    itemElements.forEach(item => {
         item.addEventListener("dragstart", event => {
             const model = event.target.closest(".item").getAttribute("data-model");
             const currentQuantity = parseInt(event.target.closest(".item").getAttribute("data-quantity") || "0");
@@ -242,7 +273,7 @@ function addDragStartHandlers() {
  * Обрабатывает событие drop для размещения модели
  * @param {DragEvent} event - Событие drop
  */
-function handleDrop(event) {
+async function handleDrop(event) {
     event.preventDefault();
     console.log("Drop event received");
     
@@ -266,16 +297,49 @@ function handleDrop(event) {
             return;
         }
         
-        // Получаем текущее количество модели
-        const item = document.querySelector(`.model[data-model="${modelName}"]`);
-        if (!item) {
-            console.warn("Model item not found in sidebar");
+        // Получаем текущее количество модели из sessionStorage
+        const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
+        const userId = sessionStorage.getItem('userId');
+        
+        // Получаем article из data transfer (если есть) или из модели
+        const article = event.dataTransfer.getData("article");
+        
+        // Находим модель по имени или артикулу
+        let modelData = null;
+        if (article) {
+            modelData = modelsData.find(m => m.article === article);
+        } else {
+            // Fallback: ищем по имени модели (без .glb)
+            const modelNameWithoutExt = modelName.replace('.glb', '');
+            modelData = modelsData.find(m => m.name === modelNameWithoutExt);
+        }
+        
+        if (!modelData) {
+            console.warn("Model data not found for:", modelName);
             isDropProcessing = false;
             return;
         }
         
-        const currentQuantity = parseInt(item.getAttribute("data-quantity") || "0");
-        if (currentQuantity <= 0) {
+        // Получаем данные сессии для подсчета размещенных объектов
+        let sessionData = null;
+        try {
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+            if (sessionResponse.ok) {
+                const { session } = await sessionResponse.json();
+                sessionData = session;
+            }
+        } catch (error) {
+            console.error('Error getting session data:', error);
+        }
+        
+        // Считаем размещенные объекты
+        const placedCount = sessionData?.placedObjects ? 
+            sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+        
+        const totalQuantity = modelData.quantity || 0;
+        const remainingQuantity = totalQuantity - placedCount;
+        
+        if (remainingQuantity <= 0) {
             console.warn("No available quantity for model");
             isDropProcessing = false;
             return;
@@ -311,9 +375,8 @@ function handleDrop(event) {
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         loadAndPlaceModel(modelName, position);
         
-        // Уменьшаем количество модели
-        const newQuantity = currentQuantity - 1;
-        updateModelQuantity(modelName, newQuantity);
+        // Обновляем счетчик в UI
+        await updateModelPlacementAfterDrop(modelName, sessionData);
         
         // Сбрасываем флаг через небольшую задержку,
         // чтобы предотвратить возможные "дребезги" событий
@@ -410,6 +473,23 @@ function determineDropPosition() {
  * @param {string} modelName - Имя модели
  */
 export async function updateModelQuantityOnRemove(modelName) {
+    // Проверяем новую структуру sidebar с .model элементами
+    const modelElements = document.querySelectorAll('.model');
+    if (modelElements.length > 0) {
+        // Используем функцию updateModelPlacementCounter из sidebar.js
+        try {
+            const { updateModelPlacementCounter } = await import('../sidebar.js');
+            
+            // Обновляем счетчик без передачи placedCount - 
+            // функция сама получит актуальные данные из БД
+            await updateModelPlacementCounter(modelName);
+        } catch (error) {
+            console.error('Error updating model placement counter:', error);
+        }
+        return;
+    }
+    
+    // Поддержка старой структуры с .item элементами
     const items = document.querySelectorAll('.item');
     items.forEach(item => {
         if (item.getAttribute('data-model') === modelName) {
@@ -425,6 +505,15 @@ export async function updateModelQuantityOnRemove(modelName) {
 }
 
 function updateSidebarDeleteButtons() {
+    // Проверяем новую структуру sidebar с .model элементами
+    const modelElements = document.querySelectorAll('.model');
+    if (modelElements.length > 0) {
+        // В новом sidebar кнопки удаления пока не реализованы
+        // Можно добавить поддержку в будущем
+        return;
+    }
+    
+    // Поддержка старой структуры с .item элементами
     document.querySelectorAll('.item').forEach(item => {
         const modelName = item.getAttribute('data-model');
         const deleteBtn = item.querySelector('.sidebar-delete');

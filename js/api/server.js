@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
-import ExcelJS from 'exceljs';
 import nodemailer from 'nodemailer';
 
 const { Pool } = pg;

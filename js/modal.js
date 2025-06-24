@@ -93,7 +93,7 @@ export async function showPlatformSelectModal() {
             try {
                 console.log('Initializing sidebar for the first time...');
                 const { initSidebar } = await import('./sidebar.js');
-                initSidebar();
+                await initSidebar();
                 sidebarInitialized = true;
             } catch (error) {
                 console.error('Error loading models in showPlatformSelectModal:', error);

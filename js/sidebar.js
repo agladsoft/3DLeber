@@ -94,7 +94,6 @@ async function createNewSidebar() {
             const modelElement = document.createElement('div');
             modelElement.className = 'model';
             modelElement.dataset.modelId = model.id;
-            modelElement.setAttribute('draggable', model.isAvailable);
             modelElement.setAttribute('data-model', model.name);
             modelElement.setAttribute('data-article', model.article);
             modelElement.setAttribute('data-quantity', model.quantity);
@@ -107,11 +106,14 @@ async function createNewSidebar() {
             const remainingQuantity = totalQuantity - placedCount;
             
             // Добавляем классы в зависимости от состояния модели
-            if (remainingQuantity === 0) {
+            if (remainingQuantity <= 0) {
                 modelElement.classList.add('blurred');
                 modelElement.style.filter = 'blur(2px)';
                 modelElement.style.opacity = '0.9';
                 modelElement.style.pointerEvents = 'none';
+                modelElement.setAttribute('draggable', 'false');
+            } else {
+                modelElement.setAttribute('draggable', 'true');
             }
             
             modelElement.innerHTML = `
@@ -123,11 +125,63 @@ async function createNewSidebar() {
                 <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
             `;
             
-            // Добавляем обработчик drag-and-drop
+            // Добавляем обработчик drag-and-drop с невидимым изображением
             modelElement.addEventListener('dragstart', function(event) {
+                const element = event.currentTarget;
+                
+                // Проверяем актуальное состояние доступности модели
+                const isDraggable = element.getAttribute('draggable');
+                const isBlurred = element.classList.contains('blurred');
+                
+                console.log(`Drag attempt for model: ${model.name}, draggable: ${isDraggable}, blurred: ${isBlurred}`);
+                
+                if (isDraggable === 'false' || isBlurred) {
+                    console.log('Model is not available for dragging:', model.name, 'isDraggable:', isDraggable, 'isBlurred:', isBlurred);
+                    event.preventDefault();
+                    return;
+                }
+                
+                // Дополнительная проверка через актуальные данные
+                const placementDiv = element.querySelector('.model-placement');
+                if (placementDiv) {
+                    const placementText = placementDiv.textContent;
+                    console.log(`Placement text for ${model.name}:`, placementText);
+                    const match = placementText.match(/(\d+) из (\d+)/);
+                    if (match) {
+                        const [, placed, total] = match;
+                        const remaining = parseInt(total) - parseInt(placed);
+                        console.log(`Model ${model.name}: placed=${placed}, total=${total}, remaining=${remaining}`);
+                        if (remaining <= 0) {
+                            console.log('No remaining quantity for model:', model.name);
+                            event.preventDefault();
+                            return;
+                        }
+                    }
+                }
+                
                 event.dataTransfer.setData('model', model.name);
                 event.dataTransfer.setData('article', model.article);
-                console.log('Drag started for model:', model.name);
+                
+                // Создаем невидимое изображение для drag
+                const invisibleDragImage = document.createElement('div');
+                invisibleDragImage.style.width = '1px';
+                invisibleDragImage.style.height = '1px';
+                invisibleDragImage.style.position = 'absolute';
+                invisibleDragImage.style.top = '-1000px';
+                invisibleDragImage.style.opacity = '0';
+                document.body.appendChild(invisibleDragImage);
+                
+                // Устанавливаем невидимое изображение
+                event.dataTransfer.setDragImage(invisibleDragImage, 0, 0);
+                
+                // Удаляем невидимый элемент через небольшое время
+                setTimeout(() => {
+                    if (invisibleDragImage.parentNode) {
+                        invisibleDragImage.parentNode.removeChild(invisibleDragImage);
+                    }
+                }, 100);
+                
+                console.log('Drag started successfully for model:', model.name);
             });            
             categoriesList.appendChild(modelElement);
         });
@@ -159,6 +213,13 @@ async function createNewSidebar() {
         }
         
         console.log('New sidebar created!');
+        
+        // Обновляем все счетчики сразу после создания sidebar для актуальных данных
+        setTimeout(async () => {
+            await refreshAllModelCounters();
+            console.log('Initial model counters refresh completed');
+        }, 100);
+        
     } catch (error) {
         console.error('Error creating sidebar:', error);
         sidebar.innerHTML = '<div class="error-message">Ошибка загрузки моделей</div>';
@@ -166,47 +227,119 @@ async function createNewSidebar() {
 }
 
 /**
+ * Обновляет все счетчики моделей в sidebar
+ */
+export async function refreshAllModelCounters() {
+    try {
+        const modelElements = document.querySelectorAll('.model[data-model]');
+        const updatePromises = [];
+        
+        modelElements.forEach(element => {
+            const modelName = element.getAttribute('data-model');
+            if (modelName) {
+                // Обновляем счетчик без передачи placedCount - функция сама получит данные из БД
+                updatePromises.push(updateModelPlacementCounter(modelName));
+            }
+        });
+        
+        await Promise.all(updatePromises);
+        console.log('All model counters refreshed');
+    } catch (error) {
+        console.error('Error refreshing model counters:', error);
+    }
+}
+
+/**
  * Инициализация сайдбара - экспортируемая функция
  */
-export function initSidebar() {
+export async function initSidebar() {
     console.log('Initializing sidebar v2...');
     applyNewStyles();
-    createNewSidebar();
+    await createNewSidebar();
+    
+    // Дополнительное обновление счетчиков после полной инициализации
+    setTimeout(async () => {
+        await refreshAllModelCounters();
+        console.log('Post-init model counters refresh completed');
+    }, 500);
+    
+    // Обновляем счетчики каждые 3 секунды для синхронизации с БД
+    setInterval(() => {
+        refreshAllModelCounters();
+    }, 3000);
 }
 
 /**
  * Обновляет счетчик размещенных объектов для конкретной модели
  * @param {string} modelName - Имя модели
- * @param {number} placedCount - Количество размещенных объектов
+ * @param {number} placedCount - Количество размещенных объектов (опционально, если не передано - получается из БД)
  */
-export function updateModelPlacementCounter(modelName, placedCount) {
-    const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
-    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-    
-    modelElements.forEach(element => {
-        const article = element.getAttribute('data-article');
-        const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
-        const remainingQuantity = totalQuantity - placedCount;
+export async function updateModelPlacementCounter(modelName, placedCount = null) {
+    try {
+        const userId = sessionStorage.getItem('userId');
+        const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
         
-        // Обновляем счетчик
-        const placementDiv = element.querySelector('.model-placement');
-        if (placementDiv) {
-            placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+        // Если placedCount не передан, получаем актуальные данные из БД
+        let actualPlacedCount = placedCount;
+        if (actualPlacedCount === null) {
+            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+            if (sessionResponse.ok) {
+                const { session } = await sessionResponse.json();
+                actualPlacedCount = session?.placedObjects ? 
+                    session.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+            } else {
+                console.warn('Failed to get session data, using placedCount = 0');
+                actualPlacedCount = 0;
+            }
         }
         
-        // Обновляем состояние blur
-        if (remainingQuantity === 0) {
-            element.classList.add('blurred');
-            element.style.filter = 'blur(2px)';
-            element.style.opacity = '0.9';
-            element.style.pointerEvents = 'none';
-        } else {
-            element.classList.remove('blurred');
-            element.style.filter = '';
-            element.style.opacity = '';
-            element.style.pointerEvents = '';
-        }
-    });
+        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+        
+        modelElements.forEach(element => {
+            const article = element.getAttribute('data-article');
+            const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
+            const remainingQuantity = totalQuantity - actualPlacedCount;
+            
+            // Обновляем счетчик
+            const placementDiv = element.querySelector('.model-placement');
+            if (placementDiv) {
+                placementDiv.textContent = `Добавлено на площадку: ${actualPlacedCount} из ${totalQuantity}`;
+            }
+            
+            // Обновляем состояние blur и draggable
+            if (remainingQuantity <= 0) {
+                element.classList.add('blurred');
+                element.style.filter = 'blur(2px)';
+                element.style.opacity = '0.9';
+                element.style.pointerEvents = 'none';
+                element.setAttribute('draggable', 'false');
+                console.log(`Model ${modelName} is not draggable (remaining: ${remainingQuantity})`);
+            } else {
+                element.classList.remove('blurred');
+                element.style.filter = '';
+                element.style.opacity = '';
+                element.style.pointerEvents = '';
+                element.setAttribute('draggable', 'true');
+                console.log(`Model ${modelName} is draggable (remaining: ${remainingQuantity})`);
+            }
+        });
+        
+        console.log(`Updated placement counter for ${modelName}: ${actualPlacedCount}/${modelsData.find(m => m.article === modelElements[0]?.getAttribute('data-article'))?.quantity || 0}`);
+    } catch (error) {
+        console.error('Error updating model placement counter:', error);
+    }
+}
+
+/**
+ * Принудительно обновляет счетчики модели (можно вызывать из других модулей)
+ * @param {string} modelName - Имя модели для обновления (опционально, если не указано - обновляются все)
+ */
+export async function forceUpdateModelCounters(modelName = null) {
+    if (modelName) {
+        await updateModelPlacementCounter(modelName);
+    } else {
+        await refreshAllModelCounters();
+    }
 }
 
 // Экспортируем функции для использования в других модулях
