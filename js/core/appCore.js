@@ -12,9 +12,7 @@ import { initDimensionUpdates } from '../modules/dimensionDisplay/index.js';
  * Функция для безопасного скрытия индикатора загрузки с проверками
  * @param {Number} timeout - Задержка перед скрытием в миллисекундах
  */
-function ensureLoadingOverlayHidden(timeout = 5000) {
-    console.log('Запуск таймера для принудительного скрытия индикатора загрузки через', timeout, 'мс');
-    
+function ensureLoadingOverlayHidden(timeout = 5000) {    
     // Устанавливаем таймер для принудительного скрытия индикатора загрузки
     setTimeout(() => {
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -31,9 +29,7 @@ function ensureLoadingOverlayHidden(timeout = 5000) {
  * @returns {Promise<void>}
  */
 export async function initializeApp() {
-    try {
-        console.log('Инициализация приложения...');
-        
+    try {        
         // Устанавливаем таймер для принудительного скрытия индикатора загрузки через 6 секунд
         ensureLoadingOverlayHidden(6000);
         
@@ -60,7 +56,6 @@ export async function initializeApp() {
             // Добавляем дополнительные экспортируемые переменные из scene.js
             isTopViewActive: sceneComponents.isTopViewActive
         };
-        console.log('Window.app инициализирован:', window.app);
         
         // Получаем тип площадки из глобальных переменных, установленных в модальном окне
         let playgroundType = 'playground.glb'; // По умолчанию
@@ -125,16 +120,13 @@ export async function initializeApp() {
         
         // Инициализируем UI и обработчики событий
         try {
-            console.log('Инициализация UI');
             initUI();
-            console.log('UI инициализирован');
         } catch (uiError) {
             console.error('Ошибка при инициализации UI:', uiError);
         }
         
         try {
             // Проверяем позиции всех объектов после инициализации
-            console.log('Проверка позиций объектов');
             checkAllObjectsPositions();
         } catch (positionError) {
             console.error('Ошибка при проверке позиций объектов:', positionError);
@@ -142,28 +134,20 @@ export async function initializeApp() {
         
         try {
             // Инициализируем модуль отображения размеров объектов
-            console.log('Инициализация модуля отображения размеров');
             initDimensionUpdates();
-            console.log('Модуль отображения размеров инициализирован');
         } catch (dimensionError) {
             console.error('Ошибка при инициализации модуля отображения размеров:', dimensionError);
         }
         
         try {
             // Обновляем видимость safety zones в соответствии с настройками пользователя
-            console.log('Обновление состояния safety zones');
             updateSafetyZonesVisibility();
         } catch (safetyError) {
             console.error('Ошибка при обновлении safety zones:', safetyError);
         }
         
         // Запускаем цикл рендеринга Three.js
-        console.log('Запуск цикла рендеринга');
         startRenderLoop();
-        
-        // Не скрываем индикатор загрузки здесь - это будет сделано после загрузки и рендеринга модели
-        
-        console.log('Приложение успешно инициализировано');
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
         
@@ -193,28 +177,6 @@ export function startRenderLoop() {
         
         // Инкрементируем счетчик кадров
         frameCount++;
-        
-        // Периодически выводим отладочную информацию
-        if (frameCount % FPS_REPORT_INTERVAL === 0) {
-            console.log("Render loop active, frame:", frameCount);
-            // Проверяем состояние сцены
-            if (window.app && window.app.scene) {
-                console.log("Scene children count:", window.app.scene.children.length);
-                
-                // Проверим наличие ground в сцене
-                const groundExists = window.app.scene.children.some(child => 
-                    (child.userData && child.userData.isPlayground) || 
-                    (child.name && (child.name.includes('playground') || child.name === 'simple_playground'))
-                );
-                console.log("Ground exists in scene:", groundExists);
-                
-                // Проверим количество объектов моделей
-                const modelCount = window.app.scene.children.filter(child => 
-                    child.name && child.name.includes('modelContainer_')
-                ).length;
-                console.log("Model containers in scene:", modelCount);
-            }
-        }
         
         try {
             // Проверяем наличие необходимых компонентов
@@ -283,7 +245,6 @@ export function startRenderLoop() {
 export function ensureSingleInit() {
     console.log('Проверка инициализации приложения. Текущий статус:', window.appInitialized);
     if (!window.appInitialized) {
-        console.log('Первая инициализация приложения');
         window.appInitialized = true;
         console.log('initApp существует:', typeof window.initApp === 'function');
         window.initApp();

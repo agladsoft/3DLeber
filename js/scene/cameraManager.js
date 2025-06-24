@@ -321,9 +321,7 @@ export function toggleTopView(width, length) {
         
         // Инвертируем состояние
         isTopViewActive = !isTopViewActive;
-        
-        console.log('Новое состояние после переключения:', isTopViewActive);
-        
+                
         if (isTopViewActive) {
             console.log('Включаем вид сверху...');
             // Включаем вид сверху
@@ -421,16 +419,11 @@ function updateTopViewButtonStyle(isActive) {
 function enableTopView(width, length) {
     console.log("Включаем режим вида сверху, размеры площадки:", width, "x", length);
     
-    // Код создания сетки удален - теперь вид сверху работает без сетки
-    console.log("Вид сверху активирован без сетки");
-    
     // Перемещаем камеру для вида сверху
     const diagonal = Math.sqrt(width * width + length * length);
     // Используем множитель высоты из конфигурации
     const targetHeight = diagonal * TOP_VIEW_SETTINGS.heightMultiplier;
-    
-    console.log("Анимируем перемещение камеры в позицию сверху");
-    
+        
     // Анимируем переход к виду сверху
     animateCameraMove({
         x: 0,
@@ -475,9 +468,6 @@ function enableTopView(width, length) {
                 
                 // Добавляем фиксацию размерной сетки, чтобы она не вращалась
                 gridManagerModule.dimensionGrid.matrixAutoUpdate = false; // Отключаем автоматическое обновление матрицы
-                
-                // Информируем в консоли, что сетка зафиксирована
-                console.log(`[GRID] Размерная сетка зафиксирована для режима вида сверху`);
             }
         });
         

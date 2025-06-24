@@ -39,8 +39,6 @@ function processLoadedModel(container, modelName, position) {
     
     // Добавляем контейнер в сцену
     scene.add(container);
-    console.log("Контейнер добавлен в сцену, scene.children.length:", scene.children.length);
-    console.log("Дочерних объектов в контейнере:", container.children.length);
     
     // Вычисляем размеры объекта для правильного масштабирования
     const box = new THREE.Box3().setFromObject(container);
@@ -269,9 +267,6 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                     // Обновляем счетчик размещенных объектов в UI
                     const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
                     updateModelPlacementCounter(modelName, placedCount);
-
-                    console.log('Session updated successfully for cached model:', objectData);
-                    console.log('Updated quantities:', sessionData.quantities);
                 } catch (error) {
                     console.error('Error updating session for cached model:', error);
                 }
@@ -282,21 +277,15 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
         // Выбираем загрузчик в зависимости от формата файла
         console.log("Получаем загрузчик для формата:", fileExtension);
         const { loader, method } = getLoaderByExtension(fileExtension);
-        console.log("Выбран загрузчик:", method);
         
         // Загружаем модель с использованием соответствующего загрузчика
-        console.log("Начинаем загрузку модели:", modelPath);
         loader.load(
             modelPath,
             async (result) => {
-                console.log("Модель успешно загружена:", modelPath);
-                console.log("Тип результата:", typeof result);
-                
                 let modelObject;
                 
                 // Обработка результата загрузки в зависимости от формата
                 if (method === 'gltf') {
-                    console.log("Обрабатываем GLTF/GLB модель");
                     modelObject = result.scene;
                     
                     // Оптимизация модели
@@ -387,8 +376,6 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 
                 // Добавляем контейнер в сцену
                 scene.add(container);
-                console.log("Контейнер добавлен в сцену, scene.children.length:", scene.children.length);
-                console.log("Дочерних объектов в контейнере:", container.children.length);
                 
                 // Вычисляем размеры объекта для правильного масштабирования
                 const box = new THREE.Box3().setFromObject(container);

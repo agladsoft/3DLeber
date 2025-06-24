@@ -132,9 +132,7 @@ export function updateModelQuantityUI(item, newQuantity) {
 /**
  * Инициализирует обработчики для drag and drop
  */
-export function initDragAndDrop() {
-    console.log("Инициализация drag and drop обработчиков");
-    
+export function initDragAndDrop() {    
     // Сначала удаляем все существующие обработчики, чтобы избежать дублирования
     removeExistingHandlers();
     
@@ -153,15 +151,12 @@ export function initDragAndDrop() {
     // Также обновляю крестики каждые 500 мс (на случай изменений вне dnd)
     setInterval(updateSidebarDeleteButtons, 500);
     
-    console.log("Обработчики drag and drop установлены");
 }
 
 /**
  * Удаляет существующие обработчики перед добавлением новых
  */
-function removeExistingHandlers() {
-    console.log("Удаление существующих обработчиков drag-and-drop");
-    
+function removeExistingHandlers() {    
     // Удаляем только обработчики drag-and-drop, не трогая canvas
     // Это безопаснее, чем заменять canvas, что может нарушить 3D-сцену
     
@@ -237,9 +232,7 @@ function addDragStartHandlers() {
         console.log("No drag-and-drop elements found");
         return;
     }
-    
-    console.log("Found old sidebar structure with .item elements");
-    
+        
     // Создаем невидимый элемент для использования в качестве изображения при перетаскивании
     const invisibleDragImage = document.createElement('div');
     invisibleDragImage.style.width = '1px';
@@ -274,9 +267,7 @@ function addDragStartHandlers() {
  * @param {DragEvent} event - Событие drop
  */
 async function handleDrop(event) {
-    event.preventDefault();
-    console.log("Drop event received");
-    
+    event.preventDefault();    
     // Предотвращаем множественные вызовы
     if (isDropProcessing) {
         console.log("Ignore duplicate drop event - already processing");
@@ -358,9 +349,6 @@ async function handleDrop(event) {
             return;
         }
         
-        console.log("Scene and ground are initialized");
-        console.log("Scene children count:", scene.children.length);
-        
         // Обновляем позицию мыши
         updateMousePosition(event);
         
@@ -401,10 +389,6 @@ function determineDropPosition() {
     
     // Проверка 1: Пересечение с ground через raycaster
     if (ground) {
-        console.log("Ground exists:", ground);
-        console.log("Ground type:", ground.type);
-        console.log("Ground is mesh?", ground.isMesh);
-        
         // Если ground сам является мешем (как в случае с простой площадкой)
         if (ground.isMesh) {
             console.log("Ground is a mesh itself, trying direct intersection");
@@ -416,7 +400,6 @@ function determineDropPosition() {
         }
         
         // Проверка всех дочерних мешей в ground
-        console.log("Checking all meshes in ground (recursive)");
         const childIntersects = raycaster.intersectObject(ground, true);
         console.log("Child intersection results:", childIntersects);
         if (childIntersects && childIntersects.length > 0) {
@@ -440,8 +423,6 @@ function determineDropPosition() {
             }
         });
     }
-    
-    console.log("Total intersections found:", intersects.length);
     
     // Если нашли пересечение с площадкой
     if (intersects.length > 0) {

@@ -31,7 +31,6 @@ const PlaygroundModal = {
         // Добавляем обработчики событий
         this.setupEventListeners();
         
-        console.log('Модальное окно настроек площадки инициализировано');
     },
     
 
@@ -177,7 +176,6 @@ const PlaygroundModal = {
             this.elements.playgroundButton.classList.add('active');
         }
         
-        console.log('Модальное окно открыто');
     },
     
     /**
@@ -274,14 +272,12 @@ const PlaygroundModal = {
             try {
                 // 1. Сначала попробуем изменить размеры
                 if (typeof window.resetPlayground === 'function') {
-                    console.log("Применяем размеры через window.resetPlayground");
                     window.resetPlayground(width, length);
                     success = true;
                 }
                 
                 // 2. Затем попробуем изменить цвет
                 if (typeof window.changePlaygroundColor === 'function') {
-                    console.log("Применяем цвет через window.changePlaygroundColor");
                     window.changePlaygroundColor(colorHex, color);
                 }
             } catch (directError) {
@@ -290,9 +286,7 @@ const PlaygroundModal = {
             
             // Если прямой подход не сработал, попробуем через импорт
             if (!success) {
-                try {
-                    console.log("Применяем через динамический импорт");
-                    
+                try {                    
                     // Импортируем модули
                     const playgroundModule = await import('./playground/playgroundCore.js');
                     const creatorModule = await import('./playground/playgroundCreator.js');
@@ -312,9 +306,7 @@ const PlaygroundModal = {
             }
             
             // Запасной вариант - обновляем ground напрямую
-            if (!success) {
-                console.log("Применяем напрямую к ground");
-                
+            if (!success) {                
                 // Ищем ground всеми возможными способами
                 const ground = 
                     (window.app && window.app.ground) || 
@@ -434,9 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
         PlaygroundModal.init();
         
         // Устанавливаем обработчик события изменения площадки
-        document.addEventListener('playgroundChanged', function(e) {
-            console.log('Событие playgroundChanged получено:', e.detail);
-            
+        document.addEventListener('playgroundChanged', function(e) {            
             // Обновляем значения в модальном окне, если оно существует
             const widthInput = document.getElementById('pgWidthInput');
             const lengthInput = document.getElementById('pgLengthInput');

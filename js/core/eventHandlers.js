@@ -19,9 +19,7 @@ export function setupDOMEventListeners() {
 /**
  * Обработчик события загрузки DOM
  */
-function handleDOMContentLoaded() {
-    console.log('DOM загружен, ожидаем нажатия кнопки запуска');
-    
+function handleDOMContentLoaded() {    
     // Обработчик кнопки "Запустить" в модальном окне выбора площадки
     setupStartButton();
     
@@ -52,9 +50,7 @@ function setupTogglePanelButton() {
     const toggleButton = document.getElementById('toggleControlPanel');
     const controlPanel = document.getElementById('controlPanel');
     
-    if (toggleButton && controlPanel) {
-        console.log('Инициализация кнопки переключения панели управления');
-        
+    if (toggleButton && controlPanel) {        
         // Восстанавливаем состояние из localStorage (если есть)
         const isPanelExpanded = localStorage.getItem('controlPanelExpanded') === 'true';
         if (isPanelExpanded) {
@@ -81,9 +77,7 @@ function setupToggleSidebarButton() {
     const toggleButton = document.getElementById('toggleSidebar');
     const sidebar = document.getElementById('sidebar');
     
-    if (toggleButton && sidebar) {
-        console.log('Инициализация кнопки переключения сайдбара');
-        
+    if (toggleButton && sidebar) {        
         // Восстанавливаем состояние из localStorage (если есть)
         const isSidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
         if (isSidebarHidden) {

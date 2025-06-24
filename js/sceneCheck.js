@@ -9,9 +9,7 @@ let sceneCheckInterval = null;
 /**
  * Начинает периодическую проверку сцены
  */
-export function startSceneChecks() {
-    console.log("Запуск периодических проверок сцены");
-    
+export function startSceneChecks() {    
     // Удаляем предыдущий интервал, если он был
     if (sceneCheckInterval) {
         clearInterval(sceneCheckInterval);
@@ -53,9 +51,7 @@ function checkScene() {
     });
     
     // Если площадки нет, пытаемся её создать
-    if (!groundFound) {
-        console.log("Площадка не найдена в сцене, создаем аварийную");
-        
+    if (!groundFound) {        
         // Создаем аварийную площадку
         try {
             const emergencyGround = createEmergencyGround();

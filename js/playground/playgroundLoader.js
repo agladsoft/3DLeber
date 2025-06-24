@@ -66,9 +66,7 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
 /**
  * Удаляет все существующие площадки из сцены
  */
-function removeExistingPlaygrounds() {
-    console.log('Ищем и удаляем все существующие площадки и объекты ground');
-    
+function removeExistingPlaygrounds() {    
     // Проверяем, что scene определена и доступна
     if (!scene) {
         console.warn('Scene is undefined, cannot remove existing playgrounds');
@@ -89,7 +87,6 @@ function removeExistingPlaygrounds() {
                  (object.name && object.name.includes('ground')) ||
                  (object.name && object.name.includes('playground')))) {
                 
-                console.log('Найдена существующая площадка:', object.userData.modelName || object.name);
                 objectsToRemove.push(object);
             }
         });
@@ -100,7 +97,6 @@ function removeExistingPlaygrounds() {
             scene.remove(object);
         });
         
-        console.log(`Удалено ${objectsToRemove.length} объектов площадки`);
     } catch (error) {
         console.error('Ошибка при удалении существующих площадок:', error);
     }

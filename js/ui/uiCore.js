@@ -55,7 +55,6 @@ export function initUI() {
     // Добавляем глобальный обработчик кликов для скрытия кнопки удаления
     initGlobalClickHandler();
     
-    console.log('UI инициализирован успешно');
 }
 
 /**

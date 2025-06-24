@@ -15,9 +15,7 @@ let sidebarInitialized = false;
  * @param {Array} models - Массив моделей из JSON
  */
 export async function initializeNewSession(userId, models) {
-    try {
-        console.log('Initializing new session with models:', models);
-        
+    try {        
         // Сначала получаем полные данные моделей через API
         const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
             method: 'POST',
@@ -46,7 +44,6 @@ export async function initializeNewSession(userId, models) {
             if (matchedModel && matchedModel.name) {
                 const modelName = `${matchedModel.name}.glb`;
                 sessionData.quantities[modelName] = jsonModel.quantity;
-                console.log(`Setting quantity for ${modelName}: ${jsonModel.quantity}`);
             }
         });
 
@@ -145,7 +142,6 @@ export async function showPlatformSelectModal() {
         // Показываем модальное окно
         platformSelectModal.style.display = 'block';
         
-        console.log('Открыто модальное окно выбора площадки');
     } else {
         console.error('Не найдено модальное окно выбора площадки');
     }
@@ -194,8 +190,6 @@ async function checkMissingModelsAfterStart() {
         
         if (result.hasMissing) {
             console.log(`Found ${result.stats.missing} missing models out of ${result.stats.total} total`);
-        } else {
-            console.log(`No missing models found`);
         }
         
     } catch (error) {
@@ -343,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.initApp) {
                         window.initApp();
                         setTimeout(() => {
-                            console.log("Запуск проверки сцены после открытия модального окна");
                             startSceneChecks();
                         }, 3000);
                     }
@@ -351,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Проверяем отсутствующие модели после запуска приложения (один раз)
                 setTimeout(() => {
-                    console.log('Calling checkMissingModelsAfterStart from startAppButton handler');
                     checkMissingModelsAfterStart('startAppButton');
                 }, 3000);
                 
@@ -389,7 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Инициализируем новую сессию данными из JSON
                     if (models && Array.isArray(models)) {
-                        console.log('Initializing new session with models:', models);
                         await initializeNewSession(userId, models);
                     } else {
                         console.error('No models found in request');
@@ -414,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Показываем модальное окно
                     platformSelectModal.style.display = 'block';
-                    console.log('Showing platform selection modal');
                 } else {
                     console.error('Platform selection modal not found');
                 }
@@ -505,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Проверяем отсутствующие модели после восстановления сессии (один раз)
                 setTimeout(() => {
-                    console.log('Calling checkMissingModelsAfterStart from continueSessionButton handler');
                     checkMissingModelsAfterStart('continueSessionButton');
                 }, 3000);
             } catch (error) {

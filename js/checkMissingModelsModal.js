@@ -299,9 +299,7 @@ export async function autoCheckAndShowMissingModels() {
         return { hasMissing: false, missingModels: [], stats: { total: 0, missing: 0, found: 0 } };
     }
     
-    autoCheckInProgress = true;
-    console.log('Starting autoCheckAndShowMissingModels...');
-    
+    autoCheckInProgress = true;    
     try {
         const result = await checkMissingModelsQuiet();
         
@@ -311,8 +309,6 @@ export async function autoCheckAndShowMissingModels() {
         if (result.hasMissing) {
             console.log('Found missing models, showing modal automatically:', result.missingModels);
             await showCheckMissingModelsModal();
-        } else {
-            console.log('No missing models found');
         }
         
         return result;

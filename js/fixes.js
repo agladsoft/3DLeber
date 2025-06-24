@@ -10,7 +10,6 @@ import { API_BASE_URL } from './api/serverConfig.js'
  * @returns {Boolean} Результат проверки
  */
 export function validateSceneIntegrity() {
-    console.log("Проверка целостности сцены");
     
     // Проверяем наличие основных компонентов
     if (!window.app?.scene || !window.app?.camera || !window.app?.renderer) {
@@ -43,9 +42,7 @@ export function validateSceneIntegrity() {
  * Создает аварийную площадку, если основная не загрузилась
  * @returns {Object|null} Созданная площадка или null в случае ошибки
  */
-export function createEmergencyGround() {
-    console.log("Создание аварийной площадки");
-    
+export function createEmergencyGround() {    
     // Проверяем наличие необходимых компонентов
     if (!window.app || !window.app.scene) {
         console.error("Невозможно создать аварийную площадку: window.app или scene не инициализированы");
@@ -61,15 +58,12 @@ export function createEmergencyGround() {
         }
     });
     
-    if (existingGround) {
-        console.log("Площадка уже существует:", existingGround);
-        
+    if (existingGround) {        
         // Принудительно обновляем ссылки на ground
         try {
             import('./playground.js').then(module => {
                 if (module.updateGroundReferences) {
                     module.updateGroundReferences(existingGround, existingGround);
-                    console.log("Обновлены ссылки на существующую площадку");
                 }
             });
         } catch (error) {
@@ -128,9 +122,6 @@ export function createEmergencyGround() {
                 default:
                     groundColor = 0xAAAAAA; // Серый по умолчанию
             }
-            console.log('Используем выбранный цвет площадки для аварийной площадки:', window.selectedPlaygroundColor);
-        } else {
-            console.log('Создаем аварийную площадку серого цвета по умолчанию');
         }
         
         // Создаем материал для плоскости
@@ -185,13 +176,11 @@ export function createEmergencyGround() {
             import('./playground.js').then(module => {
                 if (module.updateGroundReferences) {
                     module.updateGroundReferences(plane, plane);
-                    console.log("Глобальные ссылки на ground обновлены");
                 } else {
                     // Если не получилось, пробуем через playground/playgroundCore.js
                     import('./playground/playgroundCore.js').then(coreModule => {
                         if (coreModule.updateGroundReferences) {
                             coreModule.updateGroundReferences(plane, plane);
-                            console.log("Глобальные ссылки на ground обновлены через playgroundCore");
                         }
                     }).catch(coreError => {
                         console.error("Ошибка при импорте playgroundCore:", coreError);
@@ -204,9 +193,6 @@ export function createEmergencyGround() {
             console.error("Ошибка при обновлении ground:", error);
         }
         
-        console.log("Создана аварийная площадка из-за ошибки загрузки");
-        console.log("Аварийная площадка создана");
-        
         return plane;
     } catch (error) {
         console.error("Ошибка при создании аварийной площадки:", error);
@@ -218,7 +204,6 @@ export function createEmergencyGround() {
  * Фиксирует потерянный raycaster
  */
 export function fixRaycasterIssues() {
-    console.log("Исправление проблем с raycaster");
     
     // Создаем глобальную функцию для вычисления точки размещения объекта
     window.determineObjectPlacementPosition = function(event) {
@@ -274,23 +259,18 @@ export function fixRaycasterIssues() {
     
     // ВАЖНО: НЕ добавляем дополнительные обработчики dragend, так как они дублируют основной функционал
     // Это приводит к созданию множественных копий объектов
-    
-    console.log("Исправления raycaster применены");
 }
 
 /**
  * Сбрасывает обработчики drag-and-drop, чтобы избежать дублирования
  */
 export function resetDragHandlers() {
-    console.log("Сброс обработчиков drag-and-drop");
-    
     try {
         // Сначала проверяем, есть ли модуль ui 
         import('./ui.js').then(uiModule => {
             if (uiModule.initUI) {
                 // Переинициализируем UI, что приведет к сбросу обработчиков
                 uiModule.initUI();
-                console.log("UI переинициализирован");
             }
         }).catch(error => {
             console.error("Ошибка при импорте модуля UI:", error);
@@ -306,10 +286,7 @@ export function resetDragHandlers() {
  * @returns {Promise<void>}
  */
 export async function restorePlacedObjects(session) {
-    console.log("Восстановление размещенных объектов из сессии");
-    
-    if (!session || !session.placedObjects || session.placedObjects.length === 0) {
-        console.log("Нет объектов для восстановления");
+    if (!session || !session.placedObjects || session.placedObjects.length === 0) {        
         return;
     }
     
@@ -319,7 +296,6 @@ export async function restorePlacedObjects(session) {
         
         // Если нет данных о текущих моделях, выходим
         if (!currentModels || currentModels.length === 0) {
-            console.log("Нет данных о текущих моделях, пропускаем восстановление объектов");
             return;
         }
         
@@ -346,15 +322,11 @@ export async function restorePlacedObjects(session) {
             const modelName = `${model.name}.glb`;
             availableModelNames.add(modelName);
         });
-        
-        console.log('Доступные модели для восстановления:', Array.from(availableModelNames));
-        
+                
         // Импортируем необходимые модули
         const objectManager = await import('./modules/objectManager.js');
         const collisionModule = await import('./modules/collisionDetection.js');
-        
-        console.log('Восстанавливаем размещенные объекты:', session.placedObjects);
-        
+                
         // Фильтруем объекты - восстанавливаем только те, модели которых есть в текущих modelsData
         const objectsToRestore = session.placedObjects.filter(objectData => {
             const isAvailable = availableModelNames.has(objectData.modelName);
@@ -451,19 +423,15 @@ export async function restorePlacedObjects(session) {
             }
         }
         
-        console.log(`Размещенные объекты успешно восстановлены: ${objectsToRestore.length} объектов`);
     } catch (error) {
         console.error("Ошибка при восстановлении размещенных объектов:", error);
-        console.log("Ошибка при восстановлении объектов");
     }
 }
 
 /**
  * Применяет все исправления
  */
-export function applyAllFixes() {
-    console.log("Применение всех исправлений");
-    
+export function applyAllFixes() {    
     // Проверка целостности сцены
     validateSceneIntegrity();
     
@@ -492,9 +460,7 @@ export function applyAllFixes() {
     } catch (error) {
         console.error("Ошибка при восстановлении сессии:", error);
     }
-    
-    console.log("Все исправления применены");
-    
+        
     // Устанавливаем флаг, что исправления применены
     window.fixesApplied = true;
 }

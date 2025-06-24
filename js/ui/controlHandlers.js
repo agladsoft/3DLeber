@@ -50,9 +50,7 @@ export function initControlHandlers() {
 /**
  * Настраивает обработчики для элементов управления
  */
-function setupControlHandlers() {
-    console.log('Setting up control handlers...');
-    
+function setupControlHandlers() {    
     // Создаем контейнер для подсказок
     createTooltipContainer();
     
@@ -214,11 +212,8 @@ function setupToolButtonsEffects() {
 function setupToolButtonsContainerState() {
     const toolButtonsContainer = document.querySelector('.tool-buttons-container');
     if (toolButtonsContainer) {
-        console.log('Контейнер с кнопками инструментов найден при загрузке');
         // Восстановление состояния из localStorage
-        const isHidden = localStorage.getItem('toolButtonsContainerHidden') === 'true';
-        console.log('Состояние в localStorage (скрыт):', isHidden);
-        
+        const isHidden = localStorage.getItem('toolButtonsContainerHidden') === 'true';        
         if (isHidden) {
             // Применяем напрямую стиль вместо класса для надежности
             toolButtonsContainer.style.display = 'none';
@@ -237,16 +232,10 @@ function setupToolButtonsContainerState() {
  */
 function setupSettingsButton() {
     const settingsButton = document.getElementById('settingsButton');
-    if (settingsButton) {
-        console.log('Кнопка настроек найдена:', settingsButton);
-        
+    if (settingsButton) {        
         settingsButton.addEventListener('click', function() {
-            console.log('Клик по кнопке настроек');
-            
             // Найти контейнер с кнопками
-            const toolButtonsContainer = document.querySelector('.tool-buttons-container');
-            console.log('Найден контейнер с кнопками:', toolButtonsContainer);
-            
+            const toolButtonsContainer = document.querySelector('.tool-buttons-container');            
             // Проверяем текущее состояние видимости через вычисляемые стили
             if (toolButtonsContainer) {
                 const computedStyle = window.getComputedStyle(toolButtonsContainer);
@@ -257,19 +246,16 @@ function setupSettingsButton() {
                 // Переключаем видимость
                 if (isCurrentlyVisible) {
                     // Если видим - скрываем
-                    console.log('Скрываем кнопки (был виден)');
                     toolButtonsContainer.classList.add('hidden');
                     
                     // Затем дополнительно через прямой стиль для надежности
                     if (window.getComputedStyle(toolButtonsContainer).display !== 'none') {
-                        console.log('Класс hidden не сработал, применяем inline стиль');
                         toolButtonsContainer.style.display = 'none';
                     }
                     
                     localStorage.setItem('toolButtonsContainerHidden', 'true');
                 } else {
                     // Если скрыт - показываем
-                    console.log('Показываем кнопки (был скрыт)');
                     toolButtonsContainer.classList.remove('hidden');
                     toolButtonsContainer.style.display = '';
                     localStorage.setItem('toolButtonsContainerHidden', 'false');
@@ -332,22 +318,17 @@ function setupExportModelButton() {
                 
                 // Вызываем функцию toggleTopView
                 const isActive = toggleTopView(width, length);
-                
-                console.log('Результат toggleTopView:', isActive);
-                
+                                
                 // Визуальная обратная связь на кнопке
                 if (isActive) {
                     this.classList.add('active');
-                    console.log('Кнопка активирована (режим вида сверху включен)');
                 } else {
                     this.classList.remove('active');
-                    console.log('Кнопка деактивирована (режим вида сверху выключен)');
                 }
             } catch (error) {
                 console.error('Ошибка при включении режима вид сверху:', error);
                 showNotification('Произошла ошибка при включении режима "Вид сверху"');
             }
-            console.log('=== Обработка кнопки экспорта завершена ===');
         });
     }
 }
@@ -684,9 +665,7 @@ function setupPlaygroundButton() {
     playgroundSettings.classList.add('hidden');
     // Добавляем также inline стиль для гарантии скрытия
     playgroundSettings.style.display = 'none';
-    
-    console.log('Элементы управления площадкой скрыты по умолчанию');
-    
+        
     // Инициализация текущих значений размеров площадки
     window.selectedPlaygroundWidth = window.selectedPlaygroundWidth || 40;
     window.selectedPlaygroundLength = window.selectedPlaygroundLength || 30;
@@ -723,7 +702,6 @@ function setupPlaygroundButton() {
             if (lengthInput) lengthInput.value = lengthSlider ? lengthSlider.value : window.selectedPlaygroundLength;
         }
         
-        console.log('Элементы управления площадкой показаны');
     };
     
     // Функция для применения новых размеров площадки
@@ -983,9 +961,7 @@ function setupHelpButton() {
         helpButton.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            console.log('Help button clicked');
-            
+                        
             try {
                 // Динамически импортируем модуль helpModal
                 const { showHelpModal } = await import('../helpModal.js');
@@ -994,8 +970,6 @@ function setupHelpButton() {
                 console.error('Error loading help modal:', error);
             }
         });
-        
-        console.log('Help button handler setup complete');
     } else {
         console.warn('Help button not found');
     }
@@ -1011,9 +985,7 @@ function setupCheckMissingModelsButton() {
         checkMissingModelsButton.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            console.log('Check missing models button clicked');
-            
+                        
             try {
                 // Динамически импортируем модуль checkMissingModelsModal
                 const { showCheckMissingModelsModal } = await import('../checkMissingModelsModal.js');
@@ -1022,8 +994,6 @@ function setupCheckMissingModelsButton() {
                 console.error('Error loading check missing models modal:', error);
             }
         });
-        
-        console.log('Check missing models button handler setup complete');
     } else {
         console.warn('Check missing models button not found');
     }

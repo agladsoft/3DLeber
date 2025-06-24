@@ -22,7 +22,6 @@ export function initHelpModal() {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('Opening help modal');
         showHelpModal();
     });
 
@@ -48,7 +47,6 @@ export function initHelpModal() {
         }
     });
 
-    console.log('Help modal initialized');
 }
 
 /**
@@ -66,7 +64,6 @@ export function showHelpModal() {
             helpVideo.currentTime = 0;
         }
         
-        console.log('Help modal opened');
     }
 }
 
@@ -85,6 +82,5 @@ export function hideHelpModal() {
             helpVideo.pause();
         }
         
-        console.log('Help modal closed');
     }
 }

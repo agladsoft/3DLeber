@@ -32,9 +32,7 @@ async function initializeApp() {
             showTokenError();
             return;
         }
-        
-        console.log('SessionId found, retrieving session data...');
-        
+                
         // Получаем данные сессии
         const sessionResult = await getSessionData(sessionId);
         
@@ -44,14 +42,9 @@ async function initializeApp() {
             showTokenError();
             return;
         }
-        
-        console.log('Session validated successfully, extracting data...');
-        
+                
         // Извлекаем данные моделей из сессии
-        const modelsData = extractModelsDataFromSession(sessionResult.userData);
-        
-        console.log('Extracted models data from session:', modelsData);
-        
+        const modelsData = extractModelsDataFromSession(sessionResult.userData);        
         // Инициализируем приложение с данными
         await initializeWithData(modelsData, loadingScreen);
         

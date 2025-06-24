@@ -193,9 +193,7 @@ async function createNewSidebar() {
         
         // Добавляем обработчик для кнопки возврата (теперь это кнопка схлопывания)
         const backButton = sidebarHeader.querySelector('.back-button');
-        backButton.addEventListener('click', function() {
-            console.log('Toggle sidebar collapse');
-            
+        backButton.addEventListener('click', function() {            
             // Переключаем класс collapsed для сайдбара
             sidebar.classList.toggle('collapsed');
             
@@ -211,13 +209,10 @@ async function createNewSidebar() {
         if (localStorage.getItem('sidebar_collapsed') === 'true') {
             sidebar.classList.add('collapsed');
         }
-        
-        console.log('New sidebar created!');
-        
+                
         // Обновляем все счетчики сразу после создания sidebar для актуальных данных
         setTimeout(async () => {
             await refreshAllModelCounters();
-            console.log('Initial model counters refresh completed');
         }, 100);
         
     } catch (error) {
@@ -243,7 +238,6 @@ export async function refreshAllModelCounters() {
         });
         
         await Promise.all(updatePromises);
-        console.log('All model counters refreshed');
     } catch (error) {
         console.error('Error refreshing model counters:', error);
     }
@@ -253,14 +247,12 @@ export async function refreshAllModelCounters() {
  * Инициализация сайдбара - экспортируемая функция
  */
 export async function initSidebar() {
-    console.log('Initializing sidebar v2...');
     applyNewStyles();
     await createNewSidebar();
     
     // Дополнительное обновление счетчиков после полной инициализации
     setTimeout(async () => {
         await refreshAllModelCounters();
-        console.log('Post-init model counters refresh completed');
     }, 500);
     
     // Обновляем счетчики каждые 3 секунды для синхронизации с БД
@@ -313,18 +305,15 @@ export async function updateModelPlacementCounter(modelName, placedCount = null)
                 element.style.opacity = '0.9';
                 element.style.pointerEvents = 'none';
                 element.setAttribute('draggable', 'false');
-                console.log(`Model ${modelName} is not draggable (remaining: ${remainingQuantity})`);
             } else {
                 element.classList.remove('blurred');
                 element.style.filter = '';
                 element.style.opacity = '';
                 element.style.pointerEvents = '';
                 element.setAttribute('draggable', 'true');
-                console.log(`Model ${modelName} is draggable (remaining: ${remainingQuantity})`);
             }
         });
         
-        console.log(`Updated placement counter for ${modelName}: ${actualPlacedCount}/${modelsData.find(m => m.article === modelElements[0]?.getAttribute('data-article'))?.quantity || 0}`);
     } catch (error) {
         console.error('Error updating model placement counter:', error);
     }

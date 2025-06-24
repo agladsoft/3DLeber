@@ -82,7 +82,6 @@ app.get('/api/models/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const models = await getModelsWithSessions(userId);
-        console.log(`models: ${JSON.stringify(models)}`);
         res.json({ project_id: userId, models });
     } catch (err) {
         console.error('Error fetching models:', err);
@@ -93,7 +92,6 @@ app.get('/api/models/:userId', async (req, res) => {
 // Обновление количества модели
 app.post('/api/models/quantity', async (req, res) => {
     try {
-        console.log(`req.body: ${JSON.stringify(req.body)}`);
         const { userId, article, quantity } = req.body;
         
         // Получаем или создаем пользователя
@@ -101,7 +99,6 @@ app.post('/api/models/quantity', async (req, res) => {
         
         // Получаем модель по артикулу
         const model = await getModelByArticle(article);
-        console.log(`model: ${JSON.stringify(model)}`);
         if (!model) {
             return res.status(404).json({ error: 'Model not found' });
         }
@@ -198,14 +195,12 @@ app.get('/api/validate-token', async (req, res) => {
             httpsRes.on('end', () => {
                 // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 if (httpsRes.statusCode === 200 || httpsRes.statusCode === 204) {
-                    console.log('Token validation successful');
                     // Если ответ пустой или не JSON, просто возвращаем успех
                     if (!data || data.trim() === '') {
                         res.json({ isValid: true });
                     } else {
                         try {
                             const jsonData = JSON.parse(data);
-                            console.log('Token validation response:', jsonData);
                             res.json({ isValid: true, userData: jsonData });
                         } catch (parseError) {
                             console.log('Response is not JSON, but status is 200/204 - token is valid');
@@ -263,7 +258,6 @@ app.post('/api/launch', async (req, res) => {
 
         // Создаем уникальный sessionId для этого запуска
         const sessionId = generateSessionId();
-        console.log('Generated sessionId:', sessionId);
         
         // Сохраняем данные в временное хранилище (можно использовать Redis или просто память)
         const sessionData = {
@@ -277,14 +271,9 @@ app.post('/api/launch', async (req, res) => {
         // Сохраняем в память (для продакшена лучше использовать Redis)
         if (!global.sessionStore) {
             global.sessionStore = new Map();
-            console.log('Created new sessionStore');
         }
         
         global.sessionStore.set(sessionId, sessionData);
-        console.log('Session saved to store');
-        console.log('SessionStore size after save:', global.sessionStore.size);
-        console.log('Available sessions after save:', Array.from(global.sessionStore.keys()));
-        
         // Устанавливаем начальный таймаут (скользящий)
         updateSessionTimeout(sessionId, sessionData);
         
@@ -312,11 +301,6 @@ async function validateTokenInternal(token) {
         const hostname = 'inertia.leber.click';
         const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
         
-        console.log('Validating token...');
-        console.log('Hostname:', hostname);
-        console.log('Path:', path);
-        console.log('Token (first 50 chars):', token.substring(0, 50) + '...');
-        
         const options = {
             hostname: hostname,
             port: 443,
@@ -331,18 +315,13 @@ async function validateTokenInternal(token) {
         const httpsReq = https.request(options, (httpsRes) => {
             let data = '';
             
-            console.log('Response status code:', httpsRes.statusCode);
-            console.log('Response headers:', httpsRes.headers);
-            
             httpsRes.on('data', (chunk) => {
                 data += chunk;
             });
             
             httpsRes.on('end', () => {
-                console.log('Response data:', data);
-                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидаци
                 const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
-                console.log('Token validation result:', isValid);
                 resolve(isValid);
             });
         });
@@ -411,12 +390,6 @@ app.get('/api/debug/sessions', (req, res) => {
 app.get('/api/session-data/:sessionId', (req, res) => {
     try {
         const { sessionId } = req.params;
-        
-        console.log('=== SESSION DATA REQUEST ===');
-        console.log('Requested sessionId:', sessionId);
-        console.log('SessionStore exists:', !!global.sessionStore);
-        console.log('SessionStore size:', global.sessionStore ? global.sessionStore.size : 0);
-        
         if (global.sessionStore) {
             console.log('Available sessions:', Array.from(global.sessionStore.keys()));
         }
@@ -508,37 +481,24 @@ app.get('/api/missing-models/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         
-        console.log('Missing models request for userId:', userId);
-        console.log('Query models:', req.query.models);
-        
         // Получаем модели из sessionStorage (переданы в запросе)
         const requestedModels = JSON.parse(req.query.models || '[]');
         
         if (!Array.isArray(requestedModels)) {
             return res.status(400).json({ error: 'Invalid models data' });
         }
-        
-        console.log('Requested models:', requestedModels);
-        
+                
         // Получаем список файлов из папки models
         const filesInFolder = collectGlbModels(modelsDir);
         const fileNamesInFolder = filesInFolder.map(file => path.basename(file));
         
-        console.log('Files in folder:', fileNamesInFolder);
-        
         // Получаем все модели из базы данных
         const allDbModels = await pool.query('SELECT name, article FROM models');
-        const dbModelNames = allDbModels.rows.map(model => model.name);
-        
-        console.log('DB models:', allDbModels.rows);
-        console.log('DB model names:', dbModelNames);
         
         // Находим отсутствующие модели
         const missingModels = [];
         
-        for (const requestedModel of requestedModels) {
-            console.log('Checking model:', requestedModel);
-            
+        for (const requestedModel of requestedModels) {            
             // Попробуем найти модель в БД по артикулу
             const dbModel = allDbModels.rows.find(dbModel => dbModel.article === requestedModel.article);
             const modelName = dbModel ? dbModel.name : null;
@@ -548,9 +508,7 @@ app.get('/api/missing-models/:userId', async (req, res) => {
                 `${requestedModel.article}.glb`,
                 modelName ? `${modelName}.glb` : null
             ].filter(Boolean);
-            
-            console.log('Possible file names for', requestedModel.article, ':', possibleFileNames);
-            
+                        
             // Проверяем наличие в папке
             const existsInFolder = possibleFileNames.some(fileName => 
                 fileNamesInFolder.includes(fileName)
@@ -558,9 +516,7 @@ app.get('/api/missing-models/:userId', async (req, res) => {
             
             // Проверяем наличие в базе данных
             const existsInDb = dbModel !== undefined;
-            
-            console.log('Exists in folder:', existsInFolder, 'Exists in DB:', existsInDb);
-            
+                        
             if (!existsInFolder || !existsInDb) {
                 missingModels.push({
                     article: requestedModel.article,
@@ -656,9 +612,6 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
                          process.env.NODE_ENV !== 'production';
     
     if (isDevelopment) {
-        console.log('⚠️  РЕЖИМ РАЗРАБОТКИ: Email не будет отправлен реально');
-        console.log('Для реальной отправки установите NODE_ENV=production');
-        console.log('JSON данные отчета:', JSON.stringify(jsonData, null, 2));
         return { messageId: 'dev-mode-' + Date.now(), development: true };
     }
 

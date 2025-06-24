@@ -35,8 +35,6 @@ export function createSimplePlayground(width, length, color = 'серый') {
         if (window.app && window.app.isTopViewActive) {
             createDimensionGrid(width, length, color, true);
         }
-
-        console.log('Площадка успешно создана и добавлена в сцену');
         return mainSurface;
     } catch (error) {
         console.error('Ошибка при создании площадки:', error);
@@ -66,8 +64,6 @@ function removeExistingPlaygrounds() {
             }
         }
     });
-
-    console.log(`Удалено ${playgroundObjects.length} существующих площадок`);
 }
 
 /**
@@ -174,9 +170,6 @@ function createMainSurface(width, length, color) {
     
     // Сохраняем ссылки на плоскость для масштабирования
     updateGroundReferences(plane, plane);
-
-    console.log('Основная площадка добавлена в сцену');
-
     return plane;
 }
 
