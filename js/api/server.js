@@ -597,8 +597,8 @@ app.post('/api/send-missing-models-report', async (req, res) => {
             return res.status(400).json({ error: 'Missing models data is required' });
         }
         
-        const excelBuffer = await createMissingModelsExcel(missingModels, stats, userId, projectInfo);
-        const emailResult = await sendEmailWithExcel(excelBuffer, userId, stats, userEmail);
+        const jsonData = createMissingModelsJson(missingModels, stats, userId, projectInfo, userEmail);
+        const emailResult = await sendEmailWithJson(jsonData, userId, stats, userEmail);
         
         res.json({ 
             success: true, 
@@ -616,148 +616,116 @@ app.post('/api/send-missing-models-report', async (req, res) => {
 });
 
 /**
- * Создает Excel файл с отчетом об отсутствующих моделях
+ * Создает JSON отчет об отсутствующих моделях
  */
-async function createMissingModelsExcel(missingModels, stats, userId, projectInfo) {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Отсутствующие модели');
-    
-    worksheet.columns = [
-        { header: 'Артикул', key: 'article', width: 20 },
-        { header: 'Название', key: 'name', width: 40 },
-        { header: 'Отсутствует в папке', key: 'missingInFolder', width: 20 },
-        { header: 'Отсутствует в БД', key: 'missingInDb', width: 20 },
-        { header: 'Статус', key: 'status', width: 30 }
-    ];
-    
-    worksheet.addRow([]);
-    worksheet.addRow(['ОТЧЕТ ОБ ОТСУТСТВУЮЩИХ МОДЕЛЯХ']);
-    worksheet.addRow([]);
-    worksheet.addRow(['Дата создания отчета:', new Date().toLocaleString('ru-RU')]);
-    worksheet.addRow(['ID проекта:', userId || 'Не указан']);
-    if (projectInfo && projectInfo.playgroundSize) {
-        worksheet.addRow(['Размер площадки:', projectInfo.playgroundSize]);
-    }
-    worksheet.addRow([]);
-    
-    worksheet.addRow(['СТАТИСТИКА']);
-    worksheet.addRow(['Всего моделей:', stats?.total || 0]);
-    worksheet.addRow(['Найдено:', stats?.found || 0]);
-    worksheet.addRow(['Отсутствует:', stats?.missing || 0]);
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-    
-    const headerRow = worksheet.addRow(['Артикул', 'Название', 'Отсутствует в папке', 'Отсутствует в БД', 'Статус']);
-    headerRow.eachCell((cell) => {
-        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
-        cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' }
-        };
-        cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-        };
-    });
-    
-    missingModels.forEach((model) => {
-        const status = [];
-        if (model.missingInFolder) status.push('Нет в папке');
-        if (model.missingInDb) status.push('Нет в БД');
-        
-        const row = worksheet.addRow([
-            model.article || 'Не указан',
-            model.name || 'Название не найдено',
-            model.missingInFolder ? 'ДА' : 'НЕТ',
-            model.missingInDb ? 'ДА' : 'НЕТ',
-            status.join(', ') || 'Все в порядке'
-        ]);
-        
-        row.eachCell((cell) => {
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            };
-            
-            if (model.missingInFolder || model.missingInDb) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFFCE4EC' }
-                };
-            }
-        });
-    });
-    
-    return await workbook.xlsx.writeBuffer();
+function createMissingModelsJson(missingModels, stats, userId, projectInfo, userEmail) {
+    return {
+        reportInfo: {
+            title: 'ОТЧЕТ ОБ ОТСУТСТВУЮЩИХ МОДЕЛЯХ',
+            createdAt: new Date().toLocaleString('ru-RU'),
+            timestamp: new Date().toISOString(),
+            projectId: userId || 'Не указан',
+            userEmail: userEmail || null,
+            playgroundSize: projectInfo?.playgroundSize || 'Не указан'
+        },
+        statistics: {
+            total: stats?.total || 0,
+            found: stats?.found || 0,
+            missing: stats?.missing || 0
+        },
+        missingModels: missingModels.map(model => ({
+            article: model.article || 'Не указан',
+            name: model.name || 'Название не найдено',
+            missingInFolder: model.missingInFolder || false,
+            missingInDb: model.missingInDb || false,
+            status: (() => {
+                const statuses = [];
+                if (model.missingInFolder) statuses.push('Нет в папке');
+                if (model.missingInDb) statuses.push('Нет в БД');
+                return statuses.length > 0 ? statuses.join(', ') : 'Все в порядке';
+            })()
+        })),
+        projectInfo: projectInfo || {}
+    };
 }
 
 /**
- * Отправляет email с Excel файлом
+ * Отправляет email с JSON отчетом (используя рабочую конфигурацию из test-email-sending.js)
  */
-async function sendEmailWithExcel(excelBuffer, userId, stats, userEmail) {
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                         process.env.NODE_ENV !== 'production';
     
     if (isDevelopment) {
-        console.log('Development mode: Email would be sent to uventus_work@mail.ru');
+        console.log('⚠️  РЕЖИМ РАЗРАБОТКИ: Email не будет отправлен реально');
+        console.log('Для реальной отправки установите NODE_ENV=production');
+        console.log('JSON данные отчета:', JSON.stringify(jsonData, null, 2));
         return { messageId: 'dev-mode-' + Date.now(), development: true };
     }
-    
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        throw new Error('Email settings not configured');
-    }
-    
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.mail.ru',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
-    
-    await transporter.verify();
-    
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: 'uventus_work@mail.ru',
-        subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
-        html: `
-            <h2>Отчет об отсутствующих моделях</h2>
-            <p><strong>Дата:</strong> ${new Date().toLocaleString('ru-RU')}</p>
-            <p><strong>ID проекта:</strong> ${userId || 'Не указан'}</p>
-            ${userEmail ? `<p><strong>Email пользователя:</strong> ${userEmail}</p>` : ''}
-            
-            <h3>Статистика:</h3>
-            <ul>
-                <li>Всего моделей: ${stats?.total || 0}</li>
-                <li>Найдено: ${stats?.found || 0}</li>
-                <li>Отсутствует: ${stats?.missing || 0}</li>
-            </ul>
-            
-            <p>Подробная информация об отсутствующих моделях во вложенном Excel файле.</p>
-            
-            <hr>
-            <p><small>Это автоматически сгенерированное сообщение из системы Leber 3D Constructor.</small></p>
-        `,
-        attachments: [
-            {
-                filename: `missing-models-report-${userId}-${new Date().toISOString().split('T')[0]}.xlsx`,
-                content: excelBuffer,
-                contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    try {
+        console.log('1. Создание транспорта...');
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.mail.ru',
+            port: 465,
+            secure: true, // true для порта 465, false для других портов
+            auth: {
+                user: 'grafana_test_ruscon@mail.ru',
+                pass: 'BCaWNbWNLdDoSwn6p5lL'
             }
-        ]
-    };
-    
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.messageId);
-    return info;
+        });
+
+        console.log('2. Проверка SMTP подключения...');
+        await transporter.verify();
+        console.log('✅ SMTP подключение успешно');
+
+        console.log('3. Отправка отчета об отсутствующих моделях...');
+        const mailOptions = {
+            from: 'grafana_test_ruscon@mail.ru',
+            to: 'uventus_work@mail.ru',
+            subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
+            html: `
+                <h2>📊 Отчет об отсутствующих моделях</h2>
+                <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
+                <p><strong>ID проекта:</strong> ${userId || 'Не указан'}</p>
+                ${userEmail ? `<p><strong>Email пользователя:</strong> ${userEmail}</p>` : ''}
+                
+                <h3>📈 Статистика:</h3>
+                <ul>
+                    <li>Всего моделей: <strong>${stats?.total || 0}</strong></li>
+                    <li>Найдено: <strong style="color: green;">${stats?.found || 0}</strong></li>
+                    <li>Отсутствует: <strong style="color: red;">${stats?.missing || 0}</strong></li>
+                </ul>
+                
+                <p>Подробная информация об отсутствующих моделях во вложенном JSON файле.</p>
+                
+                <hr>
+                <p><small>Это автоматически сгенерированное сообщение из системы Leber 3D Constructor</small></p>
+            `,
+            attachments: [
+                {
+                    filename: `missing-models-report-${userId}-${new Date().toISOString().split('T')[0]}.json`,
+                    content: JSON.stringify(jsonData, null, 2),
+                    contentType: 'application/json'
+                }
+            ]
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        
+        console.log('✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО!');
+        console.log('Message ID:', info.messageId);
+        console.log('Response:', info.response);
+        console.log('Получатель: uventus_work@mail.ru');
+        
+        return info;
+
+    } catch (error) {
+        console.error('❌ ОШИБКА ПРИ ОТПРАВКЕ ОТЧЕТА:');
+        console.error('Тип ошибки:', error.code || error.name);
+        console.error('Сообщение:', error.message);
+        throw error;
+    }
 }
 
 app.use('/models', express.static(modelsDir));
