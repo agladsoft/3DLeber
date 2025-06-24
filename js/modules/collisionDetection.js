@@ -92,36 +92,8 @@ export function highlightPlaygroundBoundary(object, show) {
     // Устанавливаем флаг ошибки позиционирования
     object.userData.hasPositionError = shouldHighlight;
     
-    // Проходим по всем мешам объекта
-    object.traverse((child) => {
-        if (child.isMesh && child.material) {
-            // Сохраняем оригинальный материал при первой подсветке
-            if (shouldHighlight && !child.userData.originalBoundaryMaterial) {
-                // Клонируем материал, чтобы не влиять на другие объекты
-                child.userData.originalBoundaryMaterial = child.material.clone();
-            }
-            
-            if (shouldHighlight) {
-                // Создаем новый красный материал для подсветки
-                const errorMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xff0000,        // Красный цвет
-                    emissive: 0x500000,     // Легкое свечение
-                    metalness: 0.3,
-                    roughness: 0.7,
-                    transparent: false,
-                    opacity: 1.0
-                });
-                
-                // Применяем материал к мешу
-                child.material = errorMaterial;
-            } 
-            else if (child.userData.originalBoundaryMaterial) {
-                // Восстанавливаем оригинальный материал
-                child.material = child.userData.originalBoundaryMaterial;
-                child.userData.originalBoundaryMaterial = null;
-            }
-        }
-    });
+    // Применяем единую подсветку для объекта
+    applyObjectHighlight(object);
 }
 
 /**
@@ -165,40 +137,19 @@ function checkMeshIntersection(mesh1, mesh2) {
         const tempMatrix = new THREE.Matrix4();
         tempMatrix.copy(mesh1.matrixWorld).invert().multiply(mesh2.matrixWorld);
 
-        // Проверяем пересечение с помощью BVH
-        const intersection = mesh1.geometry.boundsTree.intersectsGeometry(
+        return mesh1.geometry.boundsTree.intersectsGeometry(
             mesh2.geometry,
             tempMatrix
         );
-
-        if (intersection) {
-            console.log(`🔴 BVH Пересечение обнаружено между мешами:`, {
-                mesh1: mesh1.name || 'unnamed',
-                mesh2: mesh2.name || 'unnamed',
-                mesh1Parent: mesh1.parent?.userData?.modelName || 'unknown',
-                mesh2Parent: mesh2.parent?.userData?.modelName || 'unknown'
-            });
-        }
-
-        return intersection;
     } catch (error) {
         console.warn('Ошибка при точной проверке пересечения, используем bounding box:', error);
         
         // Fallback на bounding box проверку
         const box1 = new THREE.Box3().setFromObject(mesh1);
         const box2 = new THREE.Box3().setFromObject(mesh2);
-        const boxIntersection = box1.intersectsBox(box2);
+ъ    
         
-        if (boxIntersection) {
-            console.log(`🟡 Bounding Box пересечение (fallback) между мешами:`, {
-                mesh1: mesh1.name || 'unnamed',
-                mesh2: mesh2.name || 'unnamed',
-                mesh1Parent: mesh1.parent?.userData?.modelName || 'unknown',
-                mesh2Parent: mesh2.parent?.userData?.modelName || 'unknown'
-            });
-        }
-        
-        return boxIntersection;
+        return box1.intersectsBox(box2);
     }
 }
 
@@ -228,7 +179,6 @@ export function checkObjectsIntersection(object1, object2) {
             for (const zone1 of safetyZones1) {
                 for (const zone2 of safetyZones2) {
                     if (checkMeshIntersection(zone1, zone2)) {
-                        console.log(`❌ КОЛЛИЗИЯ ОБНАРУЖЕНА: Safety zones пересекаются между "${obj1Name}" и "${obj2Name}"`);
                         return true;
                     }
                 }
@@ -249,7 +199,6 @@ export function checkObjectsIntersection(object1, object2) {
             for (const zone1 of safetyZones1) {
                 for (const mesh2 of allMeshes2) {
                     if (checkMeshIntersection(zone1, mesh2)) {
-                        console.log(`❌ КОЛЛИЗИЯ ОБНАРУЖЕНА: Safety zone "${obj1Name}" пересекается с мешем "${obj2Name}"`);
                         return true;
                     }
                 }
@@ -268,7 +217,6 @@ export function checkObjectsIntersection(object1, object2) {
             for (const zone2 of safetyZones2) {
                 for (const mesh1 of allMeshes1) {
                     if (checkMeshIntersection(zone2, mesh1)) {
-                        console.log(`❌ КОЛЛИЗИЯ ОБНАРУЖЕНА: Safety zone "${obj2Name}" пересекается с мешем "${obj1Name}"`);
                         return true;
                     }
                 }
@@ -280,15 +228,7 @@ export function checkObjectsIntersection(object1, object2) {
         // Используем простую bounding box проверку как fallback
         const box1 = new THREE.Box3().setFromObject(object1);
         const box2 = new THREE.Box3().setFromObject(object2);
-        
-        const intersection = box1.intersectsBox(box2);
-        if (intersection) {
-            console.log(`❌ КОЛЛИЗИЯ ОБНАРУЖЕНА: Bounding box пересечение между "${obj1Name}" и "${obj2Name}"`);
-        } else {
-            console.log(`✅ Bounding box коллизий между "${obj1Name}" и "${obj2Name}" не обнаружено`);
-        }
-        
-        return intersection;
+        return box1.intersectsBox(box2);;
         
     } catch (error) {
         console.warn('Ошибка при проверке коллизий, используем bounding box fallback:', error);
@@ -297,35 +237,48 @@ export function checkObjectsIntersection(object1, object2) {
         const box1 = new THREE.Box3().setFromObject(object1);
         const box2 = new THREE.Box3().setFromObject(object2);
         
-        const intersection = box1.intersectsBox(box2);
-        if (intersection) {
-            console.log(`❌ КОЛЛИЗИЯ ОБНАРУЖЕНА (fallback): Bounding box пересечение между "${obj1Name}" и "${obj2Name}"`);
-        }
-        
-        return intersection;
+        return box1.intersectsBox(box2);
     }
 }
 
 /**
- * Подсвечивает объект красным цветом при коллизии
+ * Подсвечивает объект красным цветом при коллизии или ошибке позиционирования
  * @param {Object} object - Объект для подсветки
  * @param {Boolean} highlight - Флаг, нужно ли подсвечивать
  */
 export function highlightObjectCollision(object, highlight) {
     if (!object) return;
     
+    // Устанавливаем/сбрасываем флаг коллизии
+    object.userData.hasCollision = highlight;
+    
+    // Применяем единую подсветку для объекта
+    applyObjectHighlight(object);
+}
+
+/**
+ * Применяет единую подсветку для объекта (коллизии + границы)
+ * @param {Object} object - Объект для подсветки
+ */
+function applyObjectHighlight(object) {
+    if (!object) return;
+    
+    const hasCollision = object.userData.hasCollision || false;
+    const hasPositionError = object.userData.hasPositionError || false;
+    const shouldHighlight = hasCollision || hasPositionError;
+        
     // Применяем или снимаем подсветку для всех дочерних мешей
     object.traverse((child) => {
         if (child.isMesh && child.material) {
             // Сохраняем оригинальный материал при первой подсветке
-            if (highlight && !child.userData.originalMaterial) {
+            if (shouldHighlight && !child.userData.originalMaterial) {
                 // Клонируем материал, чтобы не влиять на другие объекты
                 child.userData.originalMaterial = child.material.clone();
             }
             
-            if (highlight) {
+            if (shouldHighlight) {
                 // Создаем новый красный материал для подсветки
-                const collisionMaterial = new THREE.MeshStandardMaterial({
+                const errorMaterial = new THREE.MeshStandardMaterial({
                     color: 0xff0000,        // Красный цвет
                     emissive: 0x500000,     // Легкое свечение
                     metalness: 0.3,
@@ -335,18 +288,12 @@ export function highlightObjectCollision(object, highlight) {
                 });
                 
                 // Применяем материал к мешу
-                child.material = collisionMaterial;
-                
-                // Устанавливаем флаг наличия коллизии
-                object.userData.hasCollision = true;
+                child.material = errorMaterial;
             } 
             else if (child.userData.originalMaterial) {
                 // Восстанавливаем оригинальный материал
                 child.material = child.userData.originalMaterial;
                 child.userData.originalMaterial = null;
-                
-                // Сбрасываем флаг коллизии
-                object.userData.hasCollision = false;
             }
         }
     });
@@ -416,18 +363,38 @@ export function checkAndHighlightObject(object) {
 }
 
 /**
+ * Принудительно сбрасывает все подсветки для объекта
+ * @param {Object} object - Объект для сброса подсветки
+ */
+export function resetObjectHighlight(object) {
+    if (!object) return;
+        
+    // Сбрасываем все флаги
+    object.userData.hasCollision = false;
+    object.userData.hasPositionError = false;
+    
+    // Восстанавливаем оригинальные материалы для всех мешей
+    object.traverse((child) => {
+        if (child.isMesh && child.material && child.userData.originalMaterial) {
+            child.material = child.userData.originalMaterial;
+            child.userData.originalMaterial = null;
+        }
+    });
+}
+
+/**
  * Проверяет позиции всех размещенных объектов
  */
-export function checkAllObjectsPositions() {
-    // Сначала сбрасываем подсветку для всех объектов
+export function checkAllObjectsPositions() {    
+    // Сначала принудительно сбрасываем все подсветки
     for (let object of placedObjects) {
-        highlightObjectCollision(object, false);
+        resetObjectHighlight(object);
     }
 
     // Сброс подсветки для деревьев и скамеек playground
     if (window.playgroundSpecialObjects) {
         for (let obj of window.playgroundSpecialObjects) {
-            highlightObjectCollision(obj, false);
+            resetObjectHighlight(obj);
         }
     }
 
