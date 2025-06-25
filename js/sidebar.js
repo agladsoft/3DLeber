@@ -250,23 +250,14 @@ export async function refreshAllModelCounters() {
             return;
         }
 
-        // Пытаемся получить данные из кэша drag-and-drop модуля
+        // Получаем актуальные данные сессии
         let sessionData = null;
         try {
-            const { getCachedSessionData } = await import('./ui/dragAndDrop.js');
-            sessionData = await getCachedSessionData();
-        } catch (cacheError) {
-            // Если кэш недоступен, делаем прямой запрос
-            try {
-                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-                if (sessionResponse.ok) {
-                    const { session } = await sessionResponse.json();
-                    sessionData = session || { quantities: {}, placedObjects: [] };
-                }
-            } catch (apiError) {
-                console.error('Error fetching session data:', apiError);
-                return;
-            }
+            const { getSessionData } = await import('./ui/dragAndDrop.js');
+            sessionData = await getSessionData();
+        } catch (error) {
+            console.error('Error getting session data:', error);
+            return;
         }
 
         if (!sessionData) {
@@ -348,23 +339,15 @@ export async function updateModelPlacementCounter(modelName, placedCount = null)
         // Если placedCount передан, используем его без дополнительного API запроса
         let actualPlacedCount = placedCount;
         if (actualPlacedCount === null) {
-            // Пытаемся получить данные из кэша drag-and-drop модуля
+            // Получаем актуальные данные сессии
             try {
-                const { getCachedSessionData } = await import('./ui/dragAndDrop.js');
-                const sessionData = await getCachedSessionData();
+                const { getSessionData } = await import('./ui/dragAndDrop.js');
+                const sessionData = await getSessionData();
                 actualPlacedCount = sessionData?.placedObjects ? 
                     sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-            } catch (cacheError) {
-                // Если кэш недоступен, делаем прямой запрос
-                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-                if (sessionResponse.ok) {
-                    const { session } = await sessionResponse.json();
-                    actualPlacedCount = session?.placedObjects ? 
-                        session.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-                } else {
-                    console.warn('Failed to get session data, using placedCount = 0');
-                    actualPlacedCount = 0;
-                }
+            } catch (error) {
+                console.error('Error getting session data:', error);
+                actualPlacedCount = 0;
             }
         }
         

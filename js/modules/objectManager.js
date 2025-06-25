@@ -415,14 +415,7 @@ async function updateSessionForNewObject(container, modelName) {
             throw new Error('Failed to save session');
         }
 
-        // Инвалидируем кэш после сохранения
-        try {
-            const { invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            invalidateSessionCache();
-        } catch (error) {
-            // Игнорируем ошибку если модуль недоступен
-            console.log('Cache invalidation module not available');
-        }
+        // Кэширование убрано - данные всегда актуальные
 
         console.log('Session updated successfully for new object:', objectData);
     } catch (error) {
@@ -494,19 +487,14 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             return;
         }
 
-        // Пытаемся получить данные из кэша drag-and-drop модуля
+        // Получаем актуальные данные сессии
         let sessionData = null;
         try {
-            const { getCachedSessionData, invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            sessionData = await getCachedSessionData();
-        } catch (cacheError) {
-            // Если кэш недоступен, делаем прямой запрос
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-            if (!sessionResponse.ok) {
-                throw new Error('Failed to get session');
-            }
-            const { session } = await sessionResponse.json();
-            sessionData = session || { quantities: {}, placedObjects: [] };
+            const { getSessionData } = await import('../ui/dragAndDrop.js');
+            sessionData = await getSessionData();
+        } catch (error) {
+            console.error('Error getting session data:', error);
+            throw new Error('Failed to get session data');
         }
 
         // Удаляем объект из массива placedObjects в сессии
@@ -543,13 +531,7 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             throw new Error('Failed to save session');
         }
 
-        // Инвалидируем кэш после сохранения
-        try {
-            const { invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            invalidateSessionCache();
-        } catch (error) {
-            // Игнорируем ошибку если модуль недоступен
-        }
+        // Кэширование убрано - данные всегда актуальные
 
         console.log('Session updated successfully after removing object:', container.userData.id);
     } catch (error) {

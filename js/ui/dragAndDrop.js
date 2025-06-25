@@ -15,24 +15,14 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
 
-// Кэш для хранения данных сессии
-let sessionDataCache = null;
-let sessionCacheTimeout = null;
-const SESSION_CACHE_DURATION = 2000; // 2 секунды
-
 /**
- * Получает данные сессии с кэшированием
+ * Получает актуальные данные сессии без кэширования
  * @returns {Promise<Object>} Данные сессии
  */
-async function getCachedSessionData() {
+async function getSessionData() {
     const userId = sessionStorage.getItem('userId');
     if (!userId) {
         throw new Error('No user ID found');
-    }
-
-    // Возвращаем кэшированные данные если они есть и актуальные
-    if (sessionDataCache && sessionCacheTimeout) {
-        return sessionDataCache;
     }
 
     try {
@@ -42,32 +32,10 @@ async function getCachedSessionData() {
         }
 
         const { session } = await sessionResponse.json();
-        sessionDataCache = session || { quantities: {}, placedObjects: [] };
-        
-        // Устанавливаем таймер для инвалидации кэша
-        if (sessionCacheTimeout) {
-            clearTimeout(sessionCacheTimeout);
-        }
-        sessionCacheTimeout = setTimeout(() => {
-            sessionDataCache = null;
-            sessionCacheTimeout = null;
-        }, SESSION_CACHE_DURATION);
-
-        return sessionDataCache;
+        return session || { quantities: {}, placedObjects: [] };
     } catch (error) {
         console.error('Error getting session data:', error);
         return { quantities: {}, placedObjects: [] };
-    }
-}
-
-/**
- * Инвалидирует кэш сессии (вызывается после изменений)
- */
-function invalidateSessionCache() {
-    sessionDataCache = null;
-    if (sessionCacheTimeout) {
-        clearTimeout(sessionCacheTimeout);
-        sessionCacheTimeout = null;
     }
 }
 
@@ -78,7 +46,7 @@ function invalidateSessionCache() {
  */
 export async function getQuantityFromDatabase(modelName) {
     try {
-        const sessionData = await getCachedSessionData();
+        const sessionData = await getSessionData();
         return sessionData.quantities?.[modelName] || 0;
     } catch (error) {
         console.error('Error getting quantity from database:', error);
@@ -98,7 +66,7 @@ export async function saveQuantityToDatabase(modelName, quantity) {
             throw new Error('No user ID found');
         }
 
-        const sessionData = await getCachedSessionData();
+        const sessionData = await getSessionData();
         sessionData.quantities = sessionData.quantities || {};
         sessionData.quantities[modelName] = quantity;
 
@@ -113,9 +81,6 @@ export async function saveQuantityToDatabase(modelName, quantity) {
         if (!saveResponse.ok) {
             throw new Error('Failed to save session');
         }
-
-        // Инвалидируем кэш после сохранения
-        invalidateSessionCache();
         
         // Обновляем UI
         const items = document.querySelectorAll('.item');
@@ -391,11 +356,8 @@ async function handleDrop(event) {
             console.log("Model loaded successfully, now updating UI counter");
             
             // Обновляем счетчик в UI только после успешной загрузки
-            // Инвалидируем кэш, чтобы получить актуальные данные
-            invalidateSessionCache();
-            
-            // Получаем обновленные данные сессии
-            const updatedSessionData = await getCachedSessionData();
+            // Получаем актуальные данные сессии
+            const updatedSessionData = await getSessionData();
             const newPlacedCount = updatedSessionData?.placedObjects ? 
                 updatedSessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
             
@@ -492,9 +454,6 @@ function determineDropPosition() {
  * @param {string} modelName - Имя модели
  */
 export async function updateModelQuantityOnRemove(modelName) {
-    // Инвалидируем кэш при удалении объекта
-    invalidateSessionCache();
-    
     // Проверяем новую структуру sidebar с .model элементами
     const modelElements = document.querySelectorAll('.model');
     if (modelElements.length > 0) {
@@ -564,5 +523,5 @@ function updateSidebarDeleteButtons() {
     });
 }
 
-// Экспортируем функции для инвалидации кэша из других модулей
-export { invalidateSessionCache, getCachedSessionData };
+// Экспортируем функцию для получения данных сессии из других модулей
+export { getSessionData };
