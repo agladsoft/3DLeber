@@ -12,8 +12,96 @@ import {
 import * as THREE from 'three';
 import { API_BASE_URL } from '../api/serverConfig.js';
 
-// Флаг для предотвращения множественных запусков обработчика drop
-let isDropProcessing = false;
+// Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
+const processingModels = new Map();
+
+// Батчинг для UI обновлений
+const pendingUIUpdates = new Map();
+let uiUpdateTimeout = null;
+const UI_UPDATE_BATCH_DELAY = 50; // 50ms для группировки обновлений
+
+/**
+ * Группирует UI обновления для лучшей производительности
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества
+ */
+function batchUIUpdate(modelName, delta) {
+    // Накапливаем изменения
+    const currentDelta = pendingUIUpdates.get(modelName) || 0;
+    pendingUIUpdates.set(modelName, currentDelta + delta);
+    
+    // Отменяем предыдущий таймер
+    if (uiUpdateTimeout) {
+        clearTimeout(uiUpdateTimeout);
+    }
+    
+    // Устанавливаем новый таймер для применения изменений
+    uiUpdateTimeout = setTimeout(() => {
+        // Применяем все накопленные изменения
+        for (const [model, totalDelta] of pendingUIUpdates) {
+            if (totalDelta !== 0) {
+                updateSidebarInstantly(model, totalDelta);
+            }
+        }
+        
+        // Очищаем накопленные изменения
+        pendingUIUpdates.clear();
+        uiUpdateTimeout = null;
+    }, UI_UPDATE_BATCH_DELAY);
+}
+
+/**
+ * Мгновенно обновляет UI в sidebar (используется из батчинга)
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества
+ */
+function updateSidebarInstantly(modelName, delta) {
+    // Новая структура sidebar с .model элементами
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    
+    modelElements.forEach(element => {
+        const counterElement = element.querySelector('.counter-number');
+        if (counterElement) {
+            const currentCount = parseInt(counterElement.textContent) || 0;
+            const newCount = Math.max(0, currentCount + delta);
+            counterElement.textContent = newCount;
+            
+            // Обновляем видимость элемента
+            if (newCount <= 0) {
+                element.style.filter = 'blur(2px)';
+                element.style.opacity = '0.9';
+                element.style.pointerEvents = 'none';
+            } else {
+                element.style.filter = 'none';
+                element.style.opacity = '1';
+                element.style.pointerEvents = 'auto';
+            }
+        }
+    });
+    
+    // Поддержка старой структуры с .item элементами
+    const itemElements = document.querySelectorAll(`.item[data-model="${modelName}"]`);
+    itemElements.forEach(item => {
+        const quantityElement = item.querySelector('.model-quantity');
+        if (quantityElement) {
+            const currentQuantity = parseInt(quantityElement.textContent) || 0;
+            const newQuantity = Math.max(0, currentQuantity + delta);
+            quantityElement.textContent = newQuantity;
+            
+            item.setAttribute('data-quantity', newQuantity);
+            
+            if (newQuantity <= 0) {
+                item.style.filter = 'blur(2px)';
+                item.style.opacity = '0.9';
+                item.style.pointerEvents = 'none';
+            } else {
+                item.style.filter = 'none';
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+            }
+        }
+    });
+}
 
 /**
  * Получает актуальные данные сессии без кэширования
@@ -252,18 +340,20 @@ function addDragStartHandlers() {
  * @param {DragEvent} event - Событие drop
  */
 async function handleDrop(event) {
-    event.preventDefault();    
-    // Предотвращаем множественные вызовы
-    if (isDropProcessing) {
-        console.log("Ignore duplicate drop event - already processing");
+    event.preventDefault();
+    
+    const modelName = event.dataTransfer.getData("model");
+    
+    // Предотвращаем множественные drop для одной и той же модели
+    if (processingModels.has(modelName)) {
+        console.log(`Drop for ${modelName} already processing, skipping`);
         return;
     }
     
-    // Устанавливаем флаг обработки
-    isDropProcessing = true;
+    // Устанавливаем флаг обработки для конкретной модели
+    processingModels.set(modelName, true);
     
     try {
-        const modelName = event.dataTransfer.getData("model");
         console.log("Model name from event:", modelName);
         
         // Проверка наличия имени модели
@@ -294,31 +384,14 @@ async function handleDrop(event) {
             return;
         }
         
-        // ВАЖНО: Получаем свежие данные из БД для точной проверки
-        // Не используем кэш для критической проверки количества
-        let sessionData = null;
-        try {
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-            if (sessionResponse.ok) {
-                const { session } = await sessionResponse.json();
-                sessionData = session || { quantities: {}, placedObjects: [] };
-            } else {
-                console.error('Failed to get fresh session data');
-                return;
-            }
-        } catch (error) {
-            console.error('Error getting fresh session data:', error);
-            return;
-        }
-        
-        // Считаем размещенные объекты из свежих данных
-        const placedCount = sessionData?.placedObjects ? 
-            sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+        // БЫСТРАЯ ПРОВЕРКА: считаем размещенные объекты локально
+        const { placedObjects } = await import('../modules/objectManager.js');
+        const placedCount = placedObjects.filter(obj => obj.userData.modelName === modelName).length;
         
         const totalQuantity = modelData.quantity || 0;
         const remainingQuantity = totalQuantity - placedCount;
         
-        console.log(`Drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
+        console.log(`Fast drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
         
         if (remainingQuantity <= 0) {
             console.warn(`No available quantity for model ${modelName}: ${remainingQuantity} remaining`);
@@ -363,8 +436,8 @@ async function handleDrop(event) {
     } catch (error) {
         console.error("Error in handleDrop:", error);
     } finally {
-        // Сбрасываем флаг сразу без задержки для ускорения работы
-        isDropProcessing = false;
+        // Сбрасываем флаг обработки для конкретной модели
+        processingModels.delete(modelName);
     }
 }
 
@@ -514,5 +587,5 @@ function updateSidebarDeleteButtons() {
     });
 }
 
-// Экспортируем функцию для получения данных сессии из других модулей
-export { getSessionData };
+// Экспортируем функции для использования в других модулях
+export { getSessionData, batchUIUpdate };

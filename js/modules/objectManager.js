@@ -20,7 +20,22 @@ const modelCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
 /**
- * Мгновенно обновляет UI в sidebar без API вызовов (optimistic update)
+ * Обновляет UI с батчингом для лучшей производительности при множественных операциях
+ * @param {string} modelName - Имя модели  
+ * @param {number} delta - Изменение количества
+ */
+async function updateSidebarWithBatching(modelName, delta) {
+    try {
+        const { batchUIUpdate } = await import('../ui/dragAndDrop.js');
+        batchUIUpdate(modelName, delta);
+    } catch (error) {
+        console.error('Батчинг недоступен, используем мгновенное обновление:', error);
+        updateSidebarInstantly(modelName, delta);
+    }
+}
+
+/**
+ * Мгновенно обновляет UI в sidebar без API вызовов (fallback)
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества (+1 для увеличения, -1 для уменьшения)
  */
@@ -256,9 +271,9 @@ export function generateObjectId() {
 export async function loadAndPlaceModel(modelName, position, isRestoring = false) {
     console.log("Попытка загрузки модели:", modelName, "в позицию:", position);
     
-    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - уменьшаем счетчик до загрузки модели
+    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - используем батчинг для множественных операций
     if (!isRestoring) {
-        updateSidebarInstantly(modelName, -1);
+        updateSidebarWithBatching(modelName, -1);
     }
     
     return new Promise((resolve, reject) => {
@@ -386,7 +401,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                             console.error("Ошибка: контейнер пуст, нет дочерних объектов");
                             // Откатываем UI при ошибке
                             if (!isRestoring) {
-                                updateSidebarInstantly(modelName, +1);
+                                updateSidebarWithBatching(modelName, +1);
                             }
                             reject(new Error("Container is empty, no child objects"));
                             return;
@@ -402,7 +417,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                 .catch(error => {
                                     console.error('Ошибка при обновлении сессии, откатываем UI:', error);
                                     // Откатываем UI при ошибке API
-                                    updateSidebarInstantly(modelName, +1);
+                                    updateSidebarWithBatching(modelName, +1);
                                     reject(error);
                                 });
                         } else {
@@ -413,7 +428,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         console.error("Error processing loaded model:", processingError);
                         // Откатываем UI при ошибке обработки
                         if (!isRestoring) {
-                            updateSidebarInstantly(modelName, +1);
+                            updateSidebarWithBatching(modelName, +1);
                         }
                         reject(processingError);
                     }
@@ -428,7 +443,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                     console.error(`Ошибка при загрузке модели ${modelName}:`, error);
                     // Откатываем UI при ошибке загрузки
                     if (!isRestoring) {
-                        updateSidebarInstantly(modelName, +1);
+                        updateSidebarWithBatching(modelName, +1);
                     }
                     reject(error);
                 }
@@ -437,7 +452,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
             console.error("Error in loadAndPlaceModel:", error);
             // Откатываем UI при общей ошибке
             if (!isRestoring) {
-                updateSidebarInstantly(modelName, +1);
+                updateSidebarWithBatching(modelName, +1);
             }
             reject(error);
         }
@@ -513,8 +528,8 @@ export function removeObject(container, isMassRemoval = false) {
     
     const modelName = container.userData.modelName;
     
-    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - обновляем sidebar до API вызова
-    updateSidebarInstantly(modelName, +1);
+    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - используем батчинг для множественных операций
+    updateSidebarWithBatching(modelName, +1);
     
     // Импортируем функцию удаления размеров динамически
     import('./dimensionDisplay/index.js').then(async module => {
@@ -559,7 +574,7 @@ export function removeObject(container, isMassRemoval = false) {
         } catch (error) {
             console.error('Ошибка при синхронизации с БД, откатываем UI:', error);
             // 3. ОТКАТ UI при ошибке API
-            updateSidebarInstantly(modelName, -1);
+            updateSidebarWithBatching(modelName, -1);
         }
     });
 }
