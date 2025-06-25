@@ -19,6 +19,59 @@ export let placedObjects = [];
 const modelCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
+/**
+ * Мгновенно обновляет UI в sidebar без API вызовов (optimistic update)
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества (+1 для увеличения, -1 для уменьшения)
+ */
+function updateSidebarInstantly(modelName, delta) {
+    // Обновляем новую структуру sidebar с .model элементами
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    
+    modelElements.forEach(element => {
+        const counterElement = element.querySelector('.counter-number');
+        if (counterElement) {
+            const currentCount = parseInt(counterElement.textContent) || 0;
+            const newCount = Math.max(0, currentCount + delta);
+            counterElement.textContent = newCount;
+            
+            // Обновляем видимость элемента
+            if (newCount <= 0) {
+                element.style.filter = 'blur(2px)';
+                element.style.opacity = '0.9';
+                element.style.pointerEvents = 'none';
+            } else {
+                element.style.filter = 'none';
+                element.style.opacity = '1';
+                element.style.pointerEvents = 'auto';
+            }
+        }
+    });
+    
+    // Поддержка старой структуры с .item элементами
+    const itemElements = document.querySelectorAll(`.item[data-model="${modelName}"]`);
+    itemElements.forEach(item => {
+        const quantityElement = item.querySelector('.model-quantity');
+        if (quantityElement) {
+            const currentQuantity = parseInt(quantityElement.textContent) || 0;
+            const newQuantity = Math.max(0, currentQuantity + delta);
+            quantityElement.textContent = newQuantity;
+            
+            item.setAttribute('data-quantity', newQuantity);
+            
+            if (newQuantity <= 0) {
+                item.style.filter = 'blur(2px)';
+                item.style.opacity = '0.9';
+                item.style.pointerEvents = 'none';
+            } else {
+                item.style.filter = 'none';
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+            }
+        }
+    });
+}
+
 // Счетчик для ID объектов
 let objectIdCounter = 0;
 
@@ -203,6 +256,11 @@ export function generateObjectId() {
 export async function loadAndPlaceModel(modelName, position, isRestoring = false) {
     console.log("Попытка загрузки модели:", modelName, "в позицию:", position);
     
+    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - уменьшаем счетчик до загрузки модели
+    if (!isRestoring) {
+        updateSidebarInstantly(modelName, -1);
+    }
+    
     return new Promise((resolve, reject) => {
         try {
             // Определяем расширение файла
@@ -326,6 +384,10 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         // Проверяем, есть ли в контейнере хотя бы один дочерний объект
                         if (container.children.length === 0) {
                             console.error("Ошибка: контейнер пуст, нет дочерних объектов");
+                            // Откатываем UI при ошибке
+                            if (!isRestoring) {
+                                updateSidebarInstantly(modelName, +1);
+                            }
                             reject(new Error("Container is empty, no child objects"));
                             return;
                         }
@@ -337,13 +399,22 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         if (!isRestoring) {
                             updateSessionForNewObject(container, modelName)
                                 .then(() => resolve(container))
-                                .catch(reject);
+                                .catch(error => {
+                                    console.error('Ошибка при обновлении сессии, откатываем UI:', error);
+                                    // Откатываем UI при ошибке API
+                                    updateSidebarInstantly(modelName, +1);
+                                    reject(error);
+                                });
                         } else {
                             resolve(container);
                         }
                         
                     } catch (processingError) {
                         console.error("Error processing loaded model:", processingError);
+                        // Откатываем UI при ошибке обработки
+                        if (!isRestoring) {
+                            updateSidebarInstantly(modelName, +1);
+                        }
                         reject(processingError);
                     }
                 },
@@ -355,11 +426,19 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обработчик ошибок
                 (error) => {
                     console.error(`Ошибка при загрузке модели ${modelName}:`, error);
+                    // Откатываем UI при ошибке загрузки
+                    if (!isRestoring) {
+                        updateSidebarInstantly(modelName, +1);
+                    }
                     reject(error);
                 }
             );
         } catch (error) {
             console.error("Error in loadAndPlaceModel:", error);
+            // Откатываем UI при общей ошибке
+            if (!isRestoring) {
+                updateSidebarInstantly(modelName, +1);
+            }
             reject(error);
         }
     });
@@ -432,6 +511,11 @@ async function updateSessionForNewObject(container, modelName) {
 export function removeObject(container, isMassRemoval = false) {
     if (!container) return;
     
+    const modelName = container.userData.modelName;
+    
+    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - обновляем sidebar до API вызова
+    updateSidebarInstantly(modelName, +1);
+    
     // Импортируем функцию удаления размеров динамически
     import('./dimensionDisplay/index.js').then(async module => {
         // Удаляем размеры модели перед удалением самой модели
@@ -469,8 +553,14 @@ export function removeObject(container, isMassRemoval = false) {
             placedObjects.splice(index, 1);
         }
 
-        // Обновляем сессию в базе данных после удаления объекта
-        await updateSessionForRemovedObject(container, isMassRemoval);
+        // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных
+        try {
+            await updateSessionForRemovedObject(container, isMassRemoval);
+        } catch (error) {
+            console.error('Ошибка при синхронизации с БД, откатываем UI:', error);
+            // 3. ОТКАТ UI при ошибке API
+            updateSidebarInstantly(modelName, -1);
+        }
     });
 }
 

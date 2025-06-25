@@ -349,24 +349,15 @@ async function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
-        // Ждем завершения загрузки модели перед обновлением UI
+        // Загружаем модель (UI уже обновлен мгновенно в objectManager)
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
-            console.log("Model loaded successfully, now updating UI counter");
-            
-            // Обновляем счетчик в UI только после успешной загрузки
-            // Получаем актуальные данные сессии
-            const updatedSessionData = await getSessionData();
-            const newPlacedCount = updatedSessionData?.placedObjects ? 
-                updatedSessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-            
-            console.log(`UI Update: ${modelName} - new placed count: ${newPlacedCount}`);
-            await updateModelPlacementAfterDrop(modelName, newPlacedCount);
+            console.log("Model loaded successfully with optimistic UI updates");
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
-            // Если загрузка не удалась, НЕ обновляем счетчик
+            // UI автоматически откатится в objectManager при ошибке
         }
         
     } catch (error) {

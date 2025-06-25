@@ -21,6 +21,10 @@ export let mouse = new THREE.Vector2();
 // Реэкспортируем canvas и другие элементы сцены для использования в других модулях
 export { canvas, scene, camera, renderer };
 
+// Debouncing для API вызовов
+let updateSessionTimeout = null;
+const SESSION_UPDATE_DELAY = 500; // 500ms задержка для группировки обновлений
+
 /**
  * Инициализирует обработчики событий пользовательского интерфейса
  */
@@ -162,8 +166,8 @@ async function handleArrowKeyMovement(event) {
     // Показываем кнопку удаления для объекта при движении стрелками
     showDeleteButtonForSelectedObject(selectedObject);
     
-    // Обновляем сессию в базе данных
-    updateSessionInDatabase(selectedObject);
+    // Обновляем сессию в базе данных с debouncing
+    debouncedUpdateSession(selectedObject);
     
     // Логируем перемещение
     console.log(`Объект ${selectedObject.userData.modelName} перемещен стрелкой ${event.key} на ${step}м. Новые координаты:`, {
@@ -177,6 +181,22 @@ async function handleArrowKeyMovement(event) {
  * Обновляет сессию в базе данных
  * @param {Object} object - Объект, который был изменен
  */
+/**
+ * Debounced обертка для updateSessionInDatabase
+ * @param {Object} object - 3D объект для обновления
+ */
+function debouncedUpdateSession(object) {
+    // Отменяем предыдущий таймер
+    if (updateSessionTimeout) {
+        clearTimeout(updateSessionTimeout);
+    }
+    
+    // Устанавливаем новый таймер
+    updateSessionTimeout = setTimeout(() => {
+        updateSessionInDatabase(object);
+    }, SESSION_UPDATE_DELAY);
+}
+
 async function updateSessionInDatabase(object) {
     try {
         // Получаем project_id из sessionStorage
