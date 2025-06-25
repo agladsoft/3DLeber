@@ -8,6 +8,7 @@ import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCre
 import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
+import compression from 'compression';
 
 const { Pool } = pg;
 
@@ -17,12 +18,48 @@ const PORT = SERVER_PORT;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Создаем пул подключений к базе данных
-const pool = new Pool(DB_CONFIG);
+// Создаем пул подключений к базе данных с оптимизированными настройками
+const pool = new Pool({
+    ...DB_CONFIG,
+    max: 20, // максимальное количество клиентов в пуле
+    idleTimeoutMillis: 30000, // время ожидания перед закрытием неактивного соединения
+    connectionTimeoutMillis: 2000, // время ожидания подключения
+});
 
-// ✅ Разрешить CORS
+// Добавляем middleware для оптимизации
+app.use(compression()); // Сжатие ответов
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для JSON
+
+// Кэш для сессий на уровне сервера
+const sessionCache = new Map();
+const SESSION_CACHE_TTL = 5000; // 5 секунд
+
+// Функция для кэширования сессий
+function getCachedSession(userId) {
+    const cached = sessionCache.get(userId);
+    if (cached && Date.now() - cached.timestamp < SESSION_CACHE_TTL) {
+        return cached.data;
+    }
+    return null;
+}
+
+function setCachedSession(userId, data) {
+    sessionCache.set(userId, {
+        data,
+        timestamp: Date.now()
+    });
+    
+    // Ограничиваем размер кэша
+    if (sessionCache.size > 100) {
+        const firstKey = sessionCache.keys().next().value;
+        sessionCache.delete(firstKey);
+    }
+}
+
+function invalidateCachedSession(userId) {
+    sessionCache.delete(userId);
+}
 
 const modelsDir = path.join(__dirname, '..', '..', 'models');
 
@@ -105,6 +142,9 @@ app.post('/api/models/quantity', async (req, res) => {
         
         // Создаем или обновляем сессию
         await createOrUpdateSession(userId, model.id, quantity);
+        
+        // Инвалидируем кэш сессии
+        invalidateCachedSession(userId);
         
         res.json({ success: true });
     } catch (err) {
@@ -423,16 +463,27 @@ app.get('/api/session-data/:sessionId', (req, res) => {
     }
 });
 
-// Получение сессии пользователя
+// Получение сессии пользователя (оптимизированная версия с кэшированием)
 app.get('/api/session/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
+        
+        // Проверяем кэш
+        const cachedSession = getCachedSession(userId);
+        if (cachedSession) {
+            res.json({ session: cachedSession });
+            return;
+        }
+        
         const sessionData = await getSession(userId);
         
         if (!sessionData) {
             res.json({ session: null });
             return;
         }
+        
+        // Кэшируем результат
+        setCachedSession(userId, sessionData);
         
         res.json({ session: sessionData });
     } catch (err) {
@@ -441,14 +492,19 @@ app.get('/api/session/:userId', async (req, res) => {
     }
 });
 
-// Сохранение сессии пользователя
+// Сохранение сессии пользователя (оптимизированная версия)
 app.post('/api/session', async (req, res) => {
     try {
         const { userId, sessionData } = req.body;
         if (!userId || !sessionData) {
             return res.status(400).json({ error: 'userId and sessionData are required' });
         }
+        
         await saveSession(userId, sessionData);
+        
+        // Инвалидируем кэш после сохранения
+        invalidateCachedSession(userId);
+        
         res.json({ success: true });
     } catch (err) {
         console.error('Error saving session:', err);
@@ -469,6 +525,10 @@ app.delete('/api/session/:userId', async (req, res) => {
             WHERE project_id = (SELECT id FROM projects WHERE project_id = $1)
         `;
         await pool.query(query, [userId]);
+        
+        // Инвалидируем кэш после удаления
+        invalidateCachedSession(userId);
+        
         res.json({ success: true });
     } catch (err) {
         console.error('Error deleting session:', err);
@@ -617,7 +677,7 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
 
     try {
         console.log('1. Создание транспорта...');
-        const transporter = nodemailer.createTransport({
+        const transporter = nodemailer.createTransporter({
             host: 'smtp.mail.ru',
             port: 465,
             secure: true, // true для порта 465, false для других портов

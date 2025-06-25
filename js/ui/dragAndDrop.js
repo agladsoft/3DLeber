@@ -15,8 +15,61 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 // Флаг для предотвращения множественных запусков обработчика drop
 let isDropProcessing = false;
 
-// Кэш для хранения количеств моделей
-let modelQuantitiesCache = {};
+// Кэш для хранения данных сессии
+let sessionDataCache = null;
+let sessionCacheTimeout = null;
+const SESSION_CACHE_DURATION = 2000; // 2 секунды
+
+/**
+ * Получает данные сессии с кэшированием
+ * @returns {Promise<Object>} Данные сессии
+ */
+async function getCachedSessionData() {
+    const userId = sessionStorage.getItem('userId');
+    if (!userId) {
+        throw new Error('No user ID found');
+    }
+
+    // Возвращаем кэшированные данные если они есть и актуальные
+    if (sessionDataCache && sessionCacheTimeout) {
+        return sessionDataCache;
+    }
+
+    try {
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+
+        const { session } = await sessionResponse.json();
+        sessionDataCache = session || { quantities: {}, placedObjects: [] };
+        
+        // Устанавливаем таймер для инвалидации кэша
+        if (sessionCacheTimeout) {
+            clearTimeout(sessionCacheTimeout);
+        }
+        sessionCacheTimeout = setTimeout(() => {
+            sessionDataCache = null;
+            sessionCacheTimeout = null;
+        }, SESSION_CACHE_DURATION);
+
+        return sessionDataCache;
+    } catch (error) {
+        console.error('Error getting session data:', error);
+        return { quantities: {}, placedObjects: [] };
+    }
+}
+
+/**
+ * Инвалидирует кэш сессии (вызывается после изменений)
+ */
+function invalidateSessionCache() {
+    sessionDataCache = null;
+    if (sessionCacheTimeout) {
+        clearTimeout(sessionCacheTimeout);
+        sessionCacheTimeout = null;
+    }
+}
 
 /**
  * Получает количество модели из базы данных
@@ -25,27 +78,8 @@ let modelQuantitiesCache = {};
  */
 export async function getQuantityFromDatabase(modelName) {
     try {
-        // Получаем project_id из sessionStorage
-        const userId = sessionStorage.getItem('userId');
-
-        if (!userId) {
-            throw new Error('No user ID found');
-        }
-
-        // Получаем данные сессии
-        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-        if (!sessionResponse.ok) {
-            throw new Error('Failed to get session');
-        }
-
-        const { session } = await sessionResponse.json();
-        if (!session || !session.quantities) {
-            return 0;
-        }
-
-        // Обновляем кэш
-        modelQuantitiesCache = { ...session.quantities };
-        return session.quantities[modelName] || 0;
+        const sessionData = await getCachedSessionData();
+        return sessionData.quantities?.[modelName] || 0;
     } catch (error) {
         console.error('Error getting quantity from database:', error);
         return 0;
@@ -59,27 +93,15 @@ export async function getQuantityFromDatabase(modelName) {
  */
 export async function saveQuantityToDatabase(modelName, quantity) {
     try {
-        // Получаем project_id из sessionStorage
         const userId = sessionStorage.getItem('userId');
-
         if (!userId) {
             throw new Error('No user ID found');
         }
 
-        // Получаем текущую сессию
-        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-        if (!sessionResponse.ok) {
-            throw new Error('Failed to get session');
-        }
-
-        const { session } = await sessionResponse.json();
-        const sessionData = session || { quantities: {} };
-        
-        // Обновляем количество
+        const sessionData = await getCachedSessionData();
         sessionData.quantities = sessionData.quantities || {};
         sessionData.quantities[modelName] = quantity;
 
-        // Сохраняем обновленную сессию
         const saveResponse = await fetch(`${API_BASE_URL}/session`, {
             method: 'POST',
             headers: {
@@ -92,8 +114,8 @@ export async function saveQuantityToDatabase(modelName, quantity) {
             throw new Error('Failed to save session');
         }
 
-        // Обновляем кэш
-        modelQuantitiesCache = { ...sessionData.quantities };
+        // Инвалидируем кэш после сохранения
+        invalidateSessionCache();
         
         // Обновляем UI
         const items = document.querySelectorAll('.item');
@@ -148,9 +170,8 @@ export function initDragAndDrop() {
     // Добавляю обновление крестиков при инициализации
     updateSidebarDeleteButtons();
     
-    // Также обновляю крестики каждые 500 мс (на случай изменений вне dnd)
-    setInterval(updateSidebarDeleteButtons, 500);
-    
+    // Также обновляю крестики каждые 2 секунды (уменьшено с 500 мс)
+    setInterval(updateSidebarDeleteButtons, 2000);
 }
 
 /**
@@ -203,15 +224,14 @@ async function updateModelQuantity(modelName, newQuantity) {
 /**
  * Обновляет счетчик размещения модели после drop
  * @param {string} modelName - Имя модели
- * @param {Object} sessionData - Данные сессии
+ * @param {number} placedCount - Количество размещенных объектов
  */
-async function updateModelPlacementAfterDrop(modelName, sessionData) {
+async function updateModelPlacementAfterDrop(modelName, placedCount) {
     // Импортируем функцию updateModelPlacementCounter из sidebar
     const { updateModelPlacementCounter } = await import('../sidebar.js');
     
-    // Обновляем счетчик в UI без передачи placedCount - 
-    // функция сама получит актуальные данные из БД
-    await updateModelPlacementCounter(modelName);
+    // Передаем актуальное количество размещенных объектов для избежания лишнего API запроса
+    await updateModelPlacementCounter(modelName, placedCount);
 }
 
 /**
@@ -284,7 +304,6 @@ async function handleDrop(event) {
         // Проверка наличия имени модели
         if (!modelName) {
             console.warn("Drop event without model name");
-            isDropProcessing = false;
             return;
         }
         
@@ -307,45 +326,48 @@ async function handleDrop(event) {
         
         if (!modelData) {
             console.warn("Model data not found for:", modelName);
-            isDropProcessing = false;
             return;
         }
         
-        // Получаем данные сессии для подсчета размещенных объектов
+        // ВАЖНО: Получаем свежие данные из БД для точной проверки
+        // Не используем кэш для критической проверки количества
         let sessionData = null;
         try {
             const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
             if (sessionResponse.ok) {
                 const { session } = await sessionResponse.json();
-                sessionData = session;
+                sessionData = session || { quantities: {}, placedObjects: [] };
+            } else {
+                console.error('Failed to get fresh session data');
+                return;
             }
         } catch (error) {
-            console.error('Error getting session data:', error);
+            console.error('Error getting fresh session data:', error);
+            return;
         }
         
-        // Считаем размещенные объекты
+        // Считаем размещенные объекты из свежих данных
         const placedCount = sessionData?.placedObjects ? 
             sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
         
         const totalQuantity = modelData.quantity || 0;
         const remainingQuantity = totalQuantity - placedCount;
         
+        console.log(`Drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
+        
         if (remainingQuantity <= 0) {
-            console.warn("No available quantity for model");
-            isDropProcessing = false;
+            console.warn(`No available quantity for model ${modelName}: ${remainingQuantity} remaining`);
             return;
         }
         
         // Проверка инициализации сцены и площадки
         if (!scene) {
             console.error("Scene not initialized");
-            isDropProcessing = false;
             return;
         }
         
         if (!ground) {
             console.error("Ground not initialized");
-            isDropProcessing = false;
             return;
         }
         
@@ -361,18 +383,34 @@ async function handleDrop(event) {
         
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
-        loadAndPlaceModel(modelName, position);
         
-        // Обновляем счетчик в UI
-        await updateModelPlacementAfterDrop(modelName, sessionData);
+        // Ждем завершения загрузки модели перед обновлением UI
+        try {
+            console.log("Starting model loading for:", modelName);
+            await loadAndPlaceModel(modelName, position);
+            console.log("Model loaded successfully, now updating UI counter");
+            
+            // Обновляем счетчик в UI только после успешной загрузки
+            // Инвалидируем кэш, чтобы получить актуальные данные
+            invalidateSessionCache();
+            
+            // Получаем обновленные данные сессии
+            const updatedSessionData = await getCachedSessionData();
+            const newPlacedCount = updatedSessionData?.placedObjects ? 
+                updatedSessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+            
+            console.log(`UI Update: ${modelName} - new placed count: ${newPlacedCount}`);
+            await updateModelPlacementAfterDrop(modelName, newPlacedCount);
+        } catch (loadError) {
+            console.error("Failed to load model:", loadError);
+            console.error("Stack trace:", loadError.stack);
+            // Если загрузка не удалась, НЕ обновляем счетчик
+        }
         
-        // Сбрасываем флаг через небольшую задержку,
-        // чтобы предотвратить возможные "дребезги" событий
-        setTimeout(() => {
-            isDropProcessing = false;
-        }, 500);
     } catch (error) {
         console.error("Error in handleDrop:", error);
+    } finally {
+        // Сбрасываем флаг сразу без задержки для ускорения работы
         isDropProcessing = false;
     }
 }
@@ -454,6 +492,9 @@ function determineDropPosition() {
  * @param {string} modelName - Имя модели
  */
 export async function updateModelQuantityOnRemove(modelName) {
+    // Инвалидируем кэш при удалении объекта
+    invalidateSessionCache();
+    
     // Проверяем новую структуру sidebar с .model элементами
     const modelElements = document.querySelectorAll('.model');
     if (modelElements.length > 0) {
@@ -522,3 +563,6 @@ function updateSidebarDeleteButtons() {
         }
     });
 }
+
+// Экспортируем функции для инвалидации кэша из других модулей
+export { invalidateSessionCache, getCachedSessionData };

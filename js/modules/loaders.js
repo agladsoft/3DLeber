@@ -21,11 +21,14 @@ gltfLoader.setDRACOLoader(dracoLoader);
 
 /**
  * Определяет тип загрузчика на основе расширения файла
- * @param {String} fileExtension - Расширение файла модели
+ * @param {String} fileExtension - Расширение файла модели (с точкой или без)
  * @returns {Object} Объект с загрузчиком и методом загрузки
  */
 export function getLoaderByExtension(fileExtension) {
-    if (fileExtension === 'glb' || fileExtension === 'gltf') {
+    // Убираем точку если она есть и приводим к нижнему регистру
+    const cleanExtension = fileExtension.replace('.', '').toLowerCase();
+    
+    if (cleanExtension === 'glb' || cleanExtension === 'gltf') {
         return { loader: gltfLoader, method: 'gltf' };
     } else {
         throw new Error(`Неподдерживаемый формат файла: ${fileExtension}`);

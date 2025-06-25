@@ -3,6 +3,10 @@
  */
 import { API_BASE_URL } from './api/serverConfig.js';
 
+// Переменная для отслеживания последнего обновления
+let lastUpdateTime = 0;
+const UPDATE_THROTTLE = 1000; // Минимальный интервал между обновлениями в мс
+
 // Функция для применения новых стилей
 function applyNewStyles() {
     // Стили теперь находятся в styles.css, поэтому ничего не нужно делать
@@ -99,7 +103,7 @@ async function createNewSidebar() {
             modelElement.setAttribute('data-quantity', model.quantity);
             
             // Получаем количество размещенных объектов
-            const placedCount = sessionData.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
+            const placedCount = sessionData?.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
             // Получаем общее количество из modelsData
             const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
             // Вычисляем оставшееся количество
@@ -226,18 +230,88 @@ async function createNewSidebar() {
  */
 export async function refreshAllModelCounters() {
     try {
+        // Проверяем throttling для избежания слишком частых обновлений
+        const now = Date.now();
+        if (now - lastUpdateTime < UPDATE_THROTTLE) {
+            console.log('Throttling model counter update');
+            return;
+        }
+        lastUpdateTime = now;
+
         const modelElements = document.querySelectorAll('.model[data-model]');
-        const updatePromises = [];
+        if (modelElements.length === 0) {
+            return;
+        }
+
+        // Получаем данные сессии один раз для всех моделей
+        const userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            console.warn('No user ID found for updating counters');
+            return;
+        }
+
+        // Пытаемся получить данные из кэша drag-and-drop модуля
+        let sessionData = null;
+        try {
+            const { getCachedSessionData } = await import('./ui/dragAndDrop.js');
+            sessionData = await getCachedSessionData();
+        } catch (cacheError) {
+            // Если кэш недоступен, делаем прямой запрос
+            try {
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                if (sessionResponse.ok) {
+                    const { session } = await sessionResponse.json();
+                    sessionData = session || { quantities: {}, placedObjects: [] };
+                }
+            } catch (apiError) {
+                console.error('Error fetching session data:', apiError);
+                return;
+            }
+        }
+
+        if (!sessionData) {
+            console.warn('No session data available for updating counters');
+            return;
+        }
+
+        const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
         
+        // Обновляем все счетчики одним проходом
         modelElements.forEach(element => {
             const modelName = element.getAttribute('data-model');
-            if (modelName) {
-                // Обновляем счетчик без передачи placedCount - функция сама получит данные из БД
-                updatePromises.push(updateModelPlacementCounter(modelName));
+            const article = element.getAttribute('data-article');
+            
+            if (!modelName || !article) return;
+
+            const placedCount = sessionData.placedObjects ? 
+                sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+            const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
+            const remainingQuantity = totalQuantity - placedCount;
+            
+            // Обновляем счетчик
+            const placementDiv = element.querySelector('.model-placement');
+            if (placementDiv) {
+                placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+            }
+            
+            // Обновляем состояние blur и draggable
+            if (remainingQuantity <= 0) {
+                element.classList.add('blurred');
+                element.style.filter = 'blur(2px)';
+                element.style.opacity = '0.9';
+                element.style.pointerEvents = 'none';
+                element.setAttribute('draggable', 'false');
+            } else {
+                element.classList.remove('blurred');
+                element.style.filter = '';
+                element.style.opacity = '';
+                element.style.pointerEvents = '';
+                element.setAttribute('draggable', 'true');
             }
         });
+
+        console.log(`Updated ${modelElements.length} model counters`);
         
-        await Promise.all(updatePromises);
     } catch (error) {
         console.error('Error refreshing model counters:', error);
     }
@@ -255,10 +329,10 @@ export async function initSidebar() {
         await refreshAllModelCounters();
     }, 500);
     
-    // Обновляем счетчики каждые 3 секунды для синхронизации с БД
+    // Обновляем счетчики каждые 5 секунд для синхронизации с БД (уменьшено с 3 секунд)
     setInterval(() => {
         refreshAllModelCounters();
-    }, 3000);
+    }, 5000);
 }
 
 /**
@@ -271,17 +345,26 @@ export async function updateModelPlacementCounter(modelName, placedCount = null)
         const userId = sessionStorage.getItem('userId');
         const modelsData = JSON.parse(sessionStorage.getItem('models') || '[]');
         
-        // Если placedCount не передан, получаем актуальные данные из БД
+        // Если placedCount передан, используем его без дополнительного API запроса
         let actualPlacedCount = placedCount;
         if (actualPlacedCount === null) {
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-            if (sessionResponse.ok) {
-                const { session } = await sessionResponse.json();
-                actualPlacedCount = session?.placedObjects ? 
-                    session.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-            } else {
-                console.warn('Failed to get session data, using placedCount = 0');
-                actualPlacedCount = 0;
+            // Пытаемся получить данные из кэша drag-and-drop модуля
+            try {
+                const { getCachedSessionData } = await import('./ui/dragAndDrop.js');
+                const sessionData = await getCachedSessionData();
+                actualPlacedCount = sessionData?.placedObjects ? 
+                    sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+            } catch (cacheError) {
+                // Если кэш недоступен, делаем прямой запрос
+                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                if (sessionResponse.ok) {
+                    const { session } = await sessionResponse.json();
+                    actualPlacedCount = session?.placedObjects ? 
+                        session.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+                } else {
+                    console.warn('Failed to get session data, using placedCount = 0');
+                    actualPlacedCount = 0;
+                }
             }
         }
         
@@ -324,6 +407,9 @@ export async function updateModelPlacementCounter(modelName, placedCount = null)
  * @param {string} modelName - Имя модели для обновления (опционально, если не указано - обновляются все)
  */
 export async function forceUpdateModelCounters(modelName = null) {
+    // Сбрасываем throttling для принудительного обновления
+    lastUpdateTime = 0;
+    
     if (modelName) {
         await updateModelPlacementCounter(modelName);
     } else {
