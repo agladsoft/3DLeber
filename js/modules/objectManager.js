@@ -533,6 +533,17 @@ export function removeObject(container, isMassRemoval = false) {
             placedObjects.splice(index, 1);
         }
 
+        // Обновляем состояния коллизий для всех оставшихся объектов (только для одиночного удаления)
+        if (!isMassRemoval && placedObjects.length > 0) {
+            try {
+                const { checkAllObjectsPositions } = await import('./collisionDetection.js');
+                checkAllObjectsPositions();
+                console.log('Обновлены состояния коллизий после удаления объекта:', container.userData.id);
+            } catch (error) {
+                console.warn('Не удалось обновить состояния коллизий:', error);
+            }
+        }
+
         // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных (только для одиночного удаления)
         if (!isMassRemoval) {
             try {
@@ -618,6 +629,17 @@ export async function removeObjectsBatch(containers, modelName = null) {
         console.log('Sidebar обновлен после массового удаления');
     } catch (error) {
         console.error('Ошибка при обновлении sidebar:', error);
+    }
+
+    // 4. Обновляем состояния коллизий для всех оставшихся объектов (если они есть)
+    if (placedObjects.length > 0) {
+        try {
+            const { checkAllObjectsPositions } = await import('./collisionDetection.js');
+            checkAllObjectsPositions();
+            console.log('Обновлены состояния коллизий после массового удаления');
+        } catch (error) {
+            console.warn('Не удалось обновить состояния коллизий после массового удаления:', error);
+        }
     }
 }
 
