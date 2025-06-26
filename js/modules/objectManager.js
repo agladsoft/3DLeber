@@ -533,13 +533,135 @@ export function removeObject(container, isMassRemoval = false) {
             placedObjects.splice(index, 1);
         }
 
-        // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных
-        try {
-            await updateSessionForRemovedObject(container, isMassRemoval);
-        } catch (error) {
-            console.error('Ошибка при синхронизации с БД:', error);
+        // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных (только для одиночного удаления)
+        if (!isMassRemoval) {
+            try {
+                await updateSessionForRemovedObject(container, isMassRemoval);
+            } catch (error) {
+                console.error('Ошибка при синхронизации с БД:', error);
+            }
+        } else {
+            console.log('Массовое удаление: пропускаем API синхронизацию для объекта', container.userData.id);
         }
     });
+}
+
+/**
+ * Оптимизированная функция для массового удаления объектов
+ * @param {Array} containers - Массив контейнеров для удаления
+ * @param {string} modelName - Имя модели (для объектов одного типа)
+ */
+export async function removeObjectsBatch(containers, modelName = null) {
+    if (!containers || containers.length === 0) return;
+    
+    console.log(`Начинаем массовое удаление ${containers.length} объектов`);
+    
+    // 1. Быстрое удаление из сцены и массива без API вызовов
+    const removedObjectIds = [];
+    
+    for (const container of containers) {
+        if (!container) continue;
+        
+        const objectId = container.userData.id;
+        const objectModelName = container.userData.modelName || modelName;
+        
+        // Удаляем размеры модели (если модуль доступен)
+        try {
+            const dimensionModule = await import('./dimensionDisplay/index.js');
+            if (typeof dimensionModule.removeModelDimensions === 'function') {
+                dimensionModule.removeModelDimensions(container);
+            }
+        } catch (error) {
+            console.warn('Dimension module not available:', error);
+        }
+        
+        // Освобождаем ресурсы
+        container.traverse((child) => {
+            if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(material => {
+                            if (material.map) material.map.dispose();
+                            material.dispose();
+                        });
+                    } else {
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                }
+            }
+        });
+        
+        // Удаляем из сцены и массива
+        scene.remove(container);
+        const index = placedObjects.indexOf(container);
+        if (index > -1) {
+            placedObjects.splice(index, 1);
+        }
+        
+        removedObjectIds.push(objectId);
+    }
+    
+    // 2. Единократное обновление базы данных для всех объектов
+    try {
+        await updateSessionForBatchRemoval(removedObjectIds);
+        console.log(`Успешно удалено ${removedObjectIds.length} объектов из БД`);
+    } catch (error) {
+        console.error('Ошибка при массовом обновлении БД:', error);
+    }
+    
+    // 3. Единократное обновление UI
+    try {
+        const { refreshAllModelCounters } = await import('../sidebar.js');
+        await refreshAllModelCounters();
+        console.log('Sidebar обновлен после массового удаления');
+    } catch (error) {
+        console.error('Ошибка при обновлении sidebar:', error);
+    }
+}
+
+/**
+ * Обновляет сессию в БД при массовом удалении объектов
+ * @param {Array} objectIds - Массив ID удаленных объектов
+ */
+async function updateSessionForBatchRemoval(objectIds) {
+    try {
+        const userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            console.error('No user ID found');
+            return;
+        }
+
+        // Получаем актуальные данные сессии
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+        const { session } = await sessionResponse.json();
+        const sessionData = session || { quantities: {}, placedObjects: [] };
+
+        // Удаляем все объекты из массива placedObjects одним проходом
+        sessionData.placedObjects = sessionData.placedObjects.filter(obj => !objectIds.includes(obj.id));
+
+        // Сохраняем обновленную сессию
+        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+
+        if (!saveResponse.ok) {
+            throw new Error('Failed to save session');
+        }
+
+        console.log(`Массовое удаление: обновлена сессия для ${objectIds.length} объектов`);
+    } catch (error) {
+        console.error('Error in batch session update:', error);
+        throw error;
+    }
 }
 
 /**
@@ -607,6 +729,8 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             } catch (error) {
                 console.error('Error updating sidebar counters after removal:', error);
             }
+        } else {
+            console.log('Массовое удаление: пропускаем обновление sidebar для объекта', container.userData.id);
         }
 
         console.log('Session updated successfully after removing object:', container.userData.id);

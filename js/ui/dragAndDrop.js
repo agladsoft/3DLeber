@@ -514,14 +514,33 @@ function updateSidebarDeleteButtons() {
         const newDeleteBtn = deleteBtn.cloneNode(true);
         deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
         if (exists) {
-            newDeleteBtn.addEventListener('click', () => {
-                // Удаляем все объекты этой модели с площадки
+            newDeleteBtn.addEventListener('click', async () => {
+                // Удаляем все объекты этой модели с площадки используя оптимизированную функцию
                 const objectsToRemove = placedObjects.filter(obj => obj.userData.modelName === modelName);
-                objectsToRemove.forEach(obj => {
-                    removeObject(obj);
-                    // Обновляем количество в сайдбаре после каждого удаления
+                
+                if (objectsToRemove.length > 1) {
+                    // Массовое удаление - используем оптимизированную функцию
+                    try {
+                        const { removeObjectsBatch } = await import('../modules/objectManager.js');
+                        await removeObjectsBatch(objectsToRemove, modelName);
+                        console.log(`Массово удалено ${objectsToRemove.length} объектов модели ${modelName}`);
+                    } catch (error) {
+                        console.error('Ошибка при массовом удалении:', error);
+                        // Fallback к старому способу
+                        objectsToRemove.forEach((obj, index) => {
+                            const isMassRemoval = index < objectsToRemove.length - 1;
+                            removeObject(obj, isMassRemoval);
+                            if (!isMassRemoval) {
+                                updateModelQuantityOnRemove(modelName);
+                            }
+                        });
+                    }
+                } else if (objectsToRemove.length === 1) {
+                    // Одиночное удаление - используем стандартную функцию
+                    removeObject(objectsToRemove[0]);
                     updateModelQuantityOnRemove(modelName);
-                });
+                }
+                
                 // После удаления обновляем кнопки
                 setTimeout(updateSidebarDeleteButtons, 100);
             });
