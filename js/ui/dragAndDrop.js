@@ -15,19 +15,13 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 // Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
 const processingModels = new Map();
 
-// Батчинг для UI обновлений
-const pendingUIUpdates = new Map();
-let uiUpdateTimeout = null;
-const UI_UPDATE_BATCH_DELAY = 10; // 10ms для группировки обновлений (быстрее)
-let isFirstUpdate = true; // Флаг для немедленного первого обновления
-
 /**
- * Группирует UI обновления для лучшей производительности
+ * Мгновенно обновляет UI без батчинга
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества
  */
 function batchUIUpdate(modelName, delta) {
-    // Мгновенно обновляем UI для лучшего отклика
+    // Прямое мгновенное обновление
     updateSidebarInstantly(modelName, delta);
 }
 
@@ -36,15 +30,18 @@ function batchUIUpdate(modelName, delta) {
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества
  */
-async function updateSidebarInstantly(modelName, delta) {
-    // Вызываем существующую функцию из sidebar.js для мгновенного обновления
-    try {
-        const sidebarModule = await import('../sidebar.js');
-        if (sidebarModule.updateModelCounterDirectly) {
-            sidebarModule.updateModelCounterDirectly(modelName, delta);
-        }
-    } catch (error) {
-        console.error('Не удалось обновить счетчик через sidebar.js:', error);
+function updateSidebarInstantly(modelName, delta) {
+    // Прямое обновление без async для мгновенного выполнения
+    if (window.updateModelCounterDirectly) {
+        window.updateModelCounterDirectly(modelName, delta);
+    } else {
+        import('../sidebar.js').then(sidebarModule => {
+            if (sidebarModule.updateModelCounterDirectly) {
+                sidebarModule.updateModelCounterDirectly(modelName, delta);
+                // Сохраняем функцию глобально для быстрого доступа
+                window.updateModelCounterDirectly = sidebarModule.updateModelCounterDirectly;
+            }
+        });
     }
 }
 

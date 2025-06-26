@@ -39,15 +39,18 @@ async function updateSidebarWithBatching(modelName, delta) {
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества (+1 для увеличения, -1 для уменьшения)
  */
-async function updateSidebarInstantly(modelName, delta) {
-    // Используем функцию из sidebar.js для сохранения всей логики и стилей
-    try {
-        const sidebarModule = await import('../sidebar.js');
-        if (sidebarModule.updateModelCounterDirectly) {
-            sidebarModule.updateModelCounterDirectly(modelName, delta);
-        }
-    } catch (error) {
-        console.error('Не удалось обновить счетчик через sidebar.js:', error);
+function updateSidebarInstantly(modelName, delta) {
+    // Прямое обновление без async для мгновенного выполнения
+    if (window.updateModelCounterDirectly) {
+        window.updateModelCounterDirectly(modelName, delta);
+    } else {
+        import('../sidebar.js').then(sidebarModule => {
+            if (sidebarModule.updateModelCounterDirectly) {
+                sidebarModule.updateModelCounterDirectly(modelName, delta);
+                // Сохраняем функцию глобально для быстрого доступа
+                window.updateModelCounterDirectly = sidebarModule.updateModelCounterDirectly;
+            }
+        });
     }
 }
 

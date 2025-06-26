@@ -230,13 +230,8 @@ async function createNewSidebar() {
  */
 export async function refreshAllModelCounters() {
     try {
-        // Проверяем throttling для избежания слишком частых обновлений
-        const now = Date.now();
-        if (now - lastUpdateTime < UPDATE_THROTTLE) {
-            console.log('Throttling model counter update');
-            return;
-        }
-        lastUpdateTime = now;
+        // Убираем throttling для быстрого обновления при множественных операциях
+        lastUpdateTime = Date.now();
 
         const modelElements = document.querySelectorAll('.model[data-model]');
         if (modelElements.length === 0) {
@@ -314,6 +309,9 @@ export async function refreshAllModelCounters() {
 export async function initSidebar() {
     applyNewStyles();
     await createNewSidebar();
+    
+    // Делаем функцию обновления доступной глобально для мгновенного доступа
+    window.updateModelCounterDirectly = updateModelCounterDirectly;
     
     // Дополнительное обновление счетчиков после полной инициализации (быстрее)
     setTimeout(async () => {
@@ -406,13 +404,11 @@ export async function forceUpdateModelCounters(modelName = null) {
  * @param {number} delta - Изменение счетчика (+1 или -1)
  */
 export function updateModelCounterDirectly(modelName, delta) {
-    // Обновляем только счетчик, сохраняя всю остальную логику sidebar
     const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
     
     modelElements.forEach(element => {
         const placementElement = element.querySelector('.model-placement');
         if (placementElement) {
-            // Парсим текущий текст "Добавлено на площадку: X из Y"
             const placementText = placementElement.textContent;
             const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
             
@@ -420,14 +416,25 @@ export function updateModelCounterDirectly(modelName, delta) {
                 const currentPlaced = parseInt(match[1]) || 0;
                 const total = parseInt(match[2]) || 0;
                 const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
+                const remaining = total - newPlaced;
                 
-                // Обновляем только текст - вся остальная логика остается в updateModelPlacementCounter
+                // Обновляем текст
                 placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
                 
-                // Вызываем полное обновление в фоне для синхронизации стилей
-                setTimeout(() => {
-                    updateModelPlacementCounter(modelName, newPlaced);
-                }, 10);
+                // Мгновенно обновляем визуальное состояние
+                if (remaining <= 0) {
+                    element.classList.add('blurred');
+                    element.style.filter = 'blur(2px)';
+                    element.style.opacity = '0.9';
+                    element.style.pointerEvents = 'none';
+                    element.setAttribute('draggable', 'false');
+                } else {
+                    element.classList.remove('blurred');
+                    element.style.filter = 'none';
+                    element.style.opacity = '1';
+                    element.style.pointerEvents = 'auto';
+                    element.setAttribute('draggable', 'true');
+                }
             }
         }
     });
