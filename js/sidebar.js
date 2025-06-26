@@ -7,6 +7,10 @@ import { API_BASE_URL } from './api/serverConfig.js';
 let lastUpdateTime = 0;
 const UPDATE_THROTTLE = 1000; // Минимальный интервал между обновлениями в мс
 
+// Кэш DOM элементов для быстрого доступа
+const modelElementsCache = new Map();
+const placementElementsCache = new Map();
+
 // Функция для применения новых стилей
 function applyNewStyles() {
     // Стили теперь находятся в styles.css, поэтому ничего не нужно делать
@@ -26,6 +30,10 @@ async function createNewSidebar() {
     
     // Применяем класс для изоляции стилей
     sidebar.classList.add('categories-sidebar');
+    
+    // Очищаем кэши DOM элементов при пересоздании sidebar
+    modelElementsCache.clear();
+    placementElementsCache.clear();
     
     // Очищаем сайдбар
     sidebar.innerHTML = '';
@@ -102,6 +110,9 @@ async function createNewSidebar() {
             modelElement.setAttribute('data-article', model.article);
             modelElement.setAttribute('data-quantity', model.quantity);
             
+            // Кэшируем элемент для быстрого доступа
+            modelElementsCache.set(model.name, modelElement);
+            
             // Получаем количество размещенных объектов
             const placedCount = sessionData?.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
             // Получаем общее количество из modelsData
@@ -128,6 +139,10 @@ async function createNewSidebar() {
                 <div class="model-title">${model.description}</div>
                 <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
             `;
+            
+            // Кэшируем placement элемент для быстрого доступа
+            const placementElement = modelElement.querySelector('.model-placement');
+            placementElementsCache.set(model.name, placementElement);
             
             // Добавляем обработчик drag-and-drop с невидимым изображением
             modelElement.addEventListener('dragstart', function(event) {
@@ -274,8 +289,10 @@ export async function refreshAllModelCounters() {
             const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
             const remainingQuantity = totalQuantity - placedCount;
             
-            // Обновляем счетчик
-            const placementDiv = element.querySelector('.model-placement');
+            // Используем кэшированный элемент если доступен, иначе ищем в DOM
+            const cachedPlacementElement = placementElementsCache.get(modelName);
+            const placementDiv = cachedPlacementElement || element.querySelector('.model-placement');
+            
             if (placementDiv) {
                 placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
             }
@@ -404,40 +421,59 @@ export async function forceUpdateModelCounters(modelName = null) {
  * @param {number} delta - Изменение счетчика (+1 или -1)
  */
 export function updateModelCounterDirectly(modelName, delta) {
-    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    // Используем кэшированные элементы для быстрого доступа
+    const cachedModelElement = modelElementsCache.get(modelName);
+    const cachedPlacementElement = placementElementsCache.get(modelName);
     
-    modelElements.forEach(element => {
-        const placementElement = element.querySelector('.model-placement');
-        if (placementElement) {
-            const placementText = placementElement.textContent;
-            const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
+    if (cachedModelElement && cachedPlacementElement) {
+        // Быстрый путь с кэшированными элементами
+        updateSingleModelElement(cachedModelElement, cachedPlacementElement, delta);
+    } else {
+        // Fallback: используем querySelector если кэш недоступен
+        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+        modelElements.forEach(element => {
+            const placementElement = element.querySelector('.model-placement');
+            updateSingleModelElement(element, placementElement, delta);
+        });
+    }
+}
+
+/**
+ * Обновляет отдельный элемент модели
+ * @param {HTMLElement} element - Элемент модели
+ * @param {HTMLElement} placementElement - Элемент счетчика размещения
+ * @param {number} delta - Изменение счетчика
+ */
+function updateSingleModelElement(element, placementElement, delta) {
+    if (placementElement) {
+        const placementText = placementElement.textContent;
+        const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
+        
+        if (match) {
+            const currentPlaced = parseInt(match[1]) || 0;
+            const total = parseInt(match[2]) || 0;
+            const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
+            const remaining = total - newPlaced;
             
-            if (match) {
-                const currentPlaced = parseInt(match[1]) || 0;
-                const total = parseInt(match[2]) || 0;
-                const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
-                const remaining = total - newPlaced;
-                
-                // Обновляем текст
-                placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
-                
-                // Мгновенно обновляем визуальное состояние
-                if (remaining <= 0) {
-                    element.classList.add('blurred');
-                    element.style.filter = 'blur(2px)';
-                    element.style.opacity = '0.9';
-                    element.style.pointerEvents = 'none';
-                    element.setAttribute('draggable', 'false');
-                } else {
-                    element.classList.remove('blurred');
-                    element.style.filter = 'none';
-                    element.style.opacity = '1';
-                    element.style.pointerEvents = 'auto';
-                    element.setAttribute('draggable', 'true');
-                }
+            // Обновляем текст
+            placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
+            
+            // Мгновенно обновляем визуальное состояние
+            if (remaining <= 0) {
+                element.classList.add('blurred');
+                element.style.filter = 'blur(2px)';
+                element.style.opacity = '0.9';
+                element.style.pointerEvents = 'none';
+                element.setAttribute('draggable', 'false');
+            } else {
+                element.classList.remove('blurred');
+                element.style.filter = 'none';
+                element.style.opacity = '1';
+                element.style.pointerEvents = 'auto';
+                element.setAttribute('draggable', 'true');
             }
         }
-    });
+    }
 }
 
 // Экспортируем функции для использования в других модулях
