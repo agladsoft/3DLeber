@@ -39,52 +39,16 @@ async function updateSidebarWithBatching(modelName, delta) {
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества (+1 для увеличения, -1 для уменьшения)
  */
-function updateSidebarInstantly(modelName, delta) {
-    // Обновляем новую структуру sidebar с .model элементами
-    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-    
-    modelElements.forEach(element => {
-        const counterElement = element.querySelector('.counter-number');
-        if (counterElement) {
-            const currentCount = parseInt(counterElement.textContent) || 0;
-            const newCount = Math.max(0, currentCount + delta);
-            counterElement.textContent = newCount;
-            
-            // Обновляем видимость элемента
-            if (newCount <= 0) {
-                element.style.filter = 'blur(2px)';
-                element.style.opacity = '0.9';
-                element.style.pointerEvents = 'none';
-            } else {
-                element.style.filter = 'none';
-                element.style.opacity = '1';
-                element.style.pointerEvents = 'auto';
-            }
+async function updateSidebarInstantly(modelName, delta) {
+    // Используем функцию из sidebar.js для сохранения всей логики и стилей
+    try {
+        const sidebarModule = await import('../sidebar.js');
+        if (sidebarModule.updateModelCounterDirectly) {
+            sidebarModule.updateModelCounterDirectly(modelName, delta);
         }
-    });
-    
-    // Поддержка старой структуры с .item элементами
-    const itemElements = document.querySelectorAll(`.item[data-model="${modelName}"]`);
-    itemElements.forEach(item => {
-        const quantityElement = item.querySelector('.model-quantity');
-        if (quantityElement) {
-            const currentQuantity = parseInt(quantityElement.textContent) || 0;
-            const newQuantity = Math.max(0, currentQuantity + delta);
-            quantityElement.textContent = newQuantity;
-            
-            item.setAttribute('data-quantity', newQuantity);
-            
-            if (newQuantity <= 0) {
-                item.style.filter = 'blur(2px)';
-                item.style.opacity = '0.9';
-                item.style.pointerEvents = 'none';
-            } else {
-                item.style.filter = 'none';
-                item.style.opacity = '1';
-                item.style.pointerEvents = 'auto';
-            }
-        }
-    });
+    } catch (error) {
+        console.error('Не удалось обновить счетчик через sidebar.js:', error);
+    }
 }
 
 // Счетчик для ID объектов

@@ -400,5 +400,38 @@ export async function forceUpdateModelCounters(modelName = null) {
     }
 }
 
+/**
+ * Мгновенно обновляет счетчик модели на указанную дельту (для optimistic updates)
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение счетчика (+1 или -1)
+ */
+export function updateModelCounterDirectly(modelName, delta) {
+    // Обновляем только счетчик, сохраняя всю остальную логику sidebar
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    
+    modelElements.forEach(element => {
+        const placementElement = element.querySelector('.model-placement');
+        if (placementElement) {
+            // Парсим текущий текст "Добавлено на площадку: X из Y"
+            const placementText = placementElement.textContent;
+            const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
+            
+            if (match) {
+                const currentPlaced = parseInt(match[1]) || 0;
+                const total = parseInt(match[2]) || 0;
+                const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
+                
+                // Обновляем только текст - вся остальная логика остается в updateModelPlacementCounter
+                placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
+                
+                // Вызываем полное обновление в фоне для синхронизации стилей
+                setTimeout(() => {
+                    updateModelPlacementCounter(modelName, newPlaced);
+                }, 10);
+            }
+        }
+    });
+}
+
 // Экспортируем функции для использования в других модулях
 export { applyNewStyles, createNewSidebar };
