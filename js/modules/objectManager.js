@@ -238,10 +238,8 @@ export function generateObjectId() {
 export async function loadAndPlaceModel(modelName, position, isRestoring = false) {
     console.log("Попытка загрузки модели:", modelName, "в позицию:", position);
     
-    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - используем батчинг для множественных операций
-    if (!isRestoring) {
-        updateSidebarWithBatching(modelName, -1);
-    }
+    // Убираем optimistic update для добавления модели - обновление происходит через refreshAllModelCounters
+    // после успешного размещения, что исключает рассинхронизацию с БД
     
     return new Promise((resolve, reject) => {
         try {
@@ -375,10 +373,6 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         // Проверяем, есть ли в контейнере хотя бы один дочерний объект
                         if (container.children.length === 0) {
                             console.error("Ошибка: контейнер пуст, нет дочерних объектов");
-                            // Откатываем UI при ошибке
-                            if (!isRestoring) {
-                                updateSidebarWithBatching(modelName, +1);
-                            }
                             reject(new Error("Container is empty, no child objects"));
                             return;
                         }
@@ -400,9 +394,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                     resolve(container);
                                 })
                                 .catch(error => {
-                                    console.error('Ошибка при обновлении сессии, откатываем UI:', error);
-                                    // Откатываем UI при ошибке API
-                                    updateSidebarWithBatching(modelName, +1);
+                                    console.error('Ошибка при обновлении сессии:', error);
                                     reject(error);
                                 });
                         } else {
@@ -411,10 +403,6 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         
                     } catch (processingError) {
                         console.error("Error processing loaded model:", processingError);
-                        // Откатываем UI при ошибке обработки
-                        if (!isRestoring) {
-                            updateSidebarWithBatching(modelName, +1);
-                        }
                         reject(processingError);
                     }
                 },
@@ -426,19 +414,11 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обработчик ошибок
                 (error) => {
                     console.error(`Ошибка при загрузке модели ${modelName}:`, error);
-                    // Откатываем UI при ошибке загрузки
-                    if (!isRestoring) {
-                        updateSidebarWithBatching(modelName, +1);
-                    }
                     reject(error);
                 }
             );
         } catch (error) {
             console.error("Error in loadAndPlaceModel:", error);
-            // Откатываем UI при общей ошибке
-            if (!isRestoring) {
-                updateSidebarWithBatching(modelName, +1);
-            }
             reject(error);
         }
     });
@@ -513,8 +493,8 @@ export function removeObject(container, isMassRemoval = false) {
     
     const modelName = container.userData.modelName;
     
-    // 1. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI - используем батчинг для множественных операций
-    updateSidebarWithBatching(modelName, +1);
+    // Убираем optimistic update для удаления - обновление происходит через refreshAllModelCounters
+    // после успешного удаления, что исключает рассинхронизацию с БД
     
     // Импортируем функцию удаления размеров динамически
     import('./dimensionDisplay/index.js').then(async module => {
@@ -557,9 +537,7 @@ export function removeObject(container, isMassRemoval = false) {
         try {
             await updateSessionForRemovedObject(container, isMassRemoval);
         } catch (error) {
-            console.error('Ошибка при синхронизации с БД, откатываем UI:', error);
-            // 3. ОТКАТ UI при ошибке API
-            updateSidebarWithBatching(modelName, -1);
+            console.error('Ошибка при синхронизации с БД:', error);
         }
     });
 }
