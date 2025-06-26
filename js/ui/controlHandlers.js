@@ -11,7 +11,7 @@ import {
     playgroundLength 
 } from '../playground.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
-import { updateModelPlacementCounter } from '../sidebar.js';
+// import { updateModelPlacementCounter } from '../sidebar.js'; // Убрано - используем refreshAllModelCounters для массового обновления
 import { showNotification } from '../utils/notifications.js';
 import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
 import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones, syncSafetyZonesState } from '../core/safetyManager.js';
@@ -513,15 +513,13 @@ function setupDeleteAllButton() {
                     module.removeObject(obj, true);
                 }
 
-                // Обновляем UI для отображения новых количеств
-                const items = document.querySelectorAll('.model');
-                items.forEach(item => {
-                    const modelName = item.getAttribute('data-model');
-                    if (modelName && updatedQuantities[modelName] !== undefined) {
-                        const placedCount = 0; // Все объекты удалены
-                        updateModelPlacementCounter(modelName, placedCount);
-                    }
-                });
+                // Обновляем все счетчики в sidebar одним вызовом для быстрого обновления
+                try {
+                    const { refreshAllModelCounters } = await import('../sidebar.js');
+                    await refreshAllModelCounters();
+                } catch (error) {
+                    console.error('Error updating sidebar counters after mass removal:', error);
+                }
 
                 console.log('All models removed and session updated with new quantities:', updatedQuantities);
             } catch (error) {
