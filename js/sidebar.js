@@ -330,15 +330,10 @@ export async function initSidebar() {
     // Делаем функцию обновления доступной глобально для мгновенного доступа
     window.updateModelCounterDirectly = updateModelCounterDirectly;
     
-    // Дополнительное обновление счетчиков после полной инициализации (быстрее)
+    // Дополнительное обновление счетчиков после полной инициализации
     setTimeout(async () => {
         await refreshAllModelCounters();
     }, 100);
-    
-    // Обновляем счетчики каждые 10 секунд для синхронизации с БД (менее агрессивно)
-    setInterval(() => {
-        refreshAllModelCounters();
-    }, 10000);
 }
 
 /**

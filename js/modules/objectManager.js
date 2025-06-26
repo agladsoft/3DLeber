@@ -280,7 +280,16 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
                     updateSessionForNewObject(container, modelName)
-                        .then(() => resolve(container))
+                        .then(async () => {
+                            // Обновляем счетчики в sidebar после успешного размещения кэшированной модели
+                            try {
+                                const { refreshAllModelCounters } = await import('../sidebar.js');
+                                await refreshAllModelCounters();
+                            } catch (error) {
+                                console.error('Error updating sidebar counters for cached model:', error);
+                            }
+                            resolve(container);
+                        })
                         .catch(reject);
                 } else {
                     resolve(container);
@@ -380,7 +389,16 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         // Обновляем сессию в базе данных только если это не восстановление
                         if (!isRestoring) {
                             updateSessionForNewObject(container, modelName)
-                                .then(() => resolve(container))
+                                .then(async () => {
+                                    // Обновляем счетчики в sidebar после успешного размещения
+                                    try {
+                                        const { refreshAllModelCounters } = await import('../sidebar.js');
+                                        await refreshAllModelCounters();
+                                    } catch (error) {
+                                        console.error('Error updating sidebar counters:', error);
+                                    }
+                                    resolve(container);
+                                })
                                 .catch(error => {
                                     console.error('Ошибка при обновлении сессии, откатываем UI:', error);
                                     // Откатываем UI при ошибке API
@@ -603,7 +621,15 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             throw new Error('Failed to save session');
         }
 
-        // Кэширование убрано - данные всегда актуальные
+        // Обновляем счетчики в sidebar после успешного удаления (только если не массовое удаление)
+        if (!isMassRemoval) {
+            try {
+                const { refreshAllModelCounters } = await import('../sidebar.js');
+                await refreshAllModelCounters();
+            } catch (error) {
+                console.error('Error updating sidebar counters after removal:', error);
+            }
+        }
 
         console.log('Session updated successfully after removing object:', container.userData.id);
     } catch (error) {

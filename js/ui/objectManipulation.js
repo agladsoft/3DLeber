@@ -88,6 +88,14 @@ async function updateSessionInDatabase(object) {
         if (!saveResponse.ok) {
             throw new Error('Failed to save session');
         }
+
+        // Обновляем счетчики в sidebar после обновления позиции объекта
+        try {
+            const { refreshAllModelCounters } = await import('../sidebar.js');
+            await refreshAllModelCounters();
+        } catch (error) {
+            console.error('Error updating sidebar counters after position change:', error);
+        }
     } catch (error) {
         console.error('Error updating session:', error);
     }
