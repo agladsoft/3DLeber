@@ -79,11 +79,13 @@
             <h3>ВЫБЕРИТЕ<br>ПАРАМЕТРЫ ПЛОЩАДКИ</h3>
             
             <div class="platform-settings">
-                <div class="control-group">
-                    <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="" placeholder="Ширина, м" class="modern-input">
+                <div class="control-group input-with-suffix">
+                    <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="" placeholder="Ширина" class="modern-input">
+                    <span class="input-suffix">м</span>
                 </div>
-                <div class="control-group">
-                    <input type="number" id="modalPlaygroundLength" min="10" max="100" value="" placeholder="Длина, м" class="modern-input">
+                <div class="control-group input-with-suffix">
+                    <input type="number" id="modalPlaygroundLength" min="10" max="100" value="" placeholder="Длина" class="modern-input">
+                    <span class="input-suffix">м</span>
                 </div>
                 <div class="control-group">
                     <label>Цвет площадки:</label>
@@ -128,11 +130,13 @@
             <h2>Площадка</h2>
             
             <div class="input-row">
-                <div class="input-container">
-                    <input type="number" id="playground-width" min="10" max="100" placeholder="Ширина, м" value="40" class="playground-input">
+                <div class="input-container input-with-suffix">
+                    <input type="number" id="playground-width" min="10" max="100" placeholder="Ширина" value="40" class="playground-input">
+                    <span class="input-suffix">м</span>
                 </div>
-                <div class="input-container">
-                    <input type="number" id="playground-length" min="10" max="100" placeholder="Длина, м" value="30" class="playground-input">
+                <div class="input-container input-with-suffix">
+                    <input type="number" id="playground-length" min="10" max="100" placeholder="Длина" value="30" class="playground-input">
+                    <span class="input-suffix">м</span>
                 </div>
             </div>
             
@@ -306,11 +310,13 @@
                 
                 <div class="size-controls">
                     <div class="size-inputs-row">
-                        <div class="size-input-container">
+                        <div class="size-input-container input-with-suffix">
                             <input type="text" id="widthInput" value="40" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                            <span class="input-suffix">м</span>
                         </div>
-                        <div class="size-input-container">
+                        <div class="size-input-container input-with-suffix">
                             <input type="text" id="lengthInput" value="30" class="size-input" inputmode="numeric" pattern="[0-9]*">
+                            <span class="input-suffix">м</span>
                         </div>
                     </div>
                     <div class="sliders-row">
@@ -358,11 +364,13 @@
         <h3 class="pg-modal-title">Площадка</h3>
         
         <div class="pg-modal-inputs">
-            <div class="pg-input-container">
-                <input type="text" id="pgWidthInput" class="pg-input" value="40" placeholder="Ширина, м">
+            <div class="pg-input-container input-with-suffix">
+                <input type="text" id="pgWidthInput" class="pg-input" value="40" placeholder="Ширина">
+                <span class="input-suffix">м</span>
             </div>
-            <div class="pg-input-container">
-                <input type="text" id="pgLengthInput" class="pg-input" value="30" placeholder="Длина, м">
+            <div class="pg-input-container input-with-suffix">
+                <input type="text" id="pgLengthInput" class="pg-input" value="30" placeholder="Длина">
+                <span class="input-suffix">м</span>
             </div>
         </div>
         
@@ -633,6 +641,8 @@
     <script type="module" src="js/pg-modal.js"></script>
     <!-- Подключаем модуль для управления модальным окном помощи -->
     <script type="module" src="js/helpModal.js"></script>
+    <!-- Подключаем модуль для суффиксов в полях ввода -->
+    <script type="module" src="js/inputSuffix.js"></script>
     <!-- Подключаем единый модуль инициализации приложения -->
     <script type="module" src="js/appInit.js"></script>
 </body>
