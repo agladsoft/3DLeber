@@ -1615,7 +1615,7 @@ model-viewer::part(default-progress-mask) {
     display: flex !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
-    padding: 48px 100px 48px 30px !important;
+    padding: 35px 10px 20px 20px !important;
     background-color: white !important;
     border-radius: 12px !important;
     min-height: 120px !important; /* Минимальная высота */
@@ -1651,7 +1651,7 @@ model-viewer::part(default-progress-mask) {
 #sidebar.categories-sidebar .category-arrow {
     transition: transform 0.3s !important;
     width: 24px !important;
-    transform: rotate(-45deg) !important;
+    transform: rotate(135deg) !important;
     flex-shrink: 0 !important; /* Запрещаем стрелке сжиматься */
     margin-top: 0 !important; /* Выравнивание стрелки по верхнему краю */
 }
@@ -1666,7 +1666,7 @@ model-viewer::part(default-progress-mask) {
 }
 
 #sidebar.categories-sidebar .category.active .category-arrow {
-    transform: rotate(45deg) !important; /* Изменено на 45 градусов для активного состояния */
+    transform: rotate(225deg) !important; /* Изменено на 45 градусов для активного состояния */
 }
 
 #sidebar.categories-sidebar .category.active .category-arrow path {

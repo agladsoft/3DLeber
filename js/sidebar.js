@@ -101,109 +101,38 @@ async function createNewSidebar() {
             };
         });
 
-        // Добавляем модели напрямую в список без группировки по категориям
+        // Группируем модели по категориям
+        const categorizedModels = {};
+        const additionalCategories = ['Деревья', 'Кустарники', 'Люди'];
+        const regularModels = [];
+        
         combinedModels.forEach(model => {
-            const modelElement = document.createElement('div');
-            modelElement.className = 'model';
-            modelElement.dataset.modelId = model.id;
-            modelElement.setAttribute('data-model', model.name);
-            modelElement.setAttribute('data-article', model.article);
-            modelElement.setAttribute('data-quantity', model.quantity);
+            const category = model.category || 'Без категории';
             
-            // Кэшируем элемент для быстрого доступа
-            modelElementsCache.set(model.name, modelElement);
-            
-            // Получаем количество размещенных объектов
-            const placedCount = sessionData?.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
-            // Получаем общее количество из modelsData
-            const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
-            // Вычисляем оставшееся количество
-            const remainingQuantity = totalQuantity - placedCount;
-            
-            // Добавляем классы в зависимости от состояния модели
-            if (remainingQuantity <= 0) {
-                modelElement.classList.add('blurred');
-                modelElement.style.filter = 'blur(2px)';
-                modelElement.style.opacity = '0.9';
-                modelElement.style.pointerEvents = 'none';
-                modelElement.setAttribute('draggable', 'false');
+            // Если модель относится к дополнительным категориям, группируем отдельно
+            if (additionalCategories.includes(category)) {
+                if (!categorizedModels[category]) {
+                    categorizedModels[category] = [];
+                }
+                categorizedModels[category].push(model);
             } else {
-                modelElement.setAttribute('draggable', 'true');
+                // Остальные модели показываем без группировки
+                regularModels.push(model);
             }
-            
-            modelElement.innerHTML = `
-                <div class="model-image">
-                    <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
-                </div>
-                <div class="model-article">${model.article}</div>
-                <div class="model-title">${model.description}</div>
-                <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
-            `;
-            
-            // Кэшируем placement элемент для быстрого доступа
-            const placementElement = modelElement.querySelector('.model-placement');
-            placementElementsCache.set(model.name, placementElement);
-            
-            // Добавляем обработчик drag-and-drop с невидимым изображением
-            modelElement.addEventListener('dragstart', function(event) {
-                const element = event.currentTarget;
-                
-                // Проверяем актуальное состояние доступности модели
-                const isDraggable = element.getAttribute('draggable');
-                const isBlurred = element.classList.contains('blurred');
-                
-                console.log(`Drag attempt for model: ${model.name}, draggable: ${isDraggable}, blurred: ${isBlurred}`);
-                
-                if (isDraggable === 'false' || isBlurred) {
-                    console.log('Model is not available for dragging:', model.name, 'isDraggable:', isDraggable, 'isBlurred:', isBlurred);
-                    event.preventDefault();
-                    return;
-                }
-                
-                // Дополнительная проверка через актуальные данные
-                const placementDiv = element.querySelector('.model-placement');
-                if (placementDiv) {
-                    const placementText = placementDiv.textContent;
-                    console.log(`Placement text for ${model.name}:`, placementText);
-                    const match = placementText.match(/(\d+) из (\d+)/);
-                    if (match) {
-                        const [, placed, total] = match;
-                        const remaining = parseInt(total) - parseInt(placed);
-                        console.log(`Model ${model.name}: placed=${placed}, total=${total}, remaining=${remaining}`);
-                        if (remaining <= 0) {
-                            console.log('No remaining quantity for model:', model.name);
-                            event.preventDefault();
-                            return;
-                        }
-                    }
-                }
-                
-                event.dataTransfer.setData('model', model.name);
-                event.dataTransfer.setData('article', model.article);
-                
-                // Создаем невидимое изображение для drag
-                const invisibleDragImage = document.createElement('div');
-                invisibleDragImage.style.width = '1px';
-                invisibleDragImage.style.height = '1px';
-                invisibleDragImage.style.position = 'absolute';
-                invisibleDragImage.style.top = '-1000px';
-                invisibleDragImage.style.opacity = '0';
-                document.body.appendChild(invisibleDragImage);
-                
-                // Устанавливаем невидимое изображение
-                event.dataTransfer.setDragImage(invisibleDragImage, 0, 0);
-                
-                // Удаляем невидимый элемент через небольшое время
-                setTimeout(() => {
-                    if (invisibleDragImage.parentNode) {
-                        invisibleDragImage.parentNode.removeChild(invisibleDragImage);
-                    }
-                }, 100);
-                
-                console.log('Drag started successfully for model:', model.name);
-            });            
+        });
+
+        // Сначала добавляем обычные модели без группировки по категориям
+        regularModels.forEach(model => {
+            const modelElement = createModelElement(model, sessionData, modelsData);
             categoriesList.appendChild(modelElement);
         });
+
+        // Затем добавляем секцию "Дополнительные модели" в конце, если есть дополнительные категории
+        const hasAdditionalModels = additionalCategories.some(cat => categorizedModels[cat] && categorizedModels[cat].length > 0);
+        
+        if (hasAdditionalModels) {
+            createSimpleAdditionalModelsSection(categoriesList, categorizedModels, additionalCategories, sessionData, modelsData);
+        }
         
         // Добавляем все элементы в сайдбар
         sidebar.appendChild(sidebarHeader);
@@ -238,6 +167,184 @@ async function createNewSidebar() {
         console.error('Error creating sidebar:', error);
         sidebar.innerHTML = '<div class="error-message">Ошибка загрузки моделей</div>';
     }
+}
+
+/**
+ * Создает элемент модели
+ * @param {Object} model - Объект модели
+ * @param {Object} sessionData - Данные сессии
+ * @param {Array} modelsData - Данные моделей из sessionStorage
+ * @returns {HTMLElement} - DOM элемент модели
+ */
+function createModelElement(model, sessionData, modelsData) {
+    const modelElement = document.createElement('div');
+    modelElement.className = 'model';
+    modelElement.dataset.modelId = model.id;
+    modelElement.setAttribute('data-model', model.name);
+    modelElement.setAttribute('data-article', model.article);
+    modelElement.setAttribute('data-quantity', model.quantity);
+    
+    // Кэшируем элемент для быстрого доступа
+    modelElementsCache.set(model.name, modelElement);
+    
+    // Получаем количество размещенных объектов
+    const placedCount = sessionData?.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
+    // Получаем общее количество из modelsData
+    const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
+    // Вычисляем оставшееся количество
+    const remainingQuantity = totalQuantity - placedCount;
+    
+    // Добавляем классы в зависимости от состояния модели
+    if (remainingQuantity <= 0) {
+        modelElement.classList.add('blurred');
+        modelElement.style.filter = 'blur(2px)';
+        modelElement.style.opacity = '0.9';
+        modelElement.style.pointerEvents = 'none';
+        modelElement.setAttribute('draggable', 'false');
+    } else {
+        modelElement.setAttribute('draggable', 'true');
+    }
+    
+    modelElement.innerHTML = `
+        <div class="model-image">
+            <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
+        </div>
+        <div class="model-article">${model.article}</div>
+        <div class="model-title">${model.description}</div>
+        <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
+    `;
+    
+    // Кэшируем placement элемент для быстрого доступа
+    const placementElement = modelElement.querySelector('.model-placement');
+    placementElementsCache.set(model.name, placementElement);
+    
+    // Добавляем обработчик drag-and-drop с невидимым изображением
+    modelElement.addEventListener('dragstart', function(event) {
+        const element = event.currentTarget;
+        
+        // Проверяем актуальное состояние доступности модели
+        const isDraggable = element.getAttribute('draggable');
+        const isBlurred = element.classList.contains('blurred');
+        
+        console.log(`Drag attempt for model: ${model.name}, draggable: ${isDraggable}, blurred: ${isBlurred}`);
+        
+        if (isDraggable === 'false' || isBlurred) {
+            console.log('Model is not available for dragging:', model.name, 'isDraggable:', isDraggable, 'isBlurred:', isBlurred);
+            event.preventDefault();
+            return;
+        }
+        
+        // Дополнительная проверка через актуальные данные
+        const placementDiv = element.querySelector('.model-placement');
+        if (placementDiv) {
+            const placementText = placementDiv.textContent;
+            console.log(`Placement text for ${model.name}:`, placementText);
+            const match = placementText.match(/(\d+) из (\d+)/);
+            if (match) {
+                const [, placed, total] = match;
+                const remaining = parseInt(total) - parseInt(placed);
+                console.log(`Model ${model.name}: placed=${placed}, total=${total}, remaining=${remaining}`);
+                if (remaining <= 0) {
+                    console.log('No remaining quantity for model:', model.name);
+                    event.preventDefault();
+                    return;
+                }
+            }
+        }
+        
+        event.dataTransfer.setData('model', model.name);
+        event.dataTransfer.setData('article', model.article);
+        
+        // Создаем невидимое изображение для drag
+        const invisibleDragImage = document.createElement('div');
+        invisibleDragImage.style.width = '1px';
+        invisibleDragImage.style.height = '1px';
+        invisibleDragImage.style.position = 'absolute';
+        invisibleDragImage.style.top = '-1000px';
+        invisibleDragImage.style.opacity = '0';
+        document.body.appendChild(invisibleDragImage);
+        
+        // Устанавливаем невидимое изображение
+        event.dataTransfer.setDragImage(invisibleDragImage, 0, 0);
+        
+        // Удаляем невидимый элемент через небольшое время
+        setTimeout(() => {
+            if (invisibleDragImage.parentNode) {
+                invisibleDragImage.parentNode.removeChild(invisibleDragImage);
+            }
+        }, 100);
+        
+        console.log('Drag started successfully for model:', model.name);
+    });
+    
+    return modelElement;
+}
+
+/**
+ * Создает секцию "Дополнительные модели" с простым списком моделей
+ * @param {HTMLElement} parentElement - Родительский элемент
+ * @param {Object} categorizedModels - Объект с моделями по категориям
+ * @param {Array} additionalCategories - Массив дополнительных категорий
+ * @param {Object} sessionData - Данные сессии
+ * @param {Array} modelsData - Данные моделей из sessionStorage
+ */
+function createSimpleAdditionalModelsSection(parentElement, categorizedModels, additionalCategories, sessionData, modelsData) {
+    // Создаем основной контейнер для дополнительных моделей
+    const additionalSection = document.createElement('div');
+    additionalSection.className = 'category additional-models-section active';
+    
+    // Создаем заголовок секции
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'category-header additional-header';
+    sectionHeader.innerHTML = `
+        <h4 class="category-name">Дополнительные модели</h4>
+        <div class="category-arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M12 19l-7-7 7-7" stroke="#FF7E3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    `;
+    
+    // Создаем контейнер для моделей
+    const modelsContainer = document.createElement('div');
+    modelsContainer.className = 'models-container';
+    
+    // Собираем все модели из дополнительных категорий в один список
+    let allAdditionalModels = [];
+    additionalCategories.forEach(categoryName => {
+        if (categorizedModels[categoryName] && categorizedModels[categoryName].length > 0) {
+            allAdditionalModels = allAdditionalModels.concat(categorizedModels[categoryName]);
+        }
+    });
+    
+    // Добавляем все модели в контейнер
+    allAdditionalModels.forEach(model => {
+        const modelElement = createModelElement(model, sessionData, modelsData);
+        modelsContainer.appendChild(modelElement);
+    });
+    
+    // Добавляем обработчик клика на заголовок основной секции
+    sectionHeader.addEventListener('click', function() {
+        additionalSection.classList.toggle('active');
+        
+        // Сохраняем состояние в localStorage
+        const categoryState = JSON.parse(localStorage.getItem('categories_state') || '{}');
+        categoryState['Дополнительные модели'] = additionalSection.classList.contains('active');
+        localStorage.setItem('categories_state', JSON.stringify(categoryState));
+    });
+    
+    // Восстанавливаем состояние из localStorage
+    const categoryState = JSON.parse(localStorage.getItem('categories_state') || '{}');
+    if (categoryState['Дополнительные модели'] === false) {
+        additionalSection.classList.remove('active');
+    }
+    
+    // Собираем секцию
+    additionalSection.appendChild(sectionHeader);
+    additionalSection.appendChild(modelsContainer);
+    
+    // Добавляем в родительский элемент
+    parentElement.appendChild(additionalSection);
 }
 
 /**

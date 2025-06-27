@@ -316,8 +316,6 @@ app.post('/api/launch', async (req, res) => {
         global.sessionStore.set(sessionId, sessionData);
         // Устанавливаем начальный таймаут (скользящий)
         updateSessionTimeout(sessionId, sessionData);
-        
-        console.log('Session timeout set for 4 hours');
 
         // Возвращаем ссылку для редиректа
         const redirectUrl = `https://${SERVER_NAME}?sessionId=${sessionId}`;
@@ -398,12 +396,17 @@ function updateSessionTimeout(sessionId, sessionData) {
     }
     
     // Устанавливаем новый таймаут (4 часа с момента последнего доступа)
+    const timeoutMs = 14400000; // 4 часа в миллисекундах
+    const timeoutHours = timeoutMs / (1000 * 60 * 60); // Конвертируем в часы для логов
+    
     sessionData.timeoutId = setTimeout(() => {
         if (global.sessionStore && global.sessionStore.has(sessionId)) {
             global.sessionStore.delete(sessionId);
-            console.log('Session expired and deleted:', sessionId);
+            console.log(`Session expired and deleted: ${sessionId} (after ${timeoutHours} hours)`);
         }
-    }, 4 * 60 * 60 * 1000);
+    }, timeoutMs);
+    
+    console.log(`Session timeout updated for ${sessionId}: expires in ${timeoutHours} hours`);
 }
 
 // Debug endpoint для просмотра всех активных сессий (только для разработки)
@@ -415,11 +418,15 @@ app.get('/api/debug/sessions', (req, res) => {
     }
     
     const sessions = global.sessionStore ? Array.from(global.sessionStore.entries()) : [];
+    const sessionTimeoutHours = 14400000 / (1000 * 60 * 60); // 4 часа
+    
     res.json({
         count: sessions.length,
+        sessionTimeoutHours: sessionTimeoutHours,
         sessions: sessions.map(([id, data]) => ({
             sessionId: id,
             timestamp: data.timestamp,
+            lastAccessed: data.lastAccessed,
             project_id: data.project_id,
             modelsCount: data.models ? data.models.length : 0
         }))
@@ -445,7 +452,7 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         sessionData.lastAccessed = new Date().toISOString();
         updateSessionTimeout(sessionId, sessionData);
         global.sessionStore.set(sessionId, sessionData);
-        console.log('Session accessed, timestamp and timeout updated');
+        console.log(`Session accessed: ${sessionId}, timeout extended`);
         
         // Создаем копию данных без timeoutId для отправки клиенту
         const responseData = {
