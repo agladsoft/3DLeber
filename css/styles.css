@@ -5,6 +5,72 @@
     box-sizing: border-box;
 }
 
+/* Логотип в правом нижнем углу */
+.app-logo {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999; /* Ниже модальных окон (10000) но выше canvas */
+    pointer-events: auto; /* Включаем интерактивность для hover */
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.app-logo:hover {
+    opacity: 1;
+}
+
+.app-logo svg {
+    width: 120px; /* Размер логотипа */
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+    transition: all 0.3s ease;
+}
+
+/* Hover состояние - меняем непрозрачность внутреннего g элемента */
+.app-logo:hover svg g[opacity="0.5"] {
+    opacity: 1 !important;
+}
+
+/* Подчеркивание внутри SVG */
+.app-logo svg #underline {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.app-logo:hover svg #underline {
+    opacity: 1;
+}
+
+@keyframes underlineSlide {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+    to {
+        width: 80%;
+        opacity: 1;
+    }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .app-logo {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .app-logo svg {
+        width: 90px;
+    }
+}
+
+/* Скрытие логотипа при открытии модальных окон */
+.modal:not(.hidden) ~ .app-logo {
+    opacity: 0.3;
+}
+
 body, html {
     width: 100%;
     height: 100%;
