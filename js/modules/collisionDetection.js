@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { placedObjects } from './objectManager.js';
-import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
+import { PLAYGROUND_GROUND_PREFIXES, PLAYGROUND_ELEMENTS, PEOPLE_KEYWORDS } from '../config.js';
 
 // Расширяем THREE.BufferGeometry с методами BVH
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -42,6 +42,11 @@ export function getObjectBounds(object) {
  */
 export function isWithinPlayground(object) {
     if (!object) return true;
+    
+    // Исключаем объекты площадки (земля, трава и т.д.) из проверки границ
+    if (object.name && PLAYGROUND_GROUND_PREFIXES.some(prefix => object.name.startsWith(prefix))) {
+        return true;
+    }
     
     // Получаем текущие размеры площадки из глобальных переменных
     const playgroundWidth = window.selectedPlaygroundWidth || 40;
@@ -205,6 +210,7 @@ function getRegularMeshes(object) {
  * 1. Всегда проверяем пересечение самих моделей (основная проверка)
  * 2. Дополнительно проверяем safety zones, если они есть
  * 3. Объекты считаются пересекающимися, если пересекаются модели ИЛИ safety zones
+ * 4. Специальные правила для объектов площадки (деревья, кусты, люди)
  * @param {Object} object1 - Первый объект для проверки
  * @param {Object} object2 - Второй объект для проверки
  * @returns {Boolean} true, если объекты пересекаются, иначе false
@@ -214,6 +220,25 @@ export function checkObjectsIntersection(object1, object2) {
     
     const obj1Name = object1.userData?.modelName || object1.name || 'unknown';
     const obj2Name = object2.userData?.modelName || object2.name || 'unknown';
+    
+    // Проверяем, являются ли объекты элементами площадки (деревья, кусты)
+    const isObj1PlaygroundElement = PLAYGROUND_ELEMENTS.some(keyword => obj1Name.includes(keyword));
+    const isObj2PlaygroundElement = PLAYGROUND_ELEMENTS.some(keyword => obj2Name.includes(keyword));
+    
+    // Проверяем, являются ли объекты людьми
+    const isObj1People = PEOPLE_KEYWORDS.some(keyword => obj1Name.includes(keyword));
+    const isObj2People = PEOPLE_KEYWORDS.some(keyword => obj2Name.includes(keyword));
+    
+    // Специальные правила пересечений:
+    // 1. Деревья, кусты и люди могут пересекаться между собой
+    if (isObj1PlaygroundElement && isObj2PlaygroundElement) {
+        return false;
+    }
+    
+    // 2. Люди могут пересекаться с любыми объектами площадки
+    if (isObj1People || isObj2People) {
+        return false;
+    }
     
     try {
         let hasIntersection = false;
