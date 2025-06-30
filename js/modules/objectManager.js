@@ -94,7 +94,7 @@ function processLoadedModel(container, modelName, position) {
     container.userData.created = new Date().toISOString();
     
     // Устанавливаем имя контейнера для отладки
-    container.name = `PlacedObject_${modelName}_${container.userData.id}`;
+    container.name = `${modelName}_${container.userData.id}`;
     
     // ВАЖНО: Добавляем контейнер в сцену (это было пропущено)
     scene.add(container);
