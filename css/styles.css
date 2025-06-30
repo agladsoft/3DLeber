@@ -110,6 +110,12 @@ body, html {
     width: 387px;
 }
 
+/* Оригинальная ширина модального окна настроек площадки */
+#playgroundSettings .modal-content {
+    width: 387px;
+    max-width: 387px;
+}
+
 /* Новый стиль для модального окна выбора площадки */
 .platform-select-content {
     width: 773px;
@@ -162,9 +168,9 @@ body, html {
 /* Современные цветовые квадраты */
 .modern-color-picker {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     margin-top: 10px;
-    justify-content: space-between;
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 5px 0;
@@ -191,14 +197,13 @@ body, html {
 }
 
 .modern-square {
-    width: 160px;
-    height: 70px;
-    border-radius: 15px;
+    width: 115px;
+    height: 55px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
     flex-shrink: 0; /* Предотвращаем сжатие */
-    min-width: 160px; /* Минимальная ширина */
 }
 
 .modern-square:hover {
@@ -354,9 +359,9 @@ body, html {
 }
 
 .color-square {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
     flex: none; /* Убираем flex:1 чтобы квадраты не растягивались */
@@ -2382,7 +2387,7 @@ color: #333 !important;
 .pg-color-picker {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     margin-bottom: 30px;
     overflow-x: auto;
@@ -2412,9 +2417,9 @@ color: #333 !important;
 
 /* Цветной квадрат */
 .pg-color-square {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     flex: none; /* Фиксированный размер, не растягивается */
     flex-shrink: 0; /* Не сжимается */
@@ -2581,7 +2586,7 @@ color: #333 !important;
 .color-options {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 10px 0;
@@ -2608,9 +2613,9 @@ color: #333 !important;
 }
 
 .color-option {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     flex: none;
     flex-shrink: 0;
@@ -2628,11 +2633,11 @@ color: #333 !important;
 
 /* Важные переопределения для modern-square */
 .color-square.modern-square {
-    width: 160px !important;
-    height: 70px !important;
-    border-radius: 15px !important;
+    width: 115px !important;
+    height: 55px !important;
+    border-radius: 12px !important;
     flex-shrink: 0 !important;
-    min-width: 160px !important;
+    min-width: 115px !important;
     flex: none !important;
 }
 
