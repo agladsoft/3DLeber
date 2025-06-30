@@ -419,8 +419,6 @@ export async function refreshAllModelCounters() {
                 element.setAttribute('draggable', 'true');
             }
         });
-
-        console.log(`Updated ${modelElements.length} model counters`);
         
     } catch (error) {
         console.error('Error refreshing model counters:', error);
