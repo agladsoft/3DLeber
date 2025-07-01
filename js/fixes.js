@@ -316,12 +316,26 @@ export async function restorePlacedObjects(session) {
 
         const { models: matchedModels } = await matchResponse.json();
         
+        // Получаем специальные модели (деревья, пальмы, кустарники, люди)
+        const specialResponse = await fetch(`${API_BASE_URL}/models/special-categories`);
+        const { models: specialModels } = specialResponse.ok ? await specialResponse.json() : { models: [] };
+        
         // Создаем набор доступных имен моделей для быстрой проверки
         const availableModelNames = new Set();
+        
+        // Добавляем обычные модели
         matchedModels.forEach(model => {
             const modelName = `${model.name}.glb`;
             availableModelNames.add(modelName);
         });
+        
+        // Добавляем специальные модели
+        specialModels.forEach(model => {
+            const modelName = `${model.name}.glb`;
+            availableModelNames.add(modelName);
+        });
+        
+        console.log('Available models for restoration:', Array.from(availableModelNames));
                 
         // Импортируем необходимые модули
         const objectManager = await import('./modules/objectManager.js');

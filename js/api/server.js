@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
-import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
+import { getModelsByArticles, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
@@ -114,44 +114,7 @@ function collectGlbModels(dir, baseDir = dir) {
     return models;
 }
 
-// Получение списка моделей с данными из БД
-app.get('/api/models/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const models = await getModelsWithSessions(userId);
-        res.json({ project_id: userId, models });
-    } catch (err) {
-        console.error('Error fetching models:', err);
-        res.status(500).json({ error: 'Error fetching models from database' });
-    }
-});
 
-// Обновление количества модели
-app.post('/api/models/quantity', async (req, res) => {
-    try {
-        const { userId, article, quantity } = req.body;
-        
-        // Получаем или создаем пользователя
-        await getOrCreateUser(userId);
-        
-        // Получаем модель по артикулу
-        const model = await getModelByArticle(article);
-        if (!model) {
-            return res.status(404).json({ error: 'Model not found' });
-        }
-        
-        // Создаем или обновляем сессию
-        await createOrUpdateSession(userId, model.id, quantity);
-        
-        // Инвалидируем кэш сессии
-        invalidateCachedSession(userId);
-        
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Error updating model quantity:', err);
-        res.status(500).json({ error: 'Error updating model quantity' });
-    }
-});
 
 app.get('/api/models', (req, res) => {
     try {
@@ -159,6 +122,31 @@ app.get('/api/models', (req, res) => {
         res.json({ models });
     } catch (err) {
         res.status(500).json({ error: 'Error reading model files' });
+    }
+});
+
+// Получение всех моделей из специальных категорий
+app.get('/api/models/special-categories', async (req, res) => {
+    try {
+        const specialCategories = ['Деревья', 'Пальмы', 'Кустарники', 'Люди'];
+        const query = `
+            SELECT * FROM models 
+            WHERE category = ANY($1)
+            ORDER BY category, article
+        `;
+        const result = await pool.query(query, [specialCategories]);
+        
+        // Добавляем бесконечное количество для всех специальных моделей
+        const specialModels = result.rows.map(model => ({
+            ...model,
+            quantity: Infinity,
+            isSpecial: true
+        }));
+        
+        res.json({ models: specialModels });
+    } catch (err) {
+        console.error('Error fetching special category models:', err);
+        res.status(500).json({ error: 'Error fetching special category models' });
     }
 });
 

@@ -86,9 +86,13 @@ export async function showPlatformSelectModal() {
         const userId = sessionStorage.getItem('userId');
         const models = JSON.parse(sessionStorage.getItem('models'));
         
-        if (userId && models && !sidebarInitialized) {
+        if (userId && models) {
             try {
-                console.log('Initializing sidebar for the first time...');
+                if (!sidebarInitialized) {
+                    console.log('Initializing sidebar for the first time...');
+                } else {
+                    console.log('Re-initializing sidebar to ensure special models are loaded...');
+                }
                 const { initSidebar } = await import('./sidebar.js');
                 await initSidebar();
                 sidebarInitialized = true;
@@ -334,11 +338,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error('Ошибка при загрузке площадки:', error);
                     }
                 } else {
-                    if (window.initApp) {
+                    if (window.initApp && !window.appInitialized) {
+                        window.appInitialized = true;
                         window.initApp();
                         setTimeout(() => {
                             startSceneChecks();
                         }, 3000);
+                    } else {
+                        console.log('App initialization skipped - already initialized or in progress');
                     }
                 }
                 
@@ -442,6 +449,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionModal.style.display = 'none';
                 }
                 
+                // Sidebar уже инициализирован в showPlatformSelectModal, не нужно дублировать
+                console.log('Sidebar already initialized, skipping re-initialization for session restore');
+                
                 // Показываем приложение
                 appModal.style.display = 'block';
                 
@@ -466,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.isLoading = true;
                 }
                 
-                // Запускаем приложение
+                // Запускаем приложение только если оно еще не запущено
                 if (window.returnToApp) {
                     try {
                         import('./playground.js').then(module => {
@@ -483,13 +493,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (error) {
                         console.error('Ошибка при загрузке площадки:', error);
                     }
-                } else {
-                    if (window.initApp) {
+                } else if (!window.app || !window.app.scene || !window.appInitialized) {
+                    // Приложение еще не запущено, запускаем инициализацию
+                    console.log('App not initialized yet, starting initialization...');
+                    if (window.initApp && !window.appInitialized) {
+                        window.appInitialized = true;
                         window.initApp();
                         setTimeout(() => {
                             console.log("Запуск проверки сцены после открытия модального окна");
                             startSceneChecks();
                         }, 3000);
+                    } else {
+                        console.log('App initialization skipped - already initialized or in progress');
+                    }
+                } else {
+                    // Приложение уже запущено, просто восстанавливаем площадку
+                    console.log('App already initialized, restoring playground...');
+                    try {
+                        import('./playground.js').then(module => {
+                            // Загружаем площадку с сохраненными параметрами
+                            module.loadPlayground(
+                                window.selectedPlaygroundType,
+                                window.selectedPlaygroundWidth,
+                                window.selectedPlaygroundLength,
+                                window.selectedPlaygroundColor
+                            ).then(() => {
+                                console.log('Площадка успешно восстановлена для существующего приложения');
+                            });
+                        });
+                    } catch (error) {
+                        console.error('Ошибка при загрузке площадки для существующего приложения:', error);
                     }
                 }
                 
@@ -556,6 +589,10 @@ function updatePlaygroundPreview(modelName) {
  */
 function cleanupResources() {
     console.log("Очистка ресурсов при закрытии приложения");
+    
+    // Сбрасываем флаг инициализации приложения для возможности перезапуска
+    window.appInitialized = false;
+    console.log('App initialization flag reset for restart');
     
     // Очищаем modelQuantities из sessionStorage
     sessionStorage.removeItem('modelQuantities');

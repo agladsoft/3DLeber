@@ -88,6 +88,11 @@ async function createNewSidebar() {
         const { models: dbModels } = await matchResponse.json();
         console.log('Matched models from database:', dbModels);
 
+        // Получаем все модели из специальных категорий
+        const specialResponse = await fetch(`${API_BASE_URL}/models/special-categories`);
+        const { models: specialModels } = specialResponse.ok ? await specialResponse.json() : { models: [] };
+        console.log('Special category models:', specialModels);
+
         // Объединяем данные из всех источников
         const combinedModels = dbModels.map(dbModel => {
             // Находим соответствующую модель из modelsData
@@ -101,12 +106,24 @@ async function createNewSidebar() {
             };
         });
 
+        // Добавляем специальные модели с бесконечным количеством
+        const specialCombinedModels = specialModels.map(specialModel => ({
+            ...specialModel,
+            name: `${specialModel.name}.glb`,
+            quantity: Infinity,
+            isSpecial: true,
+            isAvailable: true
+        }));
+
+        // Объединяем обычные и специальные модели
+        const allModels = [...combinedModels, ...specialCombinedModels];
+
         // Группируем модели по категориям
         const categorizedModels = {};
-        const additionalCategories = ['Деревья', 'Кустарники', 'Люди'];
+        const additionalCategories = ['Деревья', 'Пальмы', 'Кустарники', 'Люди'];
         const regularModels = [];
         
-        combinedModels.forEach(model => {
+        allModels.forEach(model => {
             const category = model.category || 'Без категории';
             
             // Если модель относится к дополнительным категориям, группируем отдельно
@@ -184,18 +201,30 @@ function createModelElement(model, sessionData, modelsData) {
     modelElement.setAttribute('data-article', model.article);
     modelElement.setAttribute('data-quantity', model.quantity);
     
+    // Добавляем атрибут для специальных моделей
+    if (model.isSpecial) {
+        modelElement.setAttribute('data-special', 'true');
+    }
+    
     // Кэшируем элемент для быстрого доступа
     modelElementsCache.set(model.name, modelElement);
     
     // Получаем количество размещенных объектов
     const placedCount = sessionData?.placedObjects ? sessionData.placedObjects.filter(obj => obj.modelName === model.name).length : 0;
-    // Получаем общее количество из modelsData
-    const totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
-    // Вычисляем оставшееся количество
-    const remainingQuantity = totalQuantity - placedCount;
+    
+    // Для специальных моделей устанавливаем бесконечное количество
+    let totalQuantity, remainingQuantity;
+    if (model.isSpecial) {
+        totalQuantity = '∞';
+        remainingQuantity = Infinity;
+    } else {
+        // Получаем общее количество из modelsData для обычных моделей
+        totalQuantity = modelsData.find(m => m.article === model.article)?.quantity || 0;
+        remainingQuantity = totalQuantity - placedCount;
+    }
     
     // Добавляем классы в зависимости от состояния модели
-    if (remainingQuantity <= 0) {
+    if (!model.isSpecial && remainingQuantity <= 0) {
         modelElement.classList.add('blurred');
         modelElement.style.filter = 'blur(2px)';
         modelElement.style.opacity = '0.9';
@@ -211,7 +240,7 @@ function createModelElement(model, sessionData, modelsData) {
         </div>
         <div class="model-article">${model.article}</div>
         <div class="model-title">${model.description}</div>
-        <div class="model-placement">Добавлено на площадку: ${placedCount} из ${totalQuantity}</div>
+        <div class="model-placement">${model.isSpecial ? `Добавлено на площадку: ${placedCount}` : `Добавлено на площадку: ${placedCount} из ${totalQuantity}`}</div>
     `;
     
     // Кэшируем placement элемент для быстрого доступа
@@ -234,20 +263,22 @@ function createModelElement(model, sessionData, modelsData) {
             return;
         }
         
-        // Дополнительная проверка через актуальные данные
-        const placementDiv = element.querySelector('.model-placement');
-        if (placementDiv) {
-            const placementText = placementDiv.textContent;
-            console.log(`Placement text for ${model.name}:`, placementText);
-            const match = placementText.match(/(\d+) из (\d+)/);
-            if (match) {
-                const [, placed, total] = match;
-                const remaining = parseInt(total) - parseInt(placed);
-                console.log(`Model ${model.name}: placed=${placed}, total=${total}, remaining=${remaining}`);
-                if (remaining <= 0) {
-                    console.log('No remaining quantity for model:', model.name);
-                    event.preventDefault();
-                    return;
+        // Дополнительная проверка через актуальные данные только для обычных моделей
+        if (!model.isSpecial) {
+            const placementDiv = element.querySelector('.model-placement');
+            if (placementDiv) {
+                const placementText = placementDiv.textContent;
+                console.log(`Placement text for ${model.name}:`, placementText);
+                const match = placementText.match(/(\d+) из (\d+)/);
+                if (match) {
+                    const [, placed, total] = match;
+                    const remaining = parseInt(total) - parseInt(placed);
+                    console.log(`Model ${model.name}: placed=${placed}, total=${total}, remaining=${remaining}`);
+                    if (remaining <= 0) {
+                        console.log('No remaining quantity for model:', model.name);
+                        event.preventDefault();
+                        return;
+                    }
                 }
             }
         }
@@ -388,24 +419,36 @@ export async function refreshAllModelCounters() {
         modelElements.forEach(element => {
             const modelName = element.getAttribute('data-model');
             const article = element.getAttribute('data-article');
+            const isSpecial = element.hasAttribute('data-special');
             
             if (!modelName || !article) return;
 
             const placedCount = sessionData.placedObjects ? 
                 sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-            const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
-            const remainingQuantity = totalQuantity - placedCount;
+            
+            let totalQuantity, remainingQuantity;
+            if (isSpecial) {
+                totalQuantity = '∞';
+                remainingQuantity = Infinity;
+            } else {
+                totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
+                remainingQuantity = totalQuantity - placedCount;
+            }
             
             // Используем кэшированный элемент если доступен, иначе ищем в DOM
             const cachedPlacementElement = placementElementsCache.get(modelName);
             const placementDiv = cachedPlacementElement || element.querySelector('.model-placement');
             
             if (placementDiv) {
-                placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+                if (isSpecial) {
+                    placementDiv.textContent = `Добавлено на площадку: ${placedCount}`;
+                } else {
+                    placementDiv.textContent = `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+                }
             }
             
-            // Обновляем состояние blur и draggable
-            if (remainingQuantity <= 0) {
+            // Обновляем состояние blur и draggable только для обычных моделей
+            if (!isSpecial && remainingQuantity <= 0) {
                 element.classList.add('blurred');
                 element.style.filter = 'blur(2px)';
                 element.style.opacity = '0.9';
@@ -470,17 +513,29 @@ export async function updateModelPlacementCounter(modelName, placedCount = null)
         
         modelElements.forEach(element => {
             const article = element.getAttribute('data-article');
-            const totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
-            const remainingQuantity = totalQuantity - actualPlacedCount;
+            const isSpecial = element.hasAttribute('data-special');
+            
+            let totalQuantity, remainingQuantity;
+            if (isSpecial) {
+                totalQuantity = '∞';
+                remainingQuantity = Infinity;
+            } else {
+                totalQuantity = modelsData.find(m => m.article === article)?.quantity || 0;
+                remainingQuantity = totalQuantity - actualPlacedCount;
+            }
             
             // Обновляем счетчик
             const placementDiv = element.querySelector('.model-placement');
             if (placementDiv) {
-                placementDiv.textContent = `Добавлено на площадку: ${actualPlacedCount} из ${totalQuantity}`;
+                if (isSpecial) {
+                    placementDiv.textContent = `Добавлено на площадку: ${actualPlacedCount}`;
+                } else {
+                    placementDiv.textContent = `Добавлено на площадку: ${actualPlacedCount} из ${totalQuantity}`;
+                }
             }
             
-            // Обновляем состояние blur и draggable
-            if (remainingQuantity <= 0) {
+            // Обновляем состояние blur и draggable только для обычных моделей
+            if (!isSpecial && remainingQuantity <= 0) {
                 element.classList.add('blurred');
                 element.style.filter = 'blur(2px)';
                 element.style.opacity = '0.9';
@@ -546,31 +601,51 @@ export function updateModelCounterDirectly(modelName, delta) {
  */
 function updateSingleModelElement(element, placementElement, delta) {
     if (placementElement) {
+        const isSpecial = element.hasAttribute('data-special');
         const placementText = placementElement.textContent;
-        const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
         
-        if (match) {
-            const currentPlaced = parseInt(match[1]) || 0;
-            const total = parseInt(match[2]) || 0;
-            const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
-            const remaining = total - newPlaced;
+        if (isSpecial) {
+            // Для специальных моделей только обновляем счетчик размещенных
+            const match = placementText.match(/Добавлено на площадку: (\d+)/);
+            if (match) {
+                const currentPlaced = parseInt(match[1]) || 0;
+                const newPlaced = Math.max(0, currentPlaced + delta);
+                placementElement.textContent = `Добавлено на площадку: ${newPlaced}`;
+            }
             
-            // Обновляем текст
-            placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
+            // Специальные модели всегда доступны для перетаскивания
+            element.classList.remove('blurred');
+            element.style.filter = 'none';
+            element.style.opacity = '1';
+            element.style.pointerEvents = 'auto';
+            element.setAttribute('draggable', 'true');
+        } else {
+            // Для обычных моделей используем старую логику
+            const match = placementText.match(/Добавлено на площадку: (\d+) из (\d+)/);
             
-            // Мгновенно обновляем визуальное состояние
-            if (remaining <= 0) {
-                element.classList.add('blurred');
-                element.style.filter = 'blur(2px)';
-                element.style.opacity = '0.9';
-                element.style.pointerEvents = 'none';
-                element.setAttribute('draggable', 'false');
-            } else {
-                element.classList.remove('blurred');
-                element.style.filter = 'none';
-                element.style.opacity = '1';
-                element.style.pointerEvents = 'auto';
-                element.setAttribute('draggable', 'true');
+            if (match) {
+                const currentPlaced = parseInt(match[1]) || 0;
+                const total = parseInt(match[2]) || 0;
+                const newPlaced = Math.max(0, Math.min(total, currentPlaced + delta));
+                const remaining = total - newPlaced;
+                
+                // Обновляем текст
+                placementElement.textContent = `Добавлено на площадку: ${newPlaced} из ${total}`;
+                
+                // Мгновенно обновляем визуальное состояние
+                if (remaining <= 0) {
+                    element.classList.add('blurred');
+                    element.style.filter = 'blur(2px)';
+                    element.style.opacity = '0.9';
+                    element.style.pointerEvents = 'none';
+                    element.setAttribute('draggable', 'false');
+                } else {
+                    element.classList.remove('blurred');
+                    element.style.filter = 'none';
+                    element.style.opacity = '1';
+                    element.style.pointerEvents = 'auto';
+                    element.setAttribute('draggable', 'true');
+                }
             }
         }
     }
