@@ -61,7 +61,7 @@ function invalidateCachedSession(userId) {
     sessionCache.delete(userId);
 }
 
-const modelsDir = path.join(__dirname, '..', '..', 'models');
+const modelsDir = path.join(__dirname, '..', 'models');
 
 // Логирование для отладки
 console.log('Server __dirname:', __dirname);
