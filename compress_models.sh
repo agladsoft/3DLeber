@@ -4,14 +4,14 @@
 mkdir -p models
 
 # Проходим по всем .glb файлам в директории models
-for model in /home/timur/Документы/*.glb; do
+for model in models_compressed/*.glb; do
     if [ -f "$model" ]; then
         # Получаем имя файла без пути
         filename=$(basename "$model")
         echo "Сжимаем модель: $filename"
         
         # Сжимаем модель с помощью gltf-transform
-        gltf-transform optimize "$model" "models/$filename" --compress draco --texture-size 512 --join-named false
+        gltf-transform optimize "$model" "models/$filename" --compress draco --texture-size 512
         
         # Выводим размеры оригинального и сжатого файлов
         original_size=$(du -h "$model" | cut -f1)
