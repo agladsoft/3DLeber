@@ -211,7 +211,7 @@ app.get('/api/validate-token', async (req, res) => {
         }
 
         const hostname = 'leber.ru';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const path = `/api/v2/project/builder/validate?token=${token}`;
         
         console.log('🔍 Proxy token validation attempt:');
         console.log('URL:', `https://${hostname}${path}`);
@@ -238,9 +238,6 @@ app.get('/api/validate-token', async (req, res) => {
             });
             
             httpsRes.on('end', () => {
-                console.log('📄 Proxy response body:', data);
-                console.log('📄 Proxy response length:', data.length);
-                
                 // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 if (httpsRes.statusCode === 200 || httpsRes.statusCode === 204) {
                     // Если ответ пустой или не JSON, просто возвращаем успех
@@ -344,7 +341,7 @@ app.post('/api/launch', async (req, res) => {
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
         const hostname = 'leber.ru';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const path = `/api/v2/project/builder/validate?token=${token}`;
         
         console.log('🔍 Token validation attempt:');
         console.log('URL:', `https://${hostname}${path}`);
@@ -361,10 +358,6 @@ async function validateTokenInternal(token) {
 
         const httpsReq = https.request(options, (httpsRes) => {
             let data = '';
-            
-            console.log('📡 Response received:');
-            console.log('Status Code:', httpsRes.statusCode);
-            console.log('Headers:', httpsRes.headers);
             
             httpsRes.on('data', (chunk) => {
                 data += chunk;
