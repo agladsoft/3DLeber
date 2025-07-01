@@ -323,7 +323,7 @@ app.post('/api/launch', async (req, res) => {
         updateSessionTimeout(sessionId, sessionData);
 
         // Возвращаем ссылку для редиректа
-        const redirectUrl = `https://${SERVER_NAME}?sessionId=${sessionId}`;
+        const redirectUrl = `http://${SERVER_NAME}?sessionId=${sessionId}`;
         
         res.json({ 
             success: true, 
