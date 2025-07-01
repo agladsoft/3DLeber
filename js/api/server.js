@@ -9,6 +9,7 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
+import axios from 'axios';
 
 const { Pool } = pg;
 
