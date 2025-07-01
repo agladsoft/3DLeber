@@ -223,7 +223,8 @@ app.get('/api/validate-token', async (req, res) => {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'Cookie': 'redesign=always'
+                'Cookie': 'redesign=always',
+                'User-Agent': 'Mozilla/5.0 (compatible; Leber-3D-API/1.0)'
             }
         };
 
@@ -357,7 +358,8 @@ async function validateTokenInternal(token) {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'Cookie': 'redesign=always'
+                'Cookie': 'redesign=always',
+                'User-Agent': 'Mozilla/5.0 (compatible; Leber-3D-API/1.0)'
             }
         };
 
@@ -373,9 +375,6 @@ async function validateTokenInternal(token) {
             });
             
             httpsRes.on('end', () => {
-                console.log('📄 Response body:', data);
-                console.log('📄 Response length:', data.length);
-                
                 // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
                 console.log('✅ Token validation result:', isValid);
