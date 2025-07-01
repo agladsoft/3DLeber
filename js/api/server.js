@@ -344,7 +344,7 @@ app.post('/api/launch', async (req, res) => {
 // Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
-        const url = `https://leber.ru/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const url = `https://leber.ru/api/v2/project/builder/validate?token=${token}`;
         
         console.log('🔍 Token validation attempt:');
         console.log('URL:', url);
