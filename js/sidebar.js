@@ -207,7 +207,9 @@ function createModelElement(model, sessionData, modelsData) {
     
     modelElement.innerHTML = `
         <div class="model-image">
-            <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
+            <div class="model-image-container">
+                <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
+            </div>
         </div>
         <div class="model-article">${model.article}</div>
         <div class="model-title">${model.description}</div>

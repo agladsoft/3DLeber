@@ -11,6 +11,7 @@ import {
 } from './uiCore.js';
 import * as THREE from 'three';
 import { API_BASE_URL } from '../api/serverConfig.js';
+import { showModelPreloader, hideModelPreloader } from '../modules/modelPreloader.js';
 
 // Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
 const processingModels = new Map();
@@ -361,6 +362,9 @@ async function handleDrop(event) {
         const position = determineDropPosition();
         console.log("Determined drop position:", position);
         
+        // Показываем прелоадер перед началом загрузки
+        const preloader = showModelPreloader(modelName);
+        
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
@@ -373,6 +377,9 @@ async function handleDrop(event) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
             // UI автоматически откатится в objectManager при ошибке
+        } finally {
+            // Скрываем прелоадер после завершения загрузки (успешной или неуспешной)
+            hideModelPreloader(modelName);
         }
         
     } catch (error) {

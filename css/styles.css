@@ -3012,3 +3012,43 @@ color: #333 !important;
 #checkMissingModelsButton {
     display: none !important;
 }
+
+/* Стили для прелоадера модели */
+.model-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+}
+
+.model-preloader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #F05323;
+    border-radius: 50%;
+    animation: preloader-spin 1s linear infinite;
+}
+
+@keyframes preloader-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Стили для прелоадера на изображениях моделей в сайдбаре */
+.model-image-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.model-image-container .model-preloader {
+    border-radius: 8px;
+}
