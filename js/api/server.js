@@ -9,7 +9,7 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
-import axios from 'axios';
+import request from 'request';
 
 const { Pool } = pg;
 
@@ -341,23 +341,42 @@ app.post('/api/launch', async (req, res) => {
     }
 });
 
-
+// Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
-    try {
-        const response = await axios.get(`https://leber.ru/api/v2/project/builder/validate`, {
-            params: { token },
+    return new Promise((resolve) => {
+        const url = `https://leber.ru/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        
+        console.log('🔍 Token validation attempt:');
+        console.log('URL:', url);
+        
+        const options = {
+            method: 'GET',
+            url: url,
             headers: {
-                'Cookie': 'redesign=always',
-                'User-Agent': 'PostmanRuntime/7.44.0'
+                'Cookie': 'redesign=always'
             },
             timeout: 10000
+        };
+
+        request(options, function (error, response) {
+            if (error) {
+                console.error('❌ Token validation error:', error);
+                resolve(false);
+                return;
+            }
+            
+            console.log('📡 Response received:');
+            console.log('Status Code:', response.statusCode);
+            console.log('Headers:', response.headers);
+            console.log('Response body:', response.body);
+            
+            // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
+            const isValid = response.statusCode === 200 || response.statusCode === 204;
+            console.log('✅ Token validation result:', isValid);
+            
+            resolve(isValid);
         });
-        
-        return response.status === 200 || response.status === 204;
-    } catch (error) {
-        console.error('Token validation error:', error.response?.status, error.message);
-        return false;
-    }
+    });
 }
 
 // Функция для генерации уникального ID сессии
