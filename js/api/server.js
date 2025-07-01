@@ -219,7 +219,8 @@ app.get('/api/validate-token', async (req, res) => {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Cookie': 'redesign=always'
             }
         };
 
@@ -342,7 +343,8 @@ async function validateTokenInternal(token) {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Cookie': 'redesign=always'
             }
         };
 
