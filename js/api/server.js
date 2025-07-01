@@ -9,7 +9,6 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
-import request from 'request';
 
 const { Pool } = pg;
 
@@ -212,7 +211,7 @@ app.get('/api/validate-token', async (req, res) => {
         }
 
         const hostname = 'leber.ru';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const path = `/api/v2/project/builder/validate?token=${token}`;
         
         console.log('🔍 Proxy token validation attempt:');
         console.log('URL:', `https://${hostname}${path}`);
@@ -239,9 +238,6 @@ app.get('/api/validate-token', async (req, res) => {
             });
             
             httpsRes.on('end', () => {
-                console.log('📄 Proxy response body:', data);
-                console.log('📄 Proxy response length:', data.length);
-                
                 // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 if (httpsRes.statusCode === 200 || httpsRes.statusCode === 204) {
                     // Если ответ пустой или не JSON, просто возвращаем успех
@@ -344,38 +340,50 @@ app.post('/api/launch', async (req, res) => {
 // Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
-        const url = `https://leber.ru/api/v2/project/builder/validate?token=${token}`;
+        const hostname = 'leber.ru';
+        const path = `/api/v2/project/builder/validate?token=${token}`;
         
         console.log('🔍 Token validation attempt:');
-        console.log('URL:', url);
+        console.log('URL:', `https://${hostname}${path}`);
         
         const options = {
+            hostname: hostname,
+            port: 443,
+            path: path,
             method: 'GET',
-            url: url,
             headers: {
                 'Cookie': 'redesign=always'
-            },
-            timeout: 10000
+            }
         };
 
-        request(options, function (error, response) {
-            if (error) {
-                console.error('❌ Token validation error:', error);
-                resolve(false);
-                return;
-            }
+        const httpsReq = https.request(options, (httpsRes) => {
+            let data = '';
             
-            console.log('📡 Response received:');
-            console.log('Status Code:', response.statusCode);
-            console.log('Headers:', response.headers);
-            console.log('Response body:', response.body);
+            httpsRes.on('data', (chunk) => {
+                data += chunk;
+            });
             
-            // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
-            const isValid = response.statusCode === 200 || response.statusCode === 204;
-            console.log('✅ Token validation result:', isValid);
-            
-            resolve(isValid);
+            httpsRes.on('end', () => {
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
+                const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
+                console.log('✅ Token validation result:', isValid);
+                
+                resolve(isValid);
+            });
         });
+
+        httpsReq.on('error', (error) => {
+            console.error('❌ Token validation error:', error);
+            resolve(false);
+        });
+
+        httpsReq.setTimeout(10000, () => {
+            console.error('⏰ Token validation timeout');
+            httpsReq.destroy();
+            resolve(false);
+        });
+
+        httpsReq.end();
     });
 }
 

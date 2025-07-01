@@ -30,7 +30,6 @@
     "live-server": "^1.2.2",
     "nodemailer": "^6.9.8",
     "pg": "^8.16.0",
-    "request": "^2.88.2",
     "three": "^0.173.0",
     "three-mesh-bvh": "^0.9.0"
   }
