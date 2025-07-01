@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { https } from 'follow-redirects';
+import https from 'https';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
@@ -61,7 +61,7 @@ function invalidateCachedSession(userId) {
     sessionCache.delete(userId);
 }
 
-const modelsDir = path.join(__dirname, '..', '..', 'models');
+const modelsDir = path.join(__dirname, '..', 'models');
 
 // Логирование для отладки
 console.log('Server __dirname:', __dirname);
@@ -222,9 +222,17 @@ app.get('/api/validate-token', async (req, res) => {
             path: path,
             method: 'GET',
             headers: {
-                'Cookie': 'redesign=always'
-            },
-            maxRedirects: 20
+                'Cookie': 'redesign=always',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Referer': 'https://leber.ru/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin'
+            }
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
@@ -356,9 +364,17 @@ async function validateTokenInternal(token) {
             path: path,
             method: 'GET',
             headers: {
-                'Cookie': 'redesign=always'
-            },
-            maxRedirects: 20
+                'Cookie': 'redesign=always',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Referer': 'https://leber.ru/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin'
+            }
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
