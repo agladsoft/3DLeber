@@ -375,6 +375,17 @@ export async function restorePlacedObjects(session) {
                     lastPlacedObject.userData.realHeight = parseFloat(objectData.dimensions.height);
                     lastPlacedObject.userData.realDepth = parseFloat(objectData.dimensions.depth);
                 }
+                
+                // ВАЖНО: сохраняем исходный ID объекта, чтобы при последующих
+                // обновлениях позиции/поворота в существующей сессии данные
+                // в базе перезаписывались, а не добавлялись как новые записи
+                lastPlacedObject.userData.id = objectData.id;
+                
+                // Также обновляем имя контейнера (используется в логах/отладке)
+                // чтобы он соответствовал исходному ID
+                if (lastPlacedObject.name) {
+                    lastPlacedObject.name = `${objectData.modelName}_${objectData.id}`;
+                }
             }
         }
         
