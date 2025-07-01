@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
-import { getModelsByArticles, getOrCreateUser, saveSession, getSession } from './db.js';
+import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
@@ -114,7 +114,44 @@ function collectGlbModels(dir, baseDir = dir) {
     return models;
 }
 
+// Получение списка моделей с данными из БД
+app.get('/api/models/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const models = await getModelsWithSessions(userId);
+        res.json({ project_id: userId, models });
+    } catch (err) {
+        console.error('Error fetching models:', err);
+        res.status(500).json({ error: 'Error fetching models from database' });
+    }
+});
 
+// Обновление количества модели
+app.post('/api/models/quantity', async (req, res) => {
+    try {
+        const { userId, article, quantity } = req.body;
+        
+        // Получаем или создаем пользователя
+        await getOrCreateUser(userId);
+        
+        // Получаем модель по артикулу
+        const model = await getModelByArticle(article);
+        if (!model) {
+            return res.status(404).json({ error: 'Model not found' });
+        }
+        
+        // Создаем или обновляем сессию
+        await createOrUpdateSession(userId, model.id, quantity);
+        
+        // Инвалидируем кэш сессии
+        invalidateCachedSession(userId);
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating model quantity:', err);
+        res.status(500).json({ error: 'Error updating model quantity' });
+    }
+});
 
 app.get('/api/models', (req, res) => {
     try {
@@ -122,31 +159,6 @@ app.get('/api/models', (req, res) => {
         res.json({ models });
     } catch (err) {
         res.status(500).json({ error: 'Error reading model files' });
-    }
-});
-
-// Получение всех моделей из специальных категорий
-app.get('/api/models/special-categories', async (req, res) => {
-    try {
-        const specialCategories = ['Деревья', 'Пальмы', 'Кустарники', 'Люди'];
-        const query = `
-            SELECT * FROM models 
-            WHERE category = ANY($1)
-            ORDER BY category, article
-        `;
-        const result = await pool.query(query, [specialCategories]);
-        
-        // Добавляем бесконечное количество для всех специальных моделей
-        const specialModels = result.rows.map(model => ({
-            ...model,
-            quantity: Infinity,
-            isSpecial: true
-        }));
-        
-        res.json({ models: specialModels });
-    } catch (err) {
-        console.error('Error fetching special category models:', err);
-        res.status(500).json({ error: 'Error fetching special category models' });
     }
 });
 
@@ -198,9 +210,11 @@ app.get('/api/validate-token', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const hostname = 'leber.ru';
+        const path = `/api/v2/project/builder/validate?token=${token}`;
+        
+        console.log('🔍 Proxy token validation attempt:');
+        console.log('URL:', `https://${hostname}${path}`);
         
         const options = {
             hostname: hostname,
@@ -208,13 +222,16 @@ app.get('/api/validate-token', async (req, res) => {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Cookie': 'redesign=always'
             }
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
             let data = '';
+            
+            console.log('📡 Proxy response received:');
+            console.log('Status Code:', httpsRes.statusCode);
+            console.log('Headers:', httpsRes.headers);
             
             httpsRes.on('data', (chunk) => {
                 data += chunk;
@@ -323,9 +340,11 @@ app.post('/api/launch', async (req, res) => {
 // Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
+        const hostname = 'leber.ru';
+        const path = `/api/v2/project/builder/validate?token=${token}`;
+        
+        console.log('🔍 Token validation attempt:');
+        console.log('URL:', `https://${hostname}${path}`);
         
         const options = {
             hostname: hostname,
@@ -333,8 +352,7 @@ async function validateTokenInternal(token) {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Cookie': 'redesign=always'
             }
         };
 
@@ -346,19 +364,21 @@ async function validateTokenInternal(token) {
             });
             
             httpsRes.on('end', () => {
-                // Принимаем 200 (OK) и 204 (No Content) как успешную валидаци
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
+                console.log('✅ Token validation result:', isValid);
+                
                 resolve(isValid);
             });
         });
 
         httpsReq.on('error', (error) => {
-            console.error('Token validation error:', error);
+            console.error('❌ Token validation error:', error);
             resolve(false);
         });
 
         httpsReq.setTimeout(10000, () => {
-            console.error('Token validation timeout');
+            console.error('⏰ Token validation timeout');
             httpsReq.destroy();
             resolve(false);
         });
