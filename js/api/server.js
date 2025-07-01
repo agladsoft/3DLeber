@@ -210,8 +210,7 @@ app.get('/api/validate-token', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
+        const hostname = 'leber.ru';
         const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
         
         const options = {
@@ -220,8 +219,7 @@ app.get('/api/validate-token', async (req, res) => {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Accept': 'application/json'
             }
         };
 
@@ -335,8 +333,7 @@ app.post('/api/launch', async (req, res) => {
 // Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
+        const hostname = 'leber.ru';
         const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
         
         const options = {
@@ -345,8 +342,7 @@ async function validateTokenInternal(token) {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Accept': 'application/json'
             }
         };
 
