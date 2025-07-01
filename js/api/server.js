@@ -340,58 +340,23 @@ app.post('/api/launch', async (req, res) => {
     }
 });
 
-// Функция для валидации токена (внутренняя)
+
 async function validateTokenInternal(token) {
-    return new Promise((resolve) => {
-        const hostname = 'leber.ru';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
-        
-        console.log('🔍 Token validation attempt:');
-        console.log('URL:', `https://${hostname}${path}`);
-        
-        const options = {
-            hostname: hostname,
-            port: 443,
-            path: path,
-            method: 'GET',
+    try {
+        const response = await axios.get(`https://leber.ru/api/v2/project/builder/validate`, {
+            params: { token },
             headers: {
-                'Cookie': 'redesign=always'
-            }
-        };
-
-        const httpsReq = https.request(options, (httpsRes) => {
-            let data = '';
-            
-            console.log('📡 Response received:');
-            console.log('Status Code:', httpsRes.statusCode);
-            console.log('Headers:', httpsRes.headers);
-            
-            httpsRes.on('data', (chunk) => {
-                data += chunk;
-            });
-            
-            httpsRes.on('end', () => {
-                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
-                const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
-                console.log('✅ Token validation result:', isValid);
-                
-                resolve(isValid);
-            });
+                'Cookie': 'redesign=always',
+                'User-Agent': 'PostmanRuntime/7.44.0'
+            },
+            timeout: 10000
         });
-
-        httpsReq.on('error', (error) => {
-            console.error('❌ Token validation error:', error);
-            resolve(false);
-        });
-
-        httpsReq.setTimeout(10000, () => {
-            console.error('⏰ Token validation timeout');
-            httpsReq.destroy();
-            resolve(false);
-        });
-
-        httpsReq.end();
-    });
+        
+        return response.status === 200 || response.status === 204;
+    } catch (error) {
+        console.error('Token validation error:', error.response?.status, error.message);
+        return false;
+    }
 }
 
 // Функция для генерации уникального ID сессии
