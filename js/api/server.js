@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import https from 'https';
+import { https } from 'follow-redirects';
 import { fileURLToPath } from 'url';
 import { getModelsByArticles, getModelByArticle, getModelsWithSessions, getOrCreateUser, saveSession, getSession } from './db.js';
 import pg from 'pg';
@@ -61,7 +61,7 @@ function invalidateCachedSession(userId) {
     sessionCache.delete(userId);
 }
 
-const modelsDir = path.join(__dirname, '..', 'models');
+const modelsDir = path.join(__dirname, '..', '..', 'models');
 
 // Логирование для отладки
 console.log('Server __dirname:', __dirname);
@@ -222,10 +222,9 @@ app.get('/api/validate-token', async (req, res) => {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Cookie': 'redesign=always',
-                'User-Agent': 'Mozilla/5.0 (compatible; Leber-3D-API/1.0)'
-            }
+                'Cookie': 'redesign=always'
+            },
+            maxRedirects: 20
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
@@ -357,10 +356,9 @@ async function validateTokenInternal(token) {
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Cookie': 'redesign=always',
-                'User-Agent': 'Mozilla/5.0 (compatible; Leber-3D-API/1.0)'
-            }
+                'Cookie': 'redesign=always'
+            },
+            maxRedirects: 20
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
