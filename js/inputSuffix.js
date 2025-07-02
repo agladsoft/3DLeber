@@ -53,8 +53,24 @@ function checkInitialValues() {
         if (input) {
             const suffix = input.parentElement.querySelector('.input-suffix');
             if (suffix) {
+                // Принудительно обновляем позицию суффикса
                 updateSuffixPosition(input, suffix);
+                console.log(`Updated suffix for ${inputId}, value: "${input.value}"`);
             }
+        }
+    });
+}
+
+// Функция для проверки и обновления всех суффиксов
+function forceUpdateAllSuffixes() {
+    // Находим все элементы с суффиксами
+    const inputsWithSuffix = document.querySelectorAll('.input-with-suffix input');
+    
+    inputsWithSuffix.forEach(input => {
+        const suffix = input.parentElement.querySelector('.input-suffix');
+        if (suffix) {
+            updateSuffixPosition(input, suffix);
+            console.log(`Force updated suffix for ${input.id || 'unnamed'}, value: "${input.value}"`);
         }
     });
 }
@@ -84,6 +100,19 @@ function initInputSuffixes() {
                 input.addEventListener('input', () => updateSuffixPosition(input, suffix));
                 input.addEventListener('keyup', () => updateSuffixPosition(input, suffix));
                 input.addEventListener('change', () => updateSuffixPosition(input, suffix));
+                // Отслеживаем программные изменения значений
+                input.addEventListener('propertychange', () => updateSuffixPosition(input, suffix)); // IE
+                
+                // Создаем наблюдатель для конкретного input'а
+                const inputObserver = new MutationObserver(() => {
+                    updateSuffixPosition(input, suffix);
+                });
+                
+                inputObserver.observe(input, {
+                    attributes: true,
+                    attributeFilter: ['value']
+                });
+                
                 // Инициализация при загрузке
                 updateSuffixPosition(input, suffix);
             }
@@ -102,6 +131,11 @@ function initInputSuffixes() {
     
     // Проверяем начальные значения через небольшой таймаут
     setTimeout(checkInitialValues, 100);
+    
+    // Дополнительная проверка через больший таймаут для случаев когда значения устанавливаются JavaScript'ом
+    setTimeout(forceUpdateAllSuffixes, 500);
+    setTimeout(forceUpdateAllSuffixes, 1000);
+    setTimeout(forceUpdateAllSuffixes, 2000);
 }
 
 // Инициализация при загрузке DOM
@@ -111,7 +145,53 @@ document.addEventListener('DOMContentLoaded', initInputSuffixes);
 setTimeout(() => {
     initInputSuffixes();
     checkInitialValues();
+    forceUpdateAllSuffixes();
 }, 500);
 
+// Наблюдатель за изменениями в DOM для отслеживания динамически добавляемых элементов
+const observer = new MutationObserver((mutations) => {
+    let shouldUpdate = false;
+    
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) { // Element node
+                    // Проверяем, добавлены ли input элементы с суффиксами
+                    if (node.classList && node.classList.contains('input-with-suffix')) {
+                        shouldUpdate = true;
+                    }
+                    // Или если добавлен элемент, содержащий такие input'ы
+                    if (node.querySelector && node.querySelector('.input-with-suffix')) {
+                        shouldUpdate = true;
+                    }
+                }
+            });
+        }
+        
+        // Отслеживаем изменения значений в атрибутах
+        if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+            const target = mutation.target;
+            if (target.closest('.input-with-suffix')) {
+                shouldUpdate = true;
+            }
+        }
+    });
+    
+    if (shouldUpdate) {
+        setTimeout(forceUpdateAllSuffixes, 50);
+    }
+});
+
+// Запускаем наблюдатель
+observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['value']
+});
+
+// Делаем функцию доступной глобально для вызова из других скриптов
+window.forceUpdateAllSuffixes = forceUpdateAllSuffixes;
+
 // Экспорт для использования в других модулях
-export { initInputSuffixes, updateSuffixPosition };
+export { initInputSuffixes, updateSuffixPosition, forceUpdateAllSuffixes };
