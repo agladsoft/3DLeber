@@ -11,6 +11,7 @@ import {
 } from './uiCore.js';
 import * as THREE from 'three';
 import { API_BASE_URL } from '../api/serverConfig.js';
+import { hideModelPreloader } from '../sidebar.js';
 
 // Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
 const processingModels = new Map();
@@ -380,19 +381,32 @@ async function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
+        // Отмечаем, что drop был обработан для предотвращения скрытия preloader в dragend
+        if (modelElement) {
+            modelElement.dataset.dragProcessed = 'true';
+        }
+        
         // Загружаем модель (UI уже обновлен мгновенно в objectManager)
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
             console.log("Model loaded successfully with optimistic UI updates");
+            
+            // Скрываем preloader после успешной загрузки модели
+            hideModelPreloader(modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
             // UI автоматически откатится в objectManager при ошибке
+            
+            // Скрываем preloader и при ошибке загрузки
+            hideModelPreloader(modelName);
         }
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
+        // Скрываем preloader при любой ошибке
+        hideModelPreloader(modelName);
     } finally {
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
