@@ -1,6 +1,13 @@
 /**
- * Модуль для управления прелоадером при загрузке моделей
+ * Модуль для управления прелоадером при загрузке моделей (оптимизированный)
  */
+
+// Глобальный прелоадер для переиспользования
+let globalPreloader = null;
+let currentPreloaderParent = null;
+
+// Кэш DOM элементов для быстрого доступа
+const imageContainerCache = new Map();
 
 /**
  * Создает элемент прелоадера
@@ -19,126 +26,135 @@ function createPreloaderElement() {
 }
 
 /**
- * Показывает прелоадер на изображении модели в сайдбаре
+ * Создает или возвращает глобальный прелоадер
+ */
+function getGlobalPreloader() {
+    if (!globalPreloader) {
+        globalPreloader = createPreloaderElement();
+        globalPreloader.style.display = 'none';
+        document.body.appendChild(globalPreloader);
+    }
+    return globalPreloader;
+}
+
+/**
+ * Показывает прелоадер на изображении модели в сайдбаре (оптимизированная версия)
  * @param {string} modelName - Имя модели
  * @returns {HTMLElement|null} Элемент прелоадера или null если не найден
  */
 export function showModelPreloader(modelName) {
-    console.log('Showing preloader for model:', modelName);
+    // Используем кэшированный элемент если доступен
+    let imageContainer = imageContainerCache.get(modelName);
     
-    // Ищем элемент модели в новой структуре сайдбара
-    const modelElements = document.querySelectorAll('.model');
-    let targetElement = null;
-    
-    for (const element of modelElements) {
-        const modelData = element.getAttribute('data-model');
-        if (modelData === modelName) {
-            targetElement = element;
-            break;
+    if (!imageContainer) {
+        // Ищем элемент модели только если нет в кэше
+        const targetElement = document.querySelector(`[data-model="${modelName}"]`);
+        
+        if (!targetElement) {
+            console.warn('Model element not found for preloader:', modelName);
+            return null;
         }
-    }
-    
-    // Если не найден в новой структуре, ищем в старой
-    if (!targetElement) {
-        const itemElements = document.querySelectorAll('.item');
-        for (const element of itemElements) {
-            const modelData = element.getAttribute('data-model');
-            if (modelData === modelName) {
-                targetElement = element;
-                break;
+        
+        // Ищем контейнер изображения
+        imageContainer = targetElement.querySelector('.model-image-container');
+        
+        // Если контейнера нет, создаем его для изображения
+        if (!imageContainer) {
+            const imageElement = targetElement.querySelector('img');
+            if (imageElement) {
+                // Создаем обертку для изображения
+                imageContainer = document.createElement('div');
+                imageContainer.className = 'model-image-container';
+                
+                // Перемещаем изображение в контейнер
+                imageElement.parentNode.insertBefore(imageContainer, imageElement);
+                imageContainer.appendChild(imageElement);
             }
         }
+        
+        if (!imageContainer) {
+            console.warn('Image container not found for model:', modelName);
+            return null;
+        }
+        
+        // Кэшируем для быстрого доступа
+        imageContainerCache.set(modelName, imageContainer);
     }
     
-    if (!targetElement) {
-        console.warn('Model element not found for preloader:', modelName);
-        return null;
-    }
+    // Используем глобальный прелоадер
+    const preloader = getGlobalPreloader();
     
-    // Ищем контейнер изображения
-    let imageContainer = targetElement.querySelector('.model-image-container');
-    
-    // Если контейнера нет, создаем его для изображения
-    if (!imageContainer) {
-        const imageElement = targetElement.querySelector('img');
-        if (imageElement) {
-            // Создаем обертку для изображения
-            imageContainer = document.createElement('div');
-            imageContainer.className = 'model-image-container';
-            
-            // Перемещаем изображение в контейнер
-            imageElement.parentNode.insertBefore(imageContainer, imageElement);
-            imageContainer.appendChild(imageElement);
+    // Скрываем предыдущий прелоадер если есть
+    if (currentPreloaderParent && currentPreloaderParent !== imageContainer) {
+        preloader.style.display = 'none';
+        if (currentPreloaderParent.contains(preloader)) {
+            currentPreloaderParent.removeChild(preloader);
         }
     }
     
-    if (!imageContainer) {
-        console.warn('Image container not found for model:', modelName);
-        return null;
+    // Показываем прелоадер для текущей модели
+    if (!imageContainer.contains(preloader)) {
+        imageContainer.appendChild(preloader);
     }
+    preloader.style.display = 'flex';
+    currentPreloaderParent = imageContainer;
     
-    // Проверяем, нет ли уже прелоадера
-    const existingPreloader = imageContainer.querySelector('.model-preloader');
-    if (existingPreloader) {
-        return existingPreloader;
-    }
-    
-    // Создаем и добавляем прелоадер
-    const preloader = createPreloaderElement();
-    imageContainer.appendChild(preloader);
-    
-    console.log('Preloader added for model:', modelName);
     return preloader;
 }
 
 /**
- * Скрывает прелоадер с изображения модели
+ * Скрывает прелоадер с изображения модели (оптимизированная версия)
  * @param {string} modelName - Имя модели
  */
 export function hideModelPreloader(modelName) {
     console.log('Hiding preloader for model:', modelName);
     
-    // Ищем все элементы прелоадера для данной модели
-    const modelElements = document.querySelectorAll('.model, .item');
-    
-    for (const element of modelElements) {
-        const modelData = element.getAttribute('data-model');
-        if (modelData === modelName) {
-            const preloader = element.querySelector('.model-preloader');
-            if (preloader) {
-                preloader.remove();
-                console.log('Preloader removed for model:', modelName);
+    // Используем глобальный прелоадер для скрытия
+    if (globalPreloader && currentPreloaderParent) {
+        globalPreloader.style.display = 'none';
+        
+        // Проверяем, что прелоадер принадлежит нужной модели
+        const imageContainer = imageContainerCache.get(modelName);
+        if (imageContainer && imageContainer === currentPreloaderParent) {
+            if (imageContainer.contains(globalPreloader)) {
+                imageContainer.removeChild(globalPreloader);
             }
+            currentPreloaderParent = null;
+            console.log('Global preloader hidden for model:', modelName);
         }
     }
 }
 
 /**
- * Скрывает все прелоадеры
+ * Скрывает все прелоадеры (оптимизированная версия)
  */
 export function hideAllPreloaders() {
-    const preloaders = document.querySelectorAll('.model-preloader');
-    preloaders.forEach(preloader => preloader.remove());
-    console.log('All preloaders removed');
+    // Скрываем глобальный прелоадер
+    if (globalPreloader) {
+        globalPreloader.style.display = 'none';
+        if (currentPreloaderParent && currentPreloaderParent.contains(globalPreloader)) {
+            currentPreloaderParent.removeChild(globalPreloader);
+        }
+        currentPreloaderParent = null;
+    }
+    
+    // Очищаем кэш контейнеров
+    imageContainerCache.clear();
+    
+    console.log('All preloaders hidden (global approach)');
 }
 
 /**
- * Проверяет, показан ли прелоадер для модели
+ * Проверяет, показан ли прелоадер для модели (оптимизированная версия)
  * @param {string} modelName - Имя модели
  * @returns {boolean} true если прелоадер показан
  */
 export function isPreloaderVisible(modelName) {
-    const modelElements = document.querySelectorAll('.model, .item');
-    
-    for (const element of modelElements) {
-        const modelData = element.getAttribute('data-model');
-        if (modelData === modelName) {
-            const preloader = element.querySelector('.model-preloader');
-            if (preloader) {
-                return true;
-            }
-        }
+    // Проверяем через глобальный прелоадер и кэш
+    if (!globalPreloader || globalPreloader.style.display === 'none') {
+        return false;
     }
     
-    return false;
+    const imageContainer = imageContainerCache.get(modelName);
+    return imageContainer && imageContainer === currentPreloaderParent && imageContainer.contains(globalPreloader);
 }

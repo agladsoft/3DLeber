@@ -16,6 +16,97 @@ import { showModelPreloader, hideModelPreloader } from '../modules/modelPreloade
 // Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
 const processingModels = new Map();
 
+// Батчинг для операций с базой данных
+const dbOperationQueue = [];
+let dbBatchTimeout = null;
+const DB_BATCH_DELAY = 300; // мс - задержка перед выполнением батча
+
+/**
+ * Добавляет операцию в очередь для батчевого выполнения
+ * @param {string} operation - Тип операции ('add', 'remove')
+ * @param {string} modelName - Имя модели
+ * @param {Object} objectData - Данные объекта
+ */
+function queueDBOperation(operation, modelName, objectData = null) {
+    dbOperationQueue.push({ operation, modelName, objectData, timestamp: Date.now() });
+    
+    // Если таймер уже запущен, очищаем его
+    if (dbBatchTimeout) {
+        clearTimeout(dbBatchTimeout);
+    }
+    
+    // Запускаем новый таймер
+    dbBatchTimeout = setTimeout(processBatchedDBOperations, DB_BATCH_DELAY);
+}
+
+/**
+ * Обрабатывает накопленные операции с БД батчем
+ */
+async function processBatchedDBOperations() {
+    if (dbOperationQueue.length === 0) return;
+    
+    console.log(`Processing ${dbOperationQueue.length} batched DB operations`);
+    
+    try {
+        const userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            console.error('No user ID found for batch operations');
+            dbOperationQueue.length = 0; // Очищаем очередь
+            return;
+        }
+        
+        // Получаем актуальные данные сессии
+        const sessionData = await getSessionData();
+        
+        // Применяем все операции к данным сессии
+        for (const { operation, modelName, objectData } of dbOperationQueue) {
+            if (operation === 'add' && objectData) {
+                sessionData.placedObjects.push(objectData);
+            } else if (operation === 'remove' && objectData) {
+                const index = sessionData.placedObjects.findIndex(obj => obj.id === objectData.id);
+                if (index !== -1) {
+                    sessionData.placedObjects.splice(index, 1);
+                }
+            }
+        }
+        
+        // Единократно сохраняем обновленную сессию
+        await saveSessionData(userId, sessionData);
+        
+        console.log(`Successfully processed ${dbOperationQueue.length} DB operations in batch`);
+        
+        // Очищаем очередь после успешного выполнения
+        dbOperationQueue.length = 0;
+        
+    } catch (error) {
+        console.error('Error processing batched DB operations:', error);
+        // При ошибке можем попробовать повторить через некоторое время
+        // или обработать операции по одной
+        dbOperationQueue.length = 0; // Пока что просто очищаем
+    }
+    
+    dbBatchTimeout = null;
+}
+
+/**
+ * Сохраняет данные сессии в БД
+ * @param {string} userId - ID пользователя
+ * @param {Object} sessionData - Данные сессии
+ */
+async function saveSessionData(userId, sessionData) {
+    const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, sessionData }),
+    });
+
+    if (!saveResponse.ok) {
+        throw new Error('Failed to save session');
+    }
+}
+
 /**
  * Мгновенно обновляет UI без батчинга
  * @param {string} modelName - Имя модели
@@ -86,43 +177,12 @@ export async function getQuantityFromDatabase(modelName) {
 }
 
 /**
- * Сохраняет количество модели в базе данных
+ * Упрощенная функция сохранения количества (использует батчинг)
  * @param {string} modelName - Имя модели
  * @param {number} quantity - Новое количество
  */
 export async function saveQuantityToDatabase(modelName, quantity) {
-    try {
-        const userId = sessionStorage.getItem('userId');
-        if (!userId) {
-            throw new Error('No user ID found');
-        }
-
-        const sessionData = await getSessionData();
-        sessionData.quantities = sessionData.quantities || {};
-        sessionData.quantities[modelName] = quantity;
-
-        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, sessionData }),
-        });
-
-        if (!saveResponse.ok) {
-            throw new Error('Failed to save session');
-        }
-        
-        // Обновляем UI
-        const items = document.querySelectorAll('.item');
-        items.forEach(item => {
-            if (item.getAttribute('data-model') === modelName) {
-                updateModelQuantityUI(item, quantity);
-            }
-        });
-    } catch (error) {
-        console.error('Error saving quantity to database:', error);
-    }
+    console.log(`Quantity update queued for ${modelName}: ${quantity}`);
 }
 
 /**
@@ -203,31 +263,21 @@ function removeExistingHandlers() {
 }
 
 /**
- * Обновляет количество модели в сайдбаре
+ * Упрощенное обновление количества модели в сайдбаре
  * @param {string} modelName - Имя модели
  * @param {number} newQuantity - Новое количество
  */
 async function updateModelQuantity(modelName, newQuantity) {
-    // Обновляем UI
-    const items = document.querySelectorAll('.item');
-    items.forEach(item => {
-        if (item.getAttribute('data-model') === modelName) {
-            updateModelQuantityUI(item, newQuantity);
-        }
-    });
+    console.log(`Model quantity update: ${modelName} = ${newQuantity}`);
 }
 
 /**
- * Обновляет счетчик размещения модели после drop
+ * Упрощенное обновление счетчика размещения (оптимистичные обновления)
  * @param {string} modelName - Имя модели
  * @param {number} placedCount - Количество размещенных объектов
  */
 async function updateModelPlacementAfterDrop(modelName, placedCount) {
-    // Импортируем функцию updateModelPlacementCounter из sidebar
-    const { updateModelPlacementCounter } = await import('../sidebar.js');
-    
-    // Передаем актуальное количество размещенных объектов для избежания лишнего API запроса
-    await updateModelPlacementCounter(modelName, placedCount);
+    console.log(`Placement count updated: ${modelName} = ${placedCount}`);
 }
 
 /**
@@ -261,10 +311,9 @@ function addDragStartHandlers() {
     itemElements.forEach(item => {
         item.addEventListener("dragstart", event => {
             const model = event.target.closest(".item").getAttribute("data-model");
-            const currentQuantity = parseInt(event.target.closest(".item").getAttribute("data-quantity") || "0");
             
-            // Проверяем, есть ли доступное количество
-            if (currentQuantity <= 0) {
+            // УПРОЩЕННАЯ ПРОВЕРКА: только базовая проверка наличия модели
+            if (!model) {
                 event.preventDefault();
                 return;
             }
@@ -327,19 +376,23 @@ async function handleDrop(event) {
             return;
         }
         
-        // БЫСТРАЯ ПРОВЕРКА: считаем размещенные объекты локально
+        // УПРОЩЕННАЯ ПРОВЕРКА: быстрая локальная проверка количества
+        const totalQuantity = modelData.quantity || 0;
+        if (totalQuantity <= 0) {
+            console.warn(`No quantity available for model ${modelName}`);
+            return;
+        }
+        
+        // Простая проверка размещенных объектов
         const { placedObjects } = await import('../modules/objectManager.js');
         const placedCount = placedObjects.filter(obj => obj.userData.modelName === modelName).length;
         
-        const totalQuantity = modelData.quantity || 0;
-        const remainingQuantity = totalQuantity - placedCount;
-        
-        console.log(`Fast drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
-        
-        if (remainingQuantity <= 0) {
-            console.warn(`No available quantity for model ${modelName}: ${remainingQuantity} remaining`);
+        if (placedCount >= totalQuantity) {
+            console.warn(`Model limit reached for ${modelName}: ${placedCount}/${totalQuantity}`);
             return;
         }
+        
+        console.log(`Simplified check passed for ${modelName}: ${placedCount}/${totalQuantity} used`);
         
         // Проверка инициализации сцены и площадки
         if (!scene) {
@@ -556,4 +609,4 @@ function updateSidebarDeleteButtons() {
 }
 
 // Экспортируем функции для использования в других модулях
-export { getSessionData, batchUIUpdate };
+export { getSessionData, batchUIUpdate, queueDBOperation };

@@ -238,8 +238,10 @@ export function generateObjectId() {
 export async function loadAndPlaceModel(modelName, position, isRestoring = false) {
     console.log("Попытка загрузки модели:", modelName, "в позицию:", position);
     
-    // Убираем optimistic update для добавления модели - обновление происходит через refreshAllModelCounters
-    // после успешного размещения, что исключает рассинхронизацию с БД
+    // OPTIMISTIC UPDATE: Мгновенно обновляем UI при размещении
+    if (!isRestoring) {
+        updateSidebarWithBatching(modelName, +1); // Увеличиваем счетчик размещенных объектов
+    }
     
     return new Promise((resolve, reject) => {
         try {
@@ -277,18 +279,14 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
+                    // Асинхронно обновляем БД, но не блокируем UI
                     updateSessionForNewObject(container, modelName)
-                        .then(async () => {
-                            // Обновляем счетчики в sidebar после успешного размещения кэшированной модели
-                            try {
-                                const { refreshAllModelCounters } = await import('../sidebar.js');
-                                await refreshAllModelCounters();
-                            } catch (error) {
-                                console.error('Error updating sidebar counters for cached model:', error);
-                            }
-                            resolve(container);
-                        })
-                        .catch(reject);
+                        .catch(error => {
+                            console.error('Error updating session for cached model, reverting UI:', error);
+                            // При ошибке откатываем optimistic update
+                            updateSidebarWithBatching(modelName, -1);
+                        });
+                    resolve(container);
                 } else {
                     resolve(container);
                 }
@@ -382,21 +380,14 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
 
                         // Обновляем сессию в базе данных только если это не восстановление
                         if (!isRestoring) {
+                            // Асинхронно обновляем БД, но не блокируем UI
                             updateSessionForNewObject(container, modelName)
-                                .then(async () => {
-                                    // Обновляем счетчики в sidebar после успешного размещения
-                                    try {
-                                        const { refreshAllModelCounters } = await import('../sidebar.js');
-                                        await refreshAllModelCounters();
-                                    } catch (error) {
-                                        console.error('Error updating sidebar counters:', error);
-                                    }
-                                    resolve(container);
-                                })
                                 .catch(error => {
-                                    console.error('Ошибка при обновлении сессии:', error);
-                                    reject(error);
+                                    console.error('Error updating session, reverting UI:', error);
+                                    // При ошибке откатываем optimistic update
+                                    updateSidebarWithBatching(modelName, -1);
                                 });
+                            resolve(container);
                         } else {
                             resolve(container);
                         }
@@ -425,28 +416,13 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
 }
 
 /**
- * Обновляет сессию в БД при добавлении нового объекта (оптимизированная версия)
+ * Обновляет сессию в БД при добавлении нового объекта (оптимизированная версия с батчингом)
  * @param {Object} container - Контейнер объекта
  * @param {string} modelName - Имя модели
  */
 async function updateSessionForNewObject(container, modelName) {
     try {
-        const userId = sessionStorage.getItem('userId');
-        if (!userId) {
-            console.error('No user ID found');
-            return;
-        }
-
-        // Получаем свежие данные сессии напрямую из API для надежности
-        let sessionData = null;
-        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-        if (!sessionResponse.ok) {
-            throw new Error('Failed to get session');
-        }
-        const { session } = await sessionResponse.json();
-        sessionData = session || { quantities: {}, placedObjects: [] };
-
-        // Добавляем информацию о новом объекте
+        // Подготавливаем данные объекта
         const objectData = {
             id: container.userData.id,
             modelName: modelName,
@@ -459,27 +435,14 @@ async function updateSessionForNewObject(container, modelName) {
             }
         };
 
-        sessionData.placedObjects.push(objectData);
+        // Используем батчинг для добавления операции в очередь
+        const { queueDBOperation } = await import('../ui/dragAndDrop.js');
+        queueDBOperation('add', modelName, objectData);
 
-        // Сохраняем обновленную сессию
-        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, sessionData }),
-        });
-
-        if (!saveResponse.ok) {
-            throw new Error('Failed to save session');
-        }
-
-        // Кэширование убрано - данные всегда актуальные
-
-        console.log('Session updated successfully for new object:', objectData);
+        console.log('Object queued for batch DB update:', objectData);
     } catch (error) {
-        console.error('Error updating session:', error);
-        throw error; // Пробрасываем ошибку для обработки в loadAndPlaceModel
+        console.error('Error queuing object for batch update:', error);
+        throw error;
     }
 }
 
@@ -493,8 +456,10 @@ export function removeObject(container, isMassRemoval = false) {
     
     const modelName = container.userData.modelName;
     
-    // Убираем optimistic update для удаления - обновление происходит через refreshAllModelCounters
-    // после успешного удаления, что исключает рассинхронизацию с БД
+    // OPTIMISTIC UPDATE: Мгновенно обновляем UI при удалении
+    if (!isMassRemoval) {
+        updateSidebarWithBatching(modelName, -1); // Уменьшаем счетчик размещенных объектов
+    }
     
     // Импортируем функцию удаления размеров динамически
     import('./dimensionDisplay/index.js').then(async module => {
@@ -546,11 +511,13 @@ export function removeObject(container, isMassRemoval = false) {
 
         // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных (только для одиночного удаления)
         if (!isMassRemoval) {
-            try {
-                await updateSessionForRemovedObject(container, isMassRemoval);
-            } catch (error) {
-                console.error('Ошибка при синхронизации с БД:', error);
-            }
+            // Асинхронно обновляем БД, но не блокируем UI
+            updateSessionForRemovedObject(container, isMassRemoval)
+                .catch(error => {
+                    console.error('Error updating session after removal, reverting UI:', error);
+                    // При ошибке откатываем optimistic update
+                    updateSidebarWithBatching(modelName, +1);
+                });
         } else {
             console.log('Массовое удаление: пропускаем API синхронизацию для объекта', container.userData.id);
         }
@@ -687,76 +654,28 @@ async function updateSessionForBatchRemoval(objectIds) {
 }
 
 /**
- * Обновляет сессию в БД при удалении объекта (оптимизированная версия)
+ * Обновляет сессию в БД при удалении объекта (оптимизированная версия с батчингом)
  * @param {Object} container - Контейнер объекта
  * @param {boolean} isMassRemoval - Флаг массового удаления
  */
 async function updateSessionForRemovedObject(container, isMassRemoval) {
     try {
-        const userId = sessionStorage.getItem('userId');
-        if (!userId) {
-            console.error('No user ID found');
-            return;
-        }
+        // Подготавливаем данные для удаления
+        const objectData = {
+            id: container.userData.id,
+            modelName: container.userData.modelName
+        };
 
-        // Получаем актуальные данные сессии
-        let sessionData = null;
-        try {
-            const { getSessionData } = await import('../ui/dragAndDrop.js');
-            sessionData = await getSessionData();
-        } catch (error) {
-            console.error('Error getting session data:', error);
-            throw new Error('Failed to get session data');
-        }
-
-        // Удаляем объект из массива placedObjects в сессии
-        const objectIndex = sessionData.placedObjects.findIndex(obj => obj.id === container.userData.id);
-        if (objectIndex !== -1) {
-            sessionData.placedObjects.splice(objectIndex, 1);
-        }
-
-        // Обновляем количество модели в quantities только если это не массовое удаление
+        // Используем батчинг для операций удаления (только для одиночных операций)
         if (!isMassRemoval) {
-            if (!sessionData.quantities) {
-                sessionData.quantities = {};
-            }
-            const modelName = container.userData.modelName;
-            const currentQuantity = sessionData.quantities[modelName] || 0;
-            sessionData.quantities[modelName] = currentQuantity + 1;
-            console.log(`Increased quantity for ${modelName} to ${currentQuantity + 1}`);
-
-            // Обновляем счетчик размещенных объектов в UI с передачей актуального количества
-            const placedCount = sessionData.placedObjects.filter(obj => obj.modelName === modelName).length;
-            updateModelPlacementCounter(modelName, placedCount);
-        }
-
-        // Сохраняем обновленную сессию
-        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, sessionData }),
-        });
-
-        if (!saveResponse.ok) {
-            throw new Error('Failed to save session');
-        }
-
-        // Обновляем счетчики в sidebar после успешного удаления (только если не массовое удаление)
-        if (!isMassRemoval) {
-            try {
-                const { refreshAllModelCounters } = await import('../sidebar.js');
-                await refreshAllModelCounters();
-            } catch (error) {
-                console.error('Error updating sidebar counters after removal:', error);
-            }
+            const { queueDBOperation } = await import('../ui/dragAndDrop.js');
+            queueDBOperation('remove', container.userData.modelName, objectData);
+            console.log('Object queued for batch removal:', objectData);
         } else {
-            console.log('Массовое удаление: пропускаем обновление sidebar для объекта', container.userData.id);
+            console.log('Массовое удаление: будет обработано через removeObjectsBatch для объекта', container.userData.id);
         }
-
-        console.log('Session updated successfully after removing object:', container.userData.id);
     } catch (error) {
-        console.error('Error updating session after object removal:', error);
+        console.error('Error queuing object for batch removal:', error);
+        throw error;
     }
 }
