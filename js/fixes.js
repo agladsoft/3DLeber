@@ -316,12 +316,26 @@ export async function restorePlacedObjects(session) {
 
         const { models: matchedModels } = await matchResponse.json();
         
+        // Получаем специальные модели (деревья, пальмы, кустарники, люди)
+        const specialResponse = await fetch(`${API_BASE_URL}/models/special-categories`);
+        const { models: specialModels } = specialResponse.ok ? await specialResponse.json() : { models: [] };
+        
         // Создаем набор доступных имен моделей для быстрой проверки
         const availableModelNames = new Set();
+        
+        // Добавляем обычные модели
         matchedModels.forEach(model => {
             const modelName = `${model.name}.glb`;
             availableModelNames.add(modelName);
         });
+        
+        // Добавляем специальные модели
+        specialModels.forEach(model => {
+            const modelName = `${model.name}.glb`;
+            availableModelNames.add(modelName);
+        });
+        
+        console.log('Available models for restoration:', Array.from(availableModelNames));
                 
         // Импортируем необходимые модули
         const objectManager = await import('./modules/objectManager.js');
@@ -360,6 +374,17 @@ export async function restorePlacedObjects(session) {
                     lastPlacedObject.userData.realWidth = parseFloat(objectData.dimensions.width);
                     lastPlacedObject.userData.realHeight = parseFloat(objectData.dimensions.height);
                     lastPlacedObject.userData.realDepth = parseFloat(objectData.dimensions.depth);
+                }
+                
+                // ВАЖНО: сохраняем исходный ID объекта, чтобы при последующих
+                // обновлениях позиции/поворота в существующей сессии данные
+                // в базе перезаписывались, а не добавлялись как новые записи
+                lastPlacedObject.userData.id = objectData.id;
+                
+                // Также обновляем имя контейнера (используется в логах/отладке)
+                // чтобы он соответствовал исходному ID
+                if (lastPlacedObject.name) {
+                    lastPlacedObject.name = `${objectData.modelName}_${objectData.id}`;
                 }
             }
         }

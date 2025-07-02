@@ -311,6 +311,10 @@ async function handleDrop(event) {
         // Получаем article из data transfer (если есть) или из модели
         const article = event.dataTransfer.getData("article");
         
+        // Проверяем, является ли модель специальной (из sidebar)
+        const modelElement = document.querySelector(`[data-model="${modelName}"]`);
+        const isSpecialModel = modelElement && modelElement.hasAttribute('data-special');
+        
         // Находим модель по имени или артикулу
         let modelData = null;
         if (article) {
@@ -319,6 +323,17 @@ async function handleDrop(event) {
             // Fallback: ищем по имени модели (без .glb)
             const modelNameWithoutExt = modelName.replace('.glb', '');
             modelData = modelsData.find(m => m.name === modelNameWithoutExt);
+        }
+        
+        // Для специальных моделей создаем временные данные если их нет в sessionStorage
+        if (!modelData && isSpecialModel) {
+            console.log(`Special model detected: ${modelName}, skipping sessionStorage check`);
+            modelData = {
+                name: modelName.replace('.glb', ''),
+                article: article || 'SPECIAL',
+                quantity: Infinity,
+                isSpecial: true
+            };
         }
         
         if (!modelData) {
@@ -333,9 +348,10 @@ async function handleDrop(event) {
         const totalQuantity = modelData.quantity || 0;
         const remainingQuantity = totalQuantity - placedCount;
         
-        console.log(`Fast drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
+        console.log(`Fast drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}, isSpecial=${isSpecialModel}`);
         
-        if (remainingQuantity <= 0) {
+        // Пропускаем проверку количества для специальных моделей
+        if (!isSpecialModel && remainingQuantity <= 0) {
             console.warn(`No available quantity for model ${modelName}: ${remainingQuantity} remaining`);
             return;
         }
