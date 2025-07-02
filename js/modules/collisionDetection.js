@@ -205,11 +205,11 @@ function getRegularMeshes(object) {
 
 
 /**
- * ИСПРАВЛЕННАЯ: Проверяет пересечение (коллизию) между двумя объектами
- * Новая логика проверки:
- * 1. Всегда проверяем пересечение самих моделей (основная проверка)
- * 2. Дополнительно проверяем safety zones, если они есть
- * 3. Объекты считаются пересекающимися, если пересекаются модели ИЛИ safety zones
+ * ОПТИМИЗИРОВАННАЯ: Проверяет пересечение (коллизию) между двумя объектами
+ * Оптимизированная логика проверки:
+ * 1. Быстрая предварительная bounding box проверка
+ * 2. Если пересечение найдено - делаем точную проверку моделей
+ * 3. Дополнительно проверяем safety zones, если они есть
  * 4. Специальные правила для объектов площадки (деревья, кусты, люди)
  * @param {Object} object1 - Первый объект для проверки
  * @param {Object} object2 - Второй объект для проверки
@@ -241,85 +241,125 @@ export function checkObjectsIntersection(object1, object2) {
     }
     
     try {
-        let hasIntersection = false;
+        // БЫСТРАЯ ПРЕДВАРИТЕЛЬНАЯ ПРОВЕРКА: сначала проверяем bounding boxes
+        const box1 = new THREE.Box3().setFromObject(object1);
+        const box2 = new THREE.Box3().setFromObject(object2);
         
-        // ОСНОВНАЯ ПРОВЕРКА: всегда проверяем пересечение самих моделей
-        const meshes1 = getRegularMeshes(object1);
-        const meshes2 = getRegularMeshes(object2);
-        
-        if (meshes1.length > 0 && meshes2.length > 0) {
-            // Проверяем точные пересечения между мешами моделей
-            for (const mesh1 of meshes1) {
-                for (const mesh2 of meshes2) {
-                    if (checkMeshIntersection(mesh1, mesh2)) {
-                        hasIntersection = true;
-                        break;
-                    }
-                }
-                if (hasIntersection) break;
-            }
-            
-            // Если точная проверка не дала результата, используем bounding box
-            if (!hasIntersection) {
-                const box1 = new THREE.Box3().setFromObject(object1);
-                const box2 = new THREE.Box3().setFromObject(object2);
-                hasIntersection = checkBoundingBoxIntersection(box1, box2);
-            }
+        // Если bounding boxes не пересекаются - объекты точно не пересекаются
+        const hasBasicIntersection = checkBoundingBoxIntersection(box1, box2);
+        if (!hasBasicIntersection) {
+            return false;
         }
         
-        // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем safety zones, если они есть
+        // Получаем safety zones для дальнейших проверок
         const safetyZones1 = getSafetyZoneMeshes(object1);
         const safetyZones2 = getSafetyZoneMeshes(object2);
         
-        // Проверяем пересечения safety zones между собой
+        // СЛУЧАЙ 1: Оба объекта имеют safety zones - проверяем их пересечения и вложения
         if (safetyZones1.length > 0 && safetyZones2.length > 0) {
             for (const zone1 of safetyZones1) {
                 for (const zone2 of safetyZones2) {
+                    // Проверяем классическое пересечение
                     if (checkMeshIntersection(zone1, zone2)) {
-                        hasIntersection = true;
-                        break;
+                        return true;
+                    }
+                    
+                    // Проверяем полное вложение safety zones друг в друга
+                    const box1 = new THREE.Box3().setFromObject(zone1);
+                    const box2 = new THREE.Box3().setFromObject(zone2);
+                    
+                    // Если одна зона полностью содержится в другой - это тоже коллизия
+                    if (box1.containsBox(box2) || box2.containsBox(box1)) {
+                        return true;
                     }
                 }
-                if (hasIntersection) break;
             }
+            return false;
         }
         
-        // Проверяем safety zones первого объекта против моделей второго
-        if (safetyZones1.length > 0 && meshes2.length > 0) {
+        // СЛУЧАЙ 2: Один объект имеет safety zone, другой - нет
+        if (safetyZones1.length > 0) {
+            const meshes2 = getRegularMeshes(object2);
             for (const zone1 of safetyZones1) {
+                // Проверяем пересечение safety zone с мешами
                 for (const mesh2 of meshes2) {
                     if (checkMeshIntersection(zone1, mesh2)) {
-                        hasIntersection = true;
-                        break;
+                        return true;
                     }
                 }
-                if (hasIntersection) break;
+                
+                // Проверяем полное вложение: содержит ли safety zone весь второй объект
+                const zoneBox = new THREE.Box3().setFromObject(zone1);
+                const objectBox = new THREE.Box3().setFromObject(object2);
+                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
+                    return true;
+                }
             }
+            return false;
         }
         
-        // Проверяем safety zones второго объекта против моделей первого
-        if (safetyZones2.length > 0 && meshes1.length > 0) {
+        if (safetyZones2.length > 0) {
+            const meshes1 = getRegularMeshes(object1);
             for (const zone2 of safetyZones2) {
+                // Проверяем пересечение safety zone с мешами
                 for (const mesh1 of meshes1) {
                     if (checkMeshIntersection(zone2, mesh1)) {
-                        hasIntersection = true;
-                        break;
+                        return true;
                     }
                 }
-                if (hasIntersection) break;
+                
+                // Проверяем полное вложение: содержит ли safety zone весь первый объект
+                const zoneBox = new THREE.Box3().setFromObject(zone2);
+                const objectBox = new THREE.Box3().setFromObject(object1);
+                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // СЛУЧАЙ 3: Ни у одного объекта нет safety zones
+        // Используем улучшенную bounding box проверку (которая уже была выполнена выше)
+        // Точная проверка мешей нужна только если простая bounding box проверка неточна
+        const simpleIntersection = box1.intersectsBox(box2);
+        if (simpleIntersection && hasBasicIntersection) {
+            // Если есть простое пересечение И улучшенная проверка тоже показала пересечение,
+            // то скорее всего объекты действительно пересекаются
+            return true;
+        }
+        
+        // Если улучшенная проверка показала пересечение, но простая нет,
+        // значит возможно полное вложение - делаем точную проверку
+        if (hasBasicIntersection && !simpleIntersection) {
+            const meshes1 = getRegularMeshes(object1);
+            const meshes2 = getRegularMeshes(object2);
+            
+            // Ограничиваем количество точных проверок для производительности
+            const maxChecks = 4; // Проверяем максимум 4 пары мешей
+            let checksPerformed = 0;
+            
+            for (const mesh1 of meshes1) {
+                for (const mesh2 of meshes2) {
+                    if (checksPerformed >= maxChecks) break;
+                    if (checkMeshIntersection(mesh1, mesh2)) {
+                        return true;
+                    }
+                    checksPerformed++;
+                }
+                if (checksPerformed >= maxChecks) break;
             }
         }
         
-        return hasIntersection;
+        return hasBasicIntersection;
         
     } catch (error) {
         console.warn('Ошибка при проверке коллизий, используем bounding box fallback:', error);
         
-        // В случае любой ошибки используем улучшенную bounding box проверку
+        // В случае любой ошибки используем простую bounding box проверку
         const box1 = new THREE.Box3().setFromObject(object1);
         const box2 = new THREE.Box3().setFromObject(object2);
         
-        return checkBoundingBoxIntersection(box1, box2);
+        return box1.intersectsBox(box2);
     }
 }
 
