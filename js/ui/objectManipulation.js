@@ -288,6 +288,9 @@ function prepareObjectForManipulation(object, event) {
     if (event.button === 0) {
         setDraggingState(true);
         
+        // Помечаем объект как перемещаемый для оптимизации коллизий
+        object.userData.isBeingMoved = true;
+        
         // Показываем кнопку удаления при начале перетаскивания
         showDeleteButtonForObject(object, event);
         
@@ -381,10 +384,10 @@ function handleObjectDragging(event) {
             z: intersectionPoint.z.toFixed(2)
         };
 
-        // Обновляем сессию в базе данных
-        updateSessionInDatabase(selectedObject);
-
-        // Проверяем на коллизии с другими объектами
+        // Не обновляем сессию при каждом движении - только при завершении
+        // Это существенно ускоряет перемещение
+        
+        // Легкая проверка коллизий только с текущим объектом
         checkAndHighlightObject(selectedObject);
         
         // Обновляем положение размеров ТОЛЬКО если не скрыты
@@ -418,8 +421,7 @@ function handleObjectRotation(event) {
         z: selectedObject.position.z.toFixed(2)
     };
     
-    // Обновляем сессию в базе данных
-    updateSessionInDatabase(selectedObject);
+    // Не обновляем сессию при каждом вращении - только при завершении
     
     // Проверяем на коллизии после вращения
     checkAndHighlightObject(selectedObject);
@@ -443,13 +445,16 @@ function finishObjectManipulation() {
         controls.enabled = true;
     }
     
-    // Проверяем все объекты на коллизии
-    checkAllObjectsPositions();
+    // Легкая проверка коллизий вместо полной перепроверки всех объектов
+    // checkAllObjectsPositions(); // Отключаем для производительности
     
     // Логируем финальные координаты после завершения манипуляций
     if (selectedObject) {
-        // Обновляем сессию в базе данных с финальными координатами
+        // Обновляем сессию в базе данных с финальными координатами (только при завершении)
         updateSessionInDatabase(selectedObject);
+        
+        // Полная проверка коллизий только при завершении перемещения
+        checkAllObjectsPositions();
         
         console.log(`Завершение манипуляций с моделью ${selectedObject.userData.modelName}:`, {
             id: selectedObject.userData.id,
@@ -461,7 +466,10 @@ function finishObjectManipulation() {
     // Сообщаем контроллеру вида сверху, что закончили перемещать объект
     setObjectDraggingState(false);
     
-    // Сбрасываем флаги
+    // Сбрасываем флаги и очищаем объект
+    if (selectedObject && selectedObject.userData) {
+        selectedObject.userData.isBeingMoved = false;
+    }
     setDraggingState(false);
     setRotatingState(false);
     

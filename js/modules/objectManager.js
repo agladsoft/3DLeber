@@ -278,14 +278,9 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
                     updateSessionForNewObject(container, modelName)
-                        .then(async () => {
-                            // Обновляем счетчики в sidebar после успешного размещения кэшированной модели
-                            try {
-                                const { refreshAllModelCounters } = await import('../sidebar.js');
-                                await refreshAllModelCounters();
-                            } catch (error) {
-                                console.error('Error updating sidebar counters for cached model:', error);
-                            }
+                        .then(() => {
+                            // Не вызываем refreshAllModelCounters - UI уже обновлен optimistically в dragAndDrop.js
+                            // Это значительно ускоряет процесс размещения
                             resolve(container);
                         })
                         .catch(reject);
@@ -383,14 +378,9 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         // Обновляем сессию в базе данных только если это не восстановление
                         if (!isRestoring) {
                             updateSessionForNewObject(container, modelName)
-                                .then(async () => {
-                                    // Обновляем счетчики в sidebar после успешного размещения
-                                    try {
-                                        const { refreshAllModelCounters } = await import('../sidebar.js');
-                                        await refreshAllModelCounters();
-                                    } catch (error) {
-                                        console.error('Error updating sidebar counters:', error);
-                                    }
+                                .then(() => {
+                                    // Не вызываем refreshAllModelCounters - UI уже обновлен optimistically в dragAndDrop.js
+                                    // Это значительно ускоряет процесс размещения
                                     resolve(container);
                                 })
                                 .catch(error => {
@@ -743,15 +733,9 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             throw new Error('Failed to save session');
         }
 
-        // Обновляем счетчики в sidebar после успешного удаления (только если не массовое удаление)
-        if (!isMassRemoval) {
-            try {
-                const { refreshAllModelCounters } = await import('../sidebar.js');
-                await refreshAllModelCounters();
-            } catch (error) {
-                console.error('Error updating sidebar counters after removal:', error);
-            }
-        } else {
+        // Для одиночного удаления не обновляем счетчики массово - используется optimistic update
+        // Это значительно ускоряет удаление объектов
+        if (isMassRemoval) {
             console.log('Массовое удаление: пропускаем обновление sidebar для объекта', container.userData.id);
         }
 

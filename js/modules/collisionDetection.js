@@ -11,6 +11,59 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
+// Кэш для оптимизации проверки коллизий при активном перемещении
+let lastCheckedObject = null;
+let lastCheckTime = 0;
+const CHECK_THROTTLE = 50; // мс между проверками
+
+/**
+ * Быстрая проверка коллизий только для движущегося объекта (оптимизированная)
+ * @param {Object} object - Объект для проверки
+ * @returns {Boolean} Результат проверки (true - коллизий нет, false - есть коллизии)
+ */
+export function checkAndHighlightObjectFast(object) {
+    if (!object) return true;
+    
+    // Throttling для производительности при активном перемещении
+    const now = Date.now();
+    if (object === lastCheckedObject && now - lastCheckTime < CHECK_THROTTLE) {
+        return true; // Возвращаем последний результат
+    }
+    
+    lastCheckedObject = object;
+    lastCheckTime = now;
+    
+    // Проверяем только близлежащие объекты (в радиусе 8 метров)
+    const objectBounds = getObjectBounds(object);
+    let hasCollision = false;
+    
+    for (let otherObject of placedObjects) {
+        if (otherObject === object) continue;
+        
+        const otherBounds = getObjectBounds(otherObject);
+        const distance = objectBounds.center.distanceTo(otherBounds.center);
+        
+        // Проверяем только близкие объекты для производительности
+        if (distance < 8) {
+            if (checkObjectsIntersection(object, otherObject)) {
+                hasCollision = true;
+                highlightObjectCollision(object, true);
+                highlightObjectCollision(otherObject, true);
+                break; // Прерываем при первой коллизии
+            }
+        }
+    }
+    
+    if (!hasCollision) {
+        highlightObjectCollision(object, false);
+    }
+    
+    // Проверяем границы площадки
+    highlightPlaygroundBoundary(object, true);
+    
+    return !hasCollision;
+}
+
 /**
  * Получает границы объекта для проверки позиционирования
  * @param {Object} object - Объект для проверки границ
@@ -389,7 +442,12 @@ function applyObjectHighlight(object) {
 export function checkAndHighlightObject(object) {
     if (!object) return true;
     
-    // Проверяем коллизии с другими объектами
+    // Используем быструю проверку во время активного перемещения
+    if (object.userData && object.userData.isBeingMoved) {
+        return checkAndHighlightObjectFast(object);
+    }
+    
+    // Полная проверка коллизий для статичных объектов
     let hasCollision = false;
     let collidingObjects = [];
     

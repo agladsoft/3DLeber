@@ -277,6 +277,9 @@ function addDragStartHandlers() {
     });
 }
 
+// Импортируем оптимизированный preloader
+import { showModelPreloader, hideModelPreloader } from '../utils/modelPreloader.js';
+
 /**
  * Обрабатывает событие drop для размещения модели
  * @param {DragEvent} event - Событие drop
@@ -294,6 +297,9 @@ async function handleDrop(event) {
     
     // Устанавливаем флаг обработки для конкретной модели
     processingModels.set(modelName, true);
+    
+    // Показываем preloader сразу при начале загрузки
+    showModelPreloader(modelName);
     
     try {
         console.log("Model name from event:", modelName);
@@ -380,20 +386,36 @@ async function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
-        // Загружаем модель (UI уже обновлен мгновенно в objectManager)
+        // Оптимистичное обновление UI (мгновенно уменьшаем счетчик)
+        try {
+            updateSidebarInstantly(modelName, -1);
+        } catch (uiError) {
+            console.warn('Failed to update UI optimistically:', uiError);
+        }
+        
+        // Загружаем модель
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
-            console.log("Model loaded successfully with optimistic UI updates");
+            console.log("Model loaded successfully");
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
-            // UI автоматически откатится в objectManager при ошибке
+            
+            // Откатываем UI при ошибке
+            try {
+                updateSidebarInstantly(modelName, +1);
+            } catch (rollbackError) {
+                console.warn('Failed to rollback UI:', rollbackError);
+            }
         }
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
     } finally {
+        // Скрываем preloader
+        hideModelPreloader(modelName);
+        
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
     }

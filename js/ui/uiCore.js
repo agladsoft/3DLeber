@@ -164,8 +164,8 @@ async function handleArrowKeyMovement(event) {
         z: selectedObject.position.z.toFixed(2)
     };
     
-    // Проверяем коллизии с другими объектами
-    const { checkAndHighlightObject, checkAllObjectsPositions } = await import('../objects.js');
+    // Легкая проверка коллизий (без полной перепроверки)
+    const { checkAndHighlightObject } = await import('../objects.js');
     checkAndHighlightObject(selectedObject);
     
     // Обновляем размеры если они показаны
@@ -263,13 +263,8 @@ async function updateSessionInDatabase(object) {
             throw new Error('Failed to save session');
         }
 
-        // Обновляем счетчики в sidebar после обновления сессии
-        try {
-            const { refreshAllModelCounters } = await import('../sidebar.js');
-            await refreshAllModelCounters();
-        } catch (error) {
-            console.error('Error updating sidebar counters after position change:', error);
-        }
+        // Не обновляем счетчики при клавиатурном перемещении - избыточно
+        // Это значительно ускоряет отклик на клавиши
 
         console.log('Session updated successfully for keyboard movement:', objectData);
     } catch (error) {
