@@ -210,28 +210,33 @@ app.get('/api/validate-token', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
-        
+        const hostname = 'leber.ru';
+        const path = `/api/v2/project/builder/validate?token=${token}`;
+
+        console.log('🔍 Proxy token validation attempt:');
+        console.log('URL:', `https://${hostname}${path}`);
+
         const options = {
             hostname: hostname,
             port: 443,
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Cookie': 'redesign=always'
             }
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
             let data = '';
-            
+
+            console.log('📡 Proxy response received:');
+            console.log('Status Code:', httpsRes.statusCode);
+            console.log('Headers:', httpsRes.headers);
+
             httpsRes.on('data', (chunk) => {
                 data += chunk;
             });
-            
+
             httpsRes.on('end', () => {
                 // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 if (httpsRes.statusCode === 200 || httpsRes.statusCode === 204) {
@@ -270,7 +275,7 @@ app.get('/api/validate-token', async (req, res) => {
 app.post('/api/launch', async (req, res) => {
     try {
         const { token, project_id, models } = req.body;
-        
+
         if (!token || !project_id || !models) {
             return res.status(400).json({ error: 'Token, project_id and models are required' });
         }
@@ -289,7 +294,7 @@ app.post('/api/launch', async (req, res) => {
             isTokenValid = await validateTokenInternal(token);
             console.log('Token validation result:', isTokenValid);
         }
-        
+
         if (!isTokenValid) {
             return res.status(401).json({ error: 'Invalid token' });
         }
@@ -298,7 +303,7 @@ app.post('/api/launch', async (req, res) => {
 
         // Создаем уникальный sessionId для этого запуска
         const sessionId = generateSessionId();
-        
+
         // Сохраняем данные в временное хранилище (можно использовать Redis или просто память)
         const sessionData = {
             project_id,
@@ -307,23 +312,23 @@ app.post('/api/launch', async (req, res) => {
             lastAccessed: new Date().toISOString(),
             validated: true
         };
-        
+
         // Сохраняем в память (для продакшена лучше использовать Redis)
         if (!global.sessionStore) {
             global.sessionStore = new Map();
         }
-        
+
         global.sessionStore.set(sessionId, sessionData);
         // Устанавливаем начальный таймаут (скользящий)
         updateSessionTimeout(sessionId, sessionData);
 
         // Возвращаем ссылку для редиректа
-        const redirectUrl = `https://${SERVER_NAME}?sessionId=${sessionId}`;
-        
-        res.json({ 
-            success: true, 
+        const redirectUrl = `http://${SERVER_NAME}?sessionId=${sessionId}`;
+
+        res.json({
+            success: true,
             redirectUrl,
-            sessionId 
+            sessionId
         });
 
     } catch (error) {
@@ -335,42 +340,45 @@ app.post('/api/launch', async (req, res) => {
 // Функция для валидации токена (внутренняя)
 async function validateTokenInternal(token) {
     return new Promise((resolve) => {
-        const credentials = Buffer.from('leber:leber').toString('base64');
-        const hostname = 'inertia.leber.click';
-        const path = `/api/v2/project/builder/validate?token=${encodeURIComponent(token)}`;
-        
+        const hostname = 'leber.ru';
+        const path = `/api/v2/project/builder/validate?token=${token}`;
+
+        console.log('🔍 Token validation attempt:');
+        console.log('URL:', `https://${hostname}${path}`);
+
         const options = {
             hostname: hostname,
             port: 443,
             path: path,
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Authorization': `Basic ${credentials}`
+                'Cookie': 'redesign=always'
             }
         };
 
         const httpsReq = https.request(options, (httpsRes) => {
             let data = '';
-            
+
             httpsRes.on('data', (chunk) => {
                 data += chunk;
             });
-            
+
             httpsRes.on('end', () => {
-                // Принимаем 200 (OK) и 204 (No Content) как успешную валидаци
+                // Принимаем 200 (OK) и 204 (No Content) как успешную валидацию
                 const isValid = httpsRes.statusCode === 200 || httpsRes.statusCode === 204;
+                console.log('✅ Token validation result:', isValid);
+
                 resolve(isValid);
             });
         });
 
         httpsReq.on('error', (error) => {
-            console.error('Token validation error:', error);
+            console.error('❌ Token validation error:', error);
             resolve(false);
         });
 
         httpsReq.setTimeout(10000, () => {
-            console.error('Token validation timeout');
+            console.error('⏰ Token validation timeout');
             httpsReq.destroy();
             resolve(false);
         });
@@ -394,32 +402,32 @@ function updateSessionTimeout(sessionId, sessionData) {
     if (sessionData.timeoutId) {
         clearTimeout(sessionData.timeoutId);
     }
-    
+
     // Устанавливаем новый таймаут (4 часа с момента последнего доступа)
     const timeoutMs = 14400000; // 4 часа в миллисекундах
     const timeoutHours = timeoutMs / (1000 * 60 * 60); // Конвертируем в часы для логов
-    
+
     sessionData.timeoutId = setTimeout(() => {
         if (global.sessionStore && global.sessionStore.has(sessionId)) {
             global.sessionStore.delete(sessionId);
             console.log(`Session expired and deleted: ${sessionId} (after ${timeoutHours} hours)`);
         }
     }, timeoutMs);
-    
+
     console.log(`Session timeout updated for ${sessionId}: expires in ${timeoutHours} hours`);
 }
 
 // Debug endpoint для просмотра всех активных сессий (только для разработки)
 app.get('/api/debug/sessions', (req, res) => {
     const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-    
+
     if (!isDevelopment) {
         return res.status(403).json({ error: 'Debug endpoint only available in development' });
     }
-    
+
     const sessions = global.sessionStore ? Array.from(global.sessionStore.entries()) : [];
     const sessionTimeoutHours = 14400000 / (1000 * 60 * 60); // 4 часа
-    
+
     res.json({
         count: sessions.length,
         sessionTimeoutHours: sessionTimeoutHours,
@@ -440,20 +448,20 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         if (global.sessionStore) {
             console.log('Available sessions:', Array.from(global.sessionStore.keys()));
         }
-        
+
         if (!global.sessionStore || !global.sessionStore.has(sessionId)) {
             console.log('Session not found in store');
             return res.status(404).json({ error: 'Session not found or expired' });
         }
-        
+
         const sessionData = global.sessionStore.get(sessionId);
-        
+
         // Обновляем время последнего доступа и продлеваем сессию
         sessionData.lastAccessed = new Date().toISOString();
         updateSessionTimeout(sessionId, sessionData);
         global.sessionStore.set(sessionId, sessionData);
         console.log(`Session accessed: ${sessionId}, timeout extended`);
-        
+
         // Создаем копию данных без timeoutId для отправки клиенту
         const responseData = {
             project_id: sessionData.project_id,
@@ -462,7 +470,7 @@ app.get('/api/session-data/:sessionId', (req, res) => {
             lastAccessed: sessionData.lastAccessed,
             validated: sessionData.validated
         };
-        
+
         res.json(responseData);
     } catch (error) {
         console.error('Error getting session data:', error);
@@ -474,24 +482,24 @@ app.get('/api/session-data/:sessionId', (req, res) => {
 app.get('/api/session/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Проверяем кэш
         const cachedSession = getCachedSession(userId);
         if (cachedSession) {
             res.json({ session: cachedSession });
             return;
         }
-        
+
         const sessionData = await getSession(userId);
-        
+
         if (!sessionData) {
             res.json({ session: null });
             return;
         }
-        
+
         // Кэшируем результат
         setCachedSession(userId, sessionData);
-        
+
         res.json({ session: sessionData });
     } catch (err) {
         console.error('Error fetching session:', err);
@@ -506,12 +514,12 @@ app.post('/api/session', async (req, res) => {
         if (!userId || !sessionData) {
             return res.status(400).json({ error: 'userId and sessionData are required' });
         }
-        
+
         await saveSession(userId, sessionData);
-        
+
         // Инвалидируем кэш после сохранения
         invalidateCachedSession(userId);
-        
+
         res.json({ success: true });
     } catch (err) {
         console.error('Error saving session:', err);
@@ -532,10 +540,10 @@ app.delete('/api/session/:userId', async (req, res) => {
             WHERE project_id = (SELECT id FROM projects WHERE project_id = $1)
         `;
         await pool.query(query, [userId]);
-        
+
         // Инвалидируем кэш после удаления
         invalidateCachedSession(userId);
-        
+
         res.json({ success: true });
     } catch (err) {
         console.error('Error deleting session:', err);
@@ -547,43 +555,43 @@ app.delete('/api/session/:userId', async (req, res) => {
 app.get('/api/missing-models/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Получаем модели из sessionStorage (переданы в запросе)
         const requestedModels = JSON.parse(req.query.models || '[]');
-        
+
         if (!Array.isArray(requestedModels)) {
             return res.status(400).json({ error: 'Invalid models data' });
         }
-                
+
         // Получаем список файлов из папки models
         const filesInFolder = collectGlbModels(modelsDir);
         const fileNamesInFolder = filesInFolder.map(file => path.basename(file));
-        
+
         // Получаем все модели из базы данных
         const allDbModels = await pool.query('SELECT name, article FROM models');
-        
+
         // Находим отсутствующие модели
         const missingModels = [];
-        
-        for (const requestedModel of requestedModels) {            
+
+        for (const requestedModel of requestedModels) {
             // Попробуем найти модель в БД по артикулу
             const dbModel = allDbModels.rows.find(dbModel => dbModel.article === requestedModel.article);
             const modelName = dbModel ? dbModel.name : null;
-            
+
             // Создаем имя файла для поиска
             const possibleFileNames = [
                 `${requestedModel.article}.glb`,
                 modelName ? `${modelName}.glb` : null
             ].filter(Boolean);
-                        
+
             // Проверяем наличие в папке
-            const existsInFolder = possibleFileNames.some(fileName => 
+            const existsInFolder = possibleFileNames.some(fileName =>
                 fileNamesInFolder.includes(fileName)
             );
-            
+
             // Проверяем наличие в базе данных
             const existsInDb = dbModel !== undefined;
-                        
+
             if (!existsInFolder || !existsInDb) {
                 missingModels.push({
                     article: requestedModel.article,
@@ -593,10 +601,10 @@ app.get('/api/missing-models/:userId', async (req, res) => {
                 });
             }
         }
-        
+
         console.log('Missing models result:', missingModels);
-        
-        res.json({ 
+
+        res.json({
             missingModels,
             stats: {
                 total: requestedModels.length,
@@ -614,23 +622,23 @@ app.get('/api/missing-models/:userId', async (req, res) => {
 app.post('/api/send-missing-models-report', async (req, res) => {
     try {
         const { userId, missingModels, stats, userEmail, projectInfo } = req.body;
-        
+
         if (!missingModels || !Array.isArray(missingModels)) {
             return res.status(400).json({ error: 'Missing models data is required' });
         }
-        
+
         const jsonData = createMissingModelsJson(missingModels, stats, userId, projectInfo, userEmail);
         const emailResult = await sendEmailWithJson(jsonData, userId, stats, userEmail);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'Отчет успешно отправлен администрации',
             development: emailResult.development || false
         });
-        
+
     } catch (error) {
         console.error('Error sending missing models report:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Ошибка при отправке отчета',
             details: error.message
         });
@@ -675,9 +683,9 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
  * Отправляет email с JSON отчетом (используя рабочую конфигурацию из test-email-sending.js)
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
+    const isDevelopment = process.env.NODE_ENV === 'development' ||
                          process.env.NODE_ENV !== 'production';
-    
+
     if (isDevelopment) {
         return { messageId: 'dev-mode-' + Date.now(), development: true };
     }
@@ -708,16 +716,16 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
                 <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
                 <p><strong>ID проекта:</strong> ${userId || 'Не указан'}</p>
                 ${userEmail ? `<p><strong>Email пользователя:</strong> ${userEmail}</p>` : ''}
-                
+
                 <h3>📈 Статистика:</h3>
                 <ul>
                     <li>Всего моделей: <strong>${stats?.total || 0}</strong></li>
                     <li>Найдено: <strong style="color: green;">${stats?.found || 0}</strong></li>
                     <li>Отсутствует: <strong style="color: red;">${stats?.missing || 0}</strong></li>
                 </ul>
-                
+
                 <p>Подробная информация об отсутствующих моделях во вложенном JSON файле.</p>
-                
+
                 <hr>
                 <p><small>Это автоматически сгенерированное сообщение из системы Leber 3D Constructor</small></p>
             `,
@@ -731,12 +739,12 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        
+
         console.log('✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО!');
         console.log('Message ID:', info.messageId);
         console.log('Response:', info.response);
         console.log('Получатель: uventus_work@mail.ru');
-        
+
         return info;
 
     } catch (error) {
