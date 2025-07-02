@@ -33,8 +33,67 @@ import * as THREE from 'three';
 import { showModelDimensions, updateModelDimensions } from '../modules/dimensionDisplay/index.js';
 import { API_BASE_URL } from '../api/serverConfig.js'
 
+// Дебаунсинг для обновления сессии - избегаем частых API вызовов
+let sessionUpdateTimeout = null;
+
+// Дебаунсинг для обновления размеров - избегаем частых DOM операций
+let dimensionUpdateTimeout = null;
+
+// Дебаунсинг для обновления позиции кнопки удаления
+let deleteButtonUpdateTimeout = null;
+
 /**
- * Обновляет сессию в базе данных
+ * Дебаунсированное обновление сессии в базе данных (оптимизировано для перемещения)
+ * @param {Object} object - Объект, который был изменен
+ */
+function debouncedUpdateSessionInDatabase(object) {
+    // Очищаем предыдущий таймер
+    if (sessionUpdateTimeout) {
+        clearTimeout(sessionUpdateTimeout);
+    }
+    
+    // Устанавливаем новый таймер на 300мс
+    sessionUpdateTimeout = setTimeout(() => {
+        updateSessionInDatabase(object);
+    }, 300);
+}
+
+/**
+ * Дебаунсированное обновление размеров модели (оптимизировано для перемещения)
+ * @param {Object} object - Объект для обновления размеров
+ */
+function debouncedUpdateModelDimensions(object) {
+    // Очищаем предыдущий таймер
+    if (dimensionUpdateTimeout) {
+        clearTimeout(dimensionUpdateTimeout);
+    }
+    
+    // Устанавливаем новый таймер на 100мс (быстрее для визуального отклика)
+    dimensionUpdateTimeout = setTimeout(() => {
+        if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+            updateModelDimensions(object);
+        }
+    }, 100);
+}
+
+/**
+ * Дебаунсированное обновление позиции кнопки удаления
+ * @param {Object} object - Объект для которого обновляется кнопка
+ */
+function debouncedUpdateDeleteButtonPosition(object) {
+    // Очищаем предыдущий таймер
+    if (deleteButtonUpdateTimeout) {
+        clearTimeout(deleteButtonUpdateTimeout);
+    }
+    
+    // Устанавливаем новый таймер на 50мс (очень быстро для плавности)
+    deleteButtonUpdateTimeout = setTimeout(() => {
+        updateDeleteButtonPosition(object);
+    }, 50);
+}
+
+/**
+ * Обновляет сессию в базе данных (только для финального сохранения)
  * @param {Object} object - Объект, который был изменен
  */
 async function updateSessionInDatabase(object) {
@@ -89,13 +148,7 @@ async function updateSessionInDatabase(object) {
             throw new Error('Failed to save session');
         }
 
-        // Обновляем счетчики в sidebar после обновления позиции объекта
-        try {
-            const { refreshAllModelCounters } = await import('../sidebar.js');
-            await refreshAllModelCounters();
-        } catch (error) {
-            console.error('Error updating sidebar counters after position change:', error);
-        }
+        console.log('Session updated successfully for object:', object.userData.id);
     } catch (error) {
         console.error('Error updating session:', error);
     }
@@ -381,22 +434,19 @@ function handleObjectDragging(event) {
             z: intersectionPoint.z.toFixed(2)
         };
 
-        // Обновляем сессию в базе данных
-        updateSessionInDatabase(selectedObject);
+        // ОПТИМИЗАЦИЯ: Дебаунсированное обновление БД вместо каждого движения мыши
+        debouncedUpdateSessionInDatabase(selectedObject);
 
-        // Проверяем на коллизии с другими объектами
-        checkAndHighlightObject(selectedObject);
+        // ОПТИМИЗАЦИЯ: Не проверяем коллизии на каждом движении - только при завершении
+        // checkAndHighlightObject(selectedObject);
         
-        // Обновляем положение размеров ТОЛЬКО если не скрыты
-        if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
-            updateModelDimensions(selectedObject);
-        }
+        // ОПТИМИЗАЦИЯ: Дебаунсированное обновление размеров
+        debouncedUpdateModelDimensions(selectedObject);
     }
 
-    // --- Обновляем позицию крестика (кнопки удаления) во время перетаскивания ---
+    // --- ОПТИМИЗАЦИЯ: Дебаунсированное обновление позиции крестика ---
     if (selectedObject) {
-        // Обновляем позицию крестика, но не пересоздаем его постоянно
-        updateDeleteButtonPosition(selectedObject);
+        debouncedUpdateDeleteButtonPosition(selectedObject);
     }
 }
 
@@ -418,16 +468,14 @@ function handleObjectRotation(event) {
         z: selectedObject.position.z.toFixed(2)
     };
     
-    // Обновляем сессию в базе данных
-    updateSessionInDatabase(selectedObject);
+    // ОПТИМИЗАЦИЯ: Дебаунсированное обновление БД вместо каждого движения мыши
+    debouncedUpdateSessionInDatabase(selectedObject);
     
-    // Проверяем на коллизии после вращения
-    checkAndHighlightObject(selectedObject);
+    // ОПТИМИЗАЦИЯ: Не проверяем коллизии на каждом движении - только при завершении
+    // checkAndHighlightObject(selectedObject);
     
-    // Обновляем положение размеров при вращении ТОЛЬКО если не скрыты
-    if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
-        updateModelDimensions(selectedObject);
-    }
+    // ОПТИМИЗАЦИЯ: Дебаунсированное обновление размеров при вращении
+    debouncedUpdateModelDimensions(selectedObject);
 }
 
 /**
@@ -443,13 +491,34 @@ function finishObjectManipulation() {
         controls.enabled = true;
     }
     
-    // Проверяем все объекты на коллизии
+    // ФИНАЛЬНАЯ ПРОВЕРКА: Проверяем все объекты на коллизии только при завершении
+    if (selectedObject) {
+        checkAndHighlightObject(selectedObject);
+    }
     checkAllObjectsPositions();
     
     // Логируем финальные координаты после завершения манипуляций
     if (selectedObject) {
-        // Обновляем сессию в базе данных с финальными координатами
+        // ФИНАЛЬНОЕ ОБНОВЛЕНИЕ: Принудительно обновляем БД и размеры при завершении (отменяем дебаунс)
+        if (sessionUpdateTimeout) {
+            clearTimeout(sessionUpdateTimeout);
+            sessionUpdateTimeout = null;
+        }
+        if (dimensionUpdateTimeout) {
+            clearTimeout(dimensionUpdateTimeout);
+            dimensionUpdateTimeout = null;
+        }
+        if (deleteButtonUpdateTimeout) {
+            clearTimeout(deleteButtonUpdateTimeout);
+            deleteButtonUpdateTimeout = null;
+        }
+        
         updateSessionInDatabase(selectedObject);
+        
+        // Финальное обновление размеров
+        if (localStorage.getItem('dimensionLabelsHidden') !== 'true') {
+            updateModelDimensions(selectedObject);
+        }
         
         console.log(`Завершение манипуляций с моделью ${selectedObject.userData.modelName}:`, {
             id: selectedObject.userData.id,
