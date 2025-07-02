@@ -288,8 +288,8 @@ body, html {
     font-size: 18px;
     color: rgba(16, 15, 15, 0.6);
     pointer-events: none;
-    opacity: 1;
-    transition: all 0.2s ease;
+    opacity: 0; /* Скрываем до точного позиционирования */
+    transition: opacity 0.2s ease; /* Убираем transition для left */
     z-index: 1;
 }
 

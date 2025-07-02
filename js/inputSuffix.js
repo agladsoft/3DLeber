@@ -2,11 +2,47 @@
  * Модуль для динамического позиционирования суффиксов в полях ввода
  */
 
+// Функция для мгновенного позиционирования без анимации
+function instantPositionSuffix(input, suffix) {
+    if (!input || !suffix || !input.value || input.value.trim() === '') return;
+    
+    // Отключаем все transition
+    suffix.style.transition = 'none';
+    
+    // Создаем временный span для измерения
+    const measureSpan = document.createElement('span');
+    measureSpan.style.position = 'absolute';
+    measureSpan.style.visibility = 'hidden';
+    measureSpan.style.whiteSpace = 'pre';
+    measureSpan.style.fontSize = getComputedStyle(input).fontSize;
+    measureSpan.style.fontFamily = getComputedStyle(input).fontFamily;
+    measureSpan.style.fontWeight = getComputedStyle(input).fontWeight;
+    measureSpan.textContent = input.value;
+    
+    document.body.appendChild(measureSpan);
+    const textWidth = measureSpan.offsetWidth;
+    document.body.removeChild(measureSpan);
+    
+    const paddingLeft = parseInt(getComputedStyle(input).paddingLeft);
+    const spacing = (input.id === 'pgWidthInput' || input.id === 'pgLengthInput') ? 2 : 5;
+    
+    // Мгновенное позиционирование
+    suffix.style.right = 'auto';
+    suffix.style.left = `${paddingLeft + textWidth + spacing}px`;
+    suffix.style.opacity = '1';
+    
+    // Через минимальную задержку возвращаем transition только для opacity
+    setTimeout(() => {
+        suffix.style.transition = 'opacity 0.2s ease';
+    }, 1);
+}
+
 function updateSuffixPosition(input, suffix) {
     if (!input || !suffix) return;
     
-    // Суффикс теперь всегда видимый и позиционируется справа
-    suffix.classList.add('visible');
+    // Временно отключаем transition для мгновенного позиционирования
+    const originalTransition = suffix.style.transition;
+    suffix.style.transition = 'none';
     
     if (input.value && input.value.trim() !== '') {
         // Создаем временный скрытый span для точного измерения ширины текста
@@ -37,6 +73,12 @@ function updateSuffixPosition(input, suffix) {
         suffix.style.left = 'auto';
         suffix.style.right = '20px';
     }
+    
+    // Возвращаем transition и показываем суффикс
+    setTimeout(() => {
+        suffix.style.transition = originalTransition;
+        suffix.classList.add('visible');
+    }, 10); // Небольшая задержка для применения позиции
 }
 
 // Дополнительная функция для инициализации при загрузке страницы
@@ -69,7 +111,12 @@ function forceUpdateAllSuffixes() {
     inputsWithSuffix.forEach(input => {
         const suffix = input.parentElement.querySelector('.input-suffix');
         if (suffix) {
-            updateSuffixPosition(input, suffix);
+            // Используем мгновенное позиционирование для заполненных полей
+            if (input.value && input.value.trim() !== '') {
+                instantPositionSuffix(input, suffix);
+            } else {
+                updateSuffixPosition(input, suffix);
+            }
             console.log(`Force updated suffix for ${input.id || 'unnamed'}, value: "${input.value}"`);
         }
     });
@@ -199,6 +246,33 @@ observer.observe(document.body, {
     attributes: true,
     attributeFilter: ['value']
 });
+
+// Очень ранняя инициализация - сразу как только скрипт загружен
+if (document.readyState === 'loading') {
+    // Если DOM еще загружается, ждем его готовности
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('.input-with-suffix input');
+            inputs.forEach(input => {
+                const suffix = input.parentElement.querySelector('.input-suffix');
+                if (suffix && input.value && input.value.trim() !== '') {
+                    instantPositionSuffix(input, suffix);
+                }
+            });
+        }, 1);
+    });
+} else {
+    // DOM уже готов, выполняем сразу
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.input-with-suffix input');
+        inputs.forEach(input => {
+            const suffix = input.parentElement.querySelector('.input-suffix');
+            if (suffix && input.value && input.value.trim() !== '') {
+                instantPositionSuffix(input, suffix);
+            }
+        });
+    }, 1);
+}
 
 // Агрессивная проверка с интервалом для сервера
 let aggressiveCheckInterval;
