@@ -222,7 +222,7 @@ function createGroundMaterial(width, length, color = 'серый') {
 
     // Загружаем текстуру резиновой крошки
     const textureLoader = new THREE.TextureLoader();
-    const rubberTexture = textureLoader.load('textures/crumb-rubber-2.jpg');
+    const rubberTexture = textureLoader.load('textures/playground/crumb-rubber-2.jpg');
     // Настраиваем повторение текстуры
     const repeats = Math.max(width, length) / 2;
     rubberTexture.wrapS = THREE.RepeatWrapping;
