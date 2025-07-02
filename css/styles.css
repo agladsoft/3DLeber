@@ -282,14 +282,13 @@ body, html {
 .input-suffix {
     position: absolute;
     top: 50%;
-    right: 20px;
     transform: translateY(-50%);
     font-family: 'Inter Tight', sans-serif;
     font-size: 18px;
     color: rgba(16, 15, 15, 0.6);
     pointer-events: none;
     opacity: 1;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
     z-index: 1;
 }
 

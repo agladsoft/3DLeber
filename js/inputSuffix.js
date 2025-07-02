@@ -5,6 +5,9 @@
 function updateSuffixPosition(input, suffix) {
     if (!input || !suffix) return;
     
+    // Суффикс теперь всегда видимый и позиционируется справа
+    suffix.classList.add('visible');
+    
     if (input.value && input.value.trim() !== '') {
         // Создаем временный скрытый span для точного измерения ширины текста
         const measureSpan = document.createElement('span');
@@ -25,10 +28,14 @@ function updateSuffixPosition(input, suffix) {
         
         // Для pgModal убираем отступ между значением и "м"
         const spacing = (input.id === 'pgWidthInput' || input.id === 'pgLengthInput') ? 2 : 5;
+        
+        // Сбрасываем right позиционирование и используем left
+        suffix.style.right = 'auto';
         suffix.style.left = `${paddingLeft + textWidth + spacing}px`;
-        suffix.classList.add('visible');
     } else {
-        suffix.classList.remove('visible');
+        // Если поле пустое, показываем суффикс справа
+        suffix.style.left = 'auto';
+        suffix.style.right = '20px';
     }
 }
 
