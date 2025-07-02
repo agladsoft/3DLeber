@@ -700,19 +700,30 @@ export function showModelPreloader(modelName) {
  * @param {string} modelName - Имя модели
  */
 export function hideModelPreloader(modelName) {
+    console.log('hideModelPreloader called for:', modelName);
+    
     const preloaderElement = preloaderElementsCache.get(modelName);
     if (preloaderElement) {
+        console.log('Found preloader in cache for:', modelName);
         preloaderElement.classList.remove('visible');
-        console.log('Hiding preloader for model:', modelName);
+        console.log('Preloader hidden via cache for:', modelName);
     } else {
+        console.log('Preloader not found in cache, using DOM search for:', modelName);
         // Fallback: поиск в DOM если кэш недоступен
         const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-        modelElements.forEach(element => {
+        console.log('Found model elements:', modelElements.length, 'for:', modelName);
+        
+        let preloadersFound = 0;
+        modelElements.forEach((element, index) => {
             const preloader = element.querySelector('.model-preloader');
             if (preloader) {
                 preloader.classList.remove('visible');
+                preloadersFound++;
+                console.log(`Preloader hidden via DOM search (element ${index}) for:`, modelName);
             }
         });
+        
+        console.log(`Total preloaders found and hidden: ${preloadersFound} for:`, modelName);
     }
 }
 
