@@ -141,12 +141,22 @@ function initInputSuffixes() {
 // Инициализация при загрузке DOM
 document.addEventListener('DOMContentLoaded', initInputSuffixes);
 
+// Дополнительная инициализация при полной загрузке страницы
+window.addEventListener('load', () => {
+    console.log('Window loaded, forcing suffix update...');
+    setTimeout(forceUpdateAllSuffixes, 100);
+    setTimeout(forceUpdateAllSuffixes, 500);
+});
+
 // Дополнительная инициализация для случаев когда модальное окно открывается позже
 setTimeout(() => {
     initInputSuffixes();
     checkInitialValues();
     forceUpdateAllSuffixes();
 }, 500);
+
+// Запускаем агрессивную проверку через 1 секунду
+setTimeout(startAggressiveChecking, 1000);
 
 // Наблюдатель за изменениями в DOM для отслеживания динамически добавляемых элементов
 const observer = new MutationObserver((mutations) => {
@@ -190,8 +200,50 @@ observer.observe(document.body, {
     attributeFilter: ['value']
 });
 
+// Агрессивная проверка с интервалом для сервера
+let aggressiveCheckInterval;
+let aggressiveCheckCount = 0;
+const MAX_AGGRESSIVE_CHECKS = 50; // максимум 25 секунд (50 * 500мс)
+
+function startAggressiveChecking() {
+    console.log('Starting aggressive suffix checking...');
+    
+    aggressiveCheckInterval = setInterval(() => {
+        aggressiveCheckCount++;
+        
+        // Ищем поля с заполненными значениями
+        const inputsWithSuffix = document.querySelectorAll('.input-with-suffix input');
+        let foundFilledInputs = 0;
+        let updatedInputs = 0;
+        
+        inputsWithSuffix.forEach(input => {
+            const suffix = input.parentElement.querySelector('.input-suffix');
+            if (suffix && input.value && input.value.trim() !== '') {
+                foundFilledInputs++;
+                
+                // Проверяем, нужно ли обновить позицию
+                const currentLeft = suffix.style.left;
+                if (!currentLeft || currentLeft === 'auto' || parseInt(currentLeft) > 50) {
+                    updateSuffixPosition(input, suffix);
+                    updatedInputs++;
+                    console.log(`Aggressively updated suffix for ${input.id || 'unnamed'}: "${input.value}"`);
+                }
+            }
+        });
+        
+        console.log(`Aggressive check #${aggressiveCheckCount}: found ${foundFilledInputs} filled inputs, updated ${updatedInputs}`);
+        
+        // Если нашли и обновили заполненные поля, или достигли лимита проверок
+        if ((foundFilledInputs > 0 && updatedInputs === 0) || aggressiveCheckCount >= MAX_AGGRESSIVE_CHECKS) {
+            console.log('Stopping aggressive checking');
+            clearInterval(aggressiveCheckInterval);
+        }
+    }, 500);
+}
+
 // Делаем функцию доступной глобально для вызова из других скриптов
 window.forceUpdateAllSuffixes = forceUpdateAllSuffixes;
+window.startAggressiveChecking = startAggressiveChecking;
 
 // Экспорт для использования в других модулях
 export { initInputSuffixes, updateSuffixPosition, forceUpdateAllSuffixes };
