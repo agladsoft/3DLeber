@@ -340,6 +340,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     if (window.initApp && !window.appInitialized) {
                         window.appInitialized = true;
+                        
+                        // Показываем Cold Start Preloader перед инициализацией Three.js
+                        try {
+                            const { showColdStartPreloader } = await import('./coldStartPreloader.js');
+                            showColdStartPreloader();
+                        } catch (error) {
+                            console.warn('Cold start preloader not available:', error);
+                        }
+                        
                         window.initApp();
                         setTimeout(() => {
                             startSceneChecks();

@@ -24,7 +24,7 @@ class ColdStartPreloader {
     }
 
     /**
-     * Инициализирует preloader и начинает процесс загрузки
+     * Инициализирует preloader (без показа)
      */
     init() {
         this.preloader = document.getElementById('coldStartPreloader');
@@ -35,6 +35,25 @@ class ColdStartPreloader {
             console.warn('Cold start preloader element not found');
             return;
         }
+
+        // НЕ показываем preloader автоматически
+        // Он будет показан только при вызове showAndStart()
+        this.hide();
+    }
+
+    /**
+     * Показывает preloader и запускает процесс загрузки
+     */
+    showAndStart() {
+        if (!this.preloader) {
+            console.warn('Cold start preloader not initialized');
+            return;
+        }
+
+        // Сбрасываем прогресс
+        this.currentProgress = 0;
+        this.currentStep = 0;
+        this.stepProgress = 0;
 
         // Показываем preloader
         this.show();
@@ -49,6 +68,10 @@ class ColdStartPreloader {
     show() {
         if (this.preloader) {
             this.preloader.classList.remove('hidden', 'removing');
+            // Принудительно показываем preloader
+            this.preloader.style.opacity = '1';
+            this.preloader.style.visibility = 'visible';
+            this.preloader.style.pointerEvents = 'auto';
             this.isVisible = true;
         }
     }
@@ -57,7 +80,7 @@ class ColdStartPreloader {
      * Скрывает preloader с анимацией
      */
     hide() {
-        if (this.preloader && this.isVisible) {
+        if (this.preloader) {
             this.preloader.classList.add('removing');
             this.isVisible = false;
             
@@ -65,6 +88,9 @@ class ColdStartPreloader {
             setTimeout(() => {
                 if (this.preloader) {
                     this.preloader.classList.add('hidden');
+                    this.preloader.style.opacity = '0';
+                    this.preloader.style.visibility = 'hidden';
+                    this.preloader.style.pointerEvents = 'none';
                 }
             }, 800);
         }
@@ -165,6 +191,10 @@ const coldStartPreloader = new ColdStartPreloader();
 // Экспортируем функции для использования
 export function initColdStartPreloader() {
     coldStartPreloader.init();
+}
+
+export function showColdStartPreloader() {
+    coldStartPreloader.showAndStart();
 }
 
 export function hideColdStartPreloader() {
