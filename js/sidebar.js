@@ -10,6 +10,7 @@ const UPDATE_THROTTLE = 1000; // Минимальный интервал меж�
 // Кэш DOM элементов для быстрого доступа
 const modelElementsCache = new Map();
 const placementElementsCache = new Map();
+const preloaderElementsCache = new Map();
 
 // Функция для применения новых стилей
 function applyNewStyles() {
@@ -34,6 +35,7 @@ async function createNewSidebar() {
     // Очищаем кэши DOM элементов при пересоздании sidebar
     modelElementsCache.clear();
     placementElementsCache.clear();
+    preloaderElementsCache.clear();
     
     // Очищаем сайдбар
     sidebar.innerHTML = '';
@@ -241,11 +243,16 @@ function createModelElement(model, sessionData, modelsData) {
         <div class="model-article">${model.article}</div>
         <div class="model-title">${model.description}</div>
         <div class="model-placement">${model.isSpecial ? `Добавлено на площадку: ${placedCount}` : `Добавлено на площадку: ${placedCount} из ${totalQuantity}`}</div>
+        <div class="model-preloader">
+            <div class="model-preloader-spinner"></div>
+        </div>
     `;
     
-    // Кэшируем placement элемент для быстрого доступа
+    // Кэшируем placement и preloader элементы для быстрого доступа
     const placementElement = modelElement.querySelector('.model-placement');
+    const preloaderElement = modelElement.querySelector('.model-preloader');
     placementElementsCache.set(model.name, placementElement);
+    preloaderElementsCache.set(model.name, preloaderElement);
     
     // Добавляем обработчик drag-and-drop с невидимым изображением
     modelElement.addEventListener('dragstart', function(event) {
@@ -306,6 +313,22 @@ function createModelElement(model, sessionData, modelsData) {
         }, 100);
         
         console.log('Drag started successfully for model:', model.name);
+        
+        // Показываем preloader при начале перетаскивания
+        showModelPreloader(model.name);
+    });
+    
+    // Добавляем обработчик dragend для скрытия preloader если drag отменен
+    modelElement.addEventListener('dragend', function(event) {
+        // Скрываем preloader через небольшую задержку, чтобы дать время на drop
+        setTimeout(() => {
+            // Проверяем, не был ли уже обработан drop
+            if (!event.currentTarget.dataset.dragProcessed) {
+                hideModelPreloader(model.name);
+            }
+            // Сбрасываем флаг
+            delete event.currentTarget.dataset.dragProcessed;
+        }, 100);
     });
     
     return modelElement;
@@ -648,6 +671,59 @@ function updateSingleModelElement(element, placementElement, delta) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Показывает preloader для указанной модели
+ * @param {string} modelName - Имя модели
+ */
+export function showModelPreloader(modelName) {
+    const preloaderElement = preloaderElementsCache.get(modelName);
+    if (preloaderElement) {
+        preloaderElement.classList.add('visible');
+        console.log('Showing preloader for model:', modelName);
+    } else {
+        // Fallback: поиск в DOM если кэш недоступен
+        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+        modelElements.forEach(element => {
+            const preloader = element.querySelector('.model-preloader');
+            if (preloader) {
+                preloader.classList.add('visible');
+            }
+        });
+    }
+}
+
+/**
+ * Скрывает preloader для указанной модели
+ * @param {string} modelName - Имя модели
+ */
+export function hideModelPreloader(modelName) {
+    console.log('hideModelPreloader called for:', modelName);
+    
+    const preloaderElement = preloaderElementsCache.get(modelName);
+    if (preloaderElement) {
+        console.log('Found preloader in cache for:', modelName);
+        preloaderElement.classList.remove('visible');
+        console.log('Preloader hidden via cache for:', modelName);
+    } else {
+        console.log('Preloader not found in cache, using DOM search for:', modelName);
+        // Fallback: поиск в DOM если кэш недоступен
+        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+        console.log('Found model elements:', modelElements.length, 'for:', modelName);
+        
+        let preloadersFound = 0;
+        modelElements.forEach((element, index) => {
+            const preloader = element.querySelector('.model-preloader');
+            if (preloader) {
+                preloader.classList.remove('visible');
+                preloadersFound++;
+                console.log(`Preloader hidden via DOM search (element ${index}) for:`, modelName);
+            }
+        });
+        
+        console.log(`Total preloaders found and hidden: ${preloadersFound} for:`, modelName);
     }
 }
 

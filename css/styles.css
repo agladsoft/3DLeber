@@ -282,13 +282,14 @@ body, html {
 .input-suffix {
     position: absolute;
     top: 50%;
+    left: 35px; /* Приблизительная позиция после текста */
     transform: translateY(-50%);
     font-family: 'Inter Tight', sans-serif;
     font-size: 18px;
     color: rgba(16, 15, 15, 0.6);
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    opacity: 0; /* Скрываем до точного позиционирования */
+    transition: opacity 0.2s ease; /* Убираем transition для left */
     z-index: 1;
 }
 
@@ -3011,4 +3012,47 @@ color: #333 !important;
 /* Скрытие кнопки проверки отсутствующих моделей */
 #checkMissingModelsButton {
     display: none !important;
+}
+
+/* Preloader для моделей в сайдбаре */
+.model-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(245, 245, 245, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.model-preloader.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.model-preloader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(240, 83, 35, 0.2);
+    border-top-color: #F05323;
+    border-radius: 50%;
+    animation: modelSpin 1s linear infinite;
+}
+
+@keyframes modelSpin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+/* Обеспечиваем относительное позиционирование для модели */
+.model {
+    position: relative;
 }

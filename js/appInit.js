@@ -10,6 +10,23 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+// Функции cold start preloader будут импортированы динамически при необходимости
+
+/**
+ * Безопасно вызывает функции cold start preloader'а
+ * @param {string} functionName - Имя функции для вызова
+ * @param {...any} args - Аргументы для функции
+ */
+async function safeColdStartCall(functionName, ...args) {
+    try {
+        const { [functionName]: fn } = await import('./coldStartPreloader.js');
+        if (typeof fn === 'function') {
+            return fn(...args);
+        }
+    } catch (error) {
+        console.warn(`Cold start preloader function ${functionName} not available:`, error);
+    }
+}
 
 /**
  * Инициализирует все компоненты приложения
@@ -74,8 +91,14 @@ async function initializeWithData(modelsData, loadingScreen) {
     sessionStorage.setItem('userId', modelsData.project_id);
     sessionStorage.setItem('models', JSON.stringify(modelsData.models));
     
+    // Обновляем прогресс cold start preloader - приложение инициализировано
+    await safeColdStartCall('updateColdStartProgress', 85, 'Инициализация компонентов...');
+    
     // Автоматически открываем модальное окно выбора площадки
     await showPlatformSelectModal();
+    
+    // Завершаем cold start preloader после инициализации UI
+    await safeColdStartCall('updateColdStartProgress', 100, 'Готово!');
     
     console.log('Application components initialized successfully');
 }

@@ -64,9 +64,171 @@
         #loadingScreen.hidden {
             display: none !important;
         }
+        
+        /* Preloader для холодного запуска Three.js */
+        #coldStartPreloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 11000; /* Выше обычного loadingScreen */
+            font-family: 'Inter Tight', sans-serif;
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+            /* Скрыт по умолчанию */
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        
+        #coldStartPreloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        
+        #coldStartPreloader.removing {
+            animation: fadeOutPreloader 0.8s ease-out forwards;
+        }
+        
+        @keyframes fadeOutPreloader {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.95);
+                visibility: hidden;
+            }
+        }
+        
+        .cold-start-logo {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .cold-start-logo svg {
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 4px 12px rgba(240, 83, 35, 0.2));
+        }
+        
+        .cold-start-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .cold-start-subtext {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .cold-start-progress {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(240, 83, 35, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #F05323 0%, #ff6b3d 100%);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease-out;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-percentage {
+            font-size: 12px;
+            font-weight: 500;
+            color: #F05323;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .cold-start-logo svg {
+                width: 64px;
+                height: 64px;
+            }
+            
+            .cold-start-text {
+                font-size: 18px;
+            }
+            
+            .cold-start-progress {
+                width: 240px;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Preloader для холодного запуска Three.js -->
+    <div id="coldStartPreloader">
+        <div class="cold-start-logo">
+            <svg viewBox="0 0 64 64" width="64" height="64">
+                <circle cx="32" cy="32" r="30" fill="none" stroke="#F05323" stroke-width="3" opacity="0.2"/>
+                <circle cx="32" cy="32" r="30" fill="none" stroke="#F05323" stroke-width="3" stroke-linecap="round" stroke-dasharray="188" stroke-dashoffset="188" class="progress-circle">
+                    <animate attributeName="stroke-dashoffset" values="188;0" dur="2s" repeatCount="indefinite"/>
+                </circle>
+                <g transform="translate(22, 22)">
+                    <rect x="4" y="4" width="12" height="12" fill="#F05323" opacity="0.8"/>
+                    <rect x="2" y="6" width="4" height="4" fill="#F05323" opacity="0.6"/>
+                    <rect x="14" y="6" width="4" height="4" fill="#F05323" opacity="0.6"/>
+                    <rect x="6" y="2" width="4" height="4" fill="#F05323" opacity="0.6"/>
+                    <rect x="6" y="14" width="4" height="4" fill="#F05323" opacity="0.6"/>
+                </g>
+            </svg>
+        </div>
+        <div class="cold-start-text">Инициализация 3D движка...</div>
+        <div class="cold-start-subtext">Загрузка ресурсов</div>
+        <div class="cold-start-progress">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-percentage">0%</div>
+        </div>
+    </div>
+
     <!-- Загрузочный экран -->
     <div id="loadingScreen">
         <div class="loading-spinner"></div>
@@ -82,11 +244,11 @@
             <div class="platform-settings">
                 <div class="control-group input-with-suffix">
                     <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="" placeholder="Ширина" class="modern-input">
-                    <span class="input-suffix">м</span>
+                    <span class="input-suffix" style="opacity: 0;">м</span>
                 </div>
                 <div class="control-group input-with-suffix">
                     <input type="number" id="modalPlaygroundLength" min="10" max="100" value="" placeholder="Длина" class="modern-input">
-                    <span class="input-suffix">м</span>
+                    <span class="input-suffix" style="opacity: 0;">м</span>
                 </div>
                 <div class="control-group">
                     <label>Цвет площадки:</label>

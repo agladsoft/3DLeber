@@ -36,7 +36,7 @@ export function getObjectBounds(object) {
 }
 
 /**
- * Проверяет, находится ли объект в пределах площадки
+ * Проверяет, находится ли объект в пределах площадки (улучшенная версия)
  * @param {Object} object - Объект для проверки
  * @returns {Boolean} Результат проверки (true - в пределах, false - за пределами)
  */
@@ -56,26 +56,43 @@ export function isWithinPlayground(object) {
     const halfWidth = playgroundWidth / 2;
     const halfLength = playgroundLength / 2;
     
-    // Получаем ограничивающий бокс объекта
+    // Используем улучшенную проверку границ с учетом поворота
+    return isObjectFullyWithinBounds(object, halfWidth, halfLength);
+}
+
+/**
+ * Проверяет, находится ли объект полностью в пределах заданных границ
+ * с учетом поворота и сложной геометрии
+ * @param {Object} object - Объект для проверки
+ * @param {number} halfWidth - Половина ширины площадки
+ * @param {number} halfLength - Половина длины площадки
+ * @returns {Boolean} true если объект полностью внутри границ
+ */
+function isObjectFullyWithinBounds(object, halfWidth, halfLength) {
+    // Обновляем матрицы мира для точного расчета
+    object.updateMatrixWorld(true);
+    
+    // Получаем ограничивающий бокс с учетом текущего состояния объекта
     const box = new THREE.Box3().setFromObject(object);
-    const size = new THREE.Vector3();
-    box.getSize(size);
     
-    // Получаем центр объекта
-    const center = new THREE.Vector3();
-    box.getCenter(center);
+    // Проверяем, что все углы bounding box находятся внутри площадки
+    const min = box.min;
+    const max = box.max;
     
-    // Проверяем, находится ли объект полностью в пределах площадки
-    // Учитываем размер объекта (радиус)
-    const radius = Math.max(size.x, size.z) / 2;
+    // Проверяем все 4 угла проекции объекта на плоскость XZ
+    const corners = [
+        { x: min.x, z: min.z }, // левый передний
+        { x: max.x, z: min.z }, // правый передний  
+        { x: min.x, z: max.z }, // левый задний
+        { x: max.x, z: max.z }  // правый задний
+    ];
     
-    // Объект внутри площадки, если его крайние точки находятся внутри границы
-    // Применяем различные смещения для левой и правой границ
-    return (
-        center.x - radius >= -halfWidth && // Сдвигаем левую границу вправо
-        center.x + radius <= halfWidth &&  // Сдвигаем правую границу вправо
-        center.z - radius >= -halfLength &&
-        center.z + radius <= halfLength
+    // Объект внутри площадки только если ВСЕ углы внутри границ
+    return corners.every(corner => 
+        corner.x >= -halfWidth && 
+        corner.x <= halfWidth && 
+        corner.z >= -halfLength && 
+        corner.z <= halfLength
     );
 }
 
