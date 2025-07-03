@@ -682,19 +682,43 @@ function updateSingleModelElement(element, placementElement, delta) {
  * @param {string} modelName - Имя модели
  */
 export function showModelPreloader(modelName) {
+    console.log('🔄 [showModelPreloader] Attempting to show preloader for:', modelName);
+    
+    let preloadersShown = 0;
+    
+    // Способ 1: Попытка через кэш
     const preloaderElement = preloaderElementsCache.get(modelName);
     if (preloaderElement) {
+        const wasVisible = preloaderElement.classList.contains('visible');
         preloaderElement.classList.add('visible');
-        console.log('Showing preloader for model:', modelName);
-    } else {
-        // Fallback: поиск в DOM если кэш недоступен
-        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-        modelElements.forEach(element => {
-            const preloader = element.querySelector('.model-preloader');
-            if (preloader) {
-                preloader.classList.add('visible');
-            }
-        });
+        preloaderElement.style.display = ''; // Убираем принудительное скрытие если было
+        
+        if (!wasVisible) {
+            preloadersShown++;
+            console.log('✅ [showModelPreloader] Preloader shown via cache for:', modelName);
+        }
+    }
+    
+    // Способ 2: Прямой поиск в DOM (даже если кэш сработал, для надежности)
+    console.log('🔍 [showModelPreloader] Performing additional DOM search for:', modelName);
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    console.log('🔍 [showModelPreloader] Found model elements:', modelElements.length, 'for:', modelName);
+    
+    modelElements.forEach((element, index) => {
+        const preloader = element.querySelector('.model-preloader');
+        if (preloader && !preloader.classList.contains('visible')) {
+            preloader.classList.add('visible');
+            preloader.style.display = ''; // Убираем принудительное скрытие
+            preloadersShown++;
+            console.log(`✅ [showModelPreloader] Preloader shown via DOM search (element ${index}) for:`, modelName);
+        }
+    });
+    
+    console.log(`📊 [showModelPreloader] Total preloaders shown: ${preloadersShown} for:`, modelName);
+    
+    // Если ничего не нашли, выводим предупреждение
+    if (preloadersShown === 0) {
+        console.warn(`⚠️ [showModelPreloader] No preloaders to show found for model: ${modelName}`);
     }
 }
 

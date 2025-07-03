@@ -178,6 +178,9 @@ export function startRenderLoop() {
         // Инкрементируем счетчик кадров
         frameCount++;
         
+        // Измеряем время выполнения кадра для оптимизации
+        const frameStart = performance.now();
+        
         try {
             // Проверяем наличие необходимых компонентов
             if (window.app && window.app.renderer && window.app.scene && window.app.camera) {
@@ -232,6 +235,19 @@ export function startRenderLoop() {
             }
         } catch (error) {
             console.error("Ошибка в цикле рендеринга:", error);
+        }
+        
+        // Отслеживаем производительность и предупреждаем о медленных кадрах
+        const frameTime = performance.now() - frameStart;
+        if (frameTime > 50) { // Если кадр занял больше 50ms (20 FPS)
+            console.warn(`🐌 Медленный кадр: ${frameTime.toFixed(2)}ms (кадр #${frameCount})`);
+            
+            // Информация о количестве объектов в сцене для диагностики
+            if (window.app && window.app.scene) {
+                let objectCount = 0;
+                window.app.scene.traverse(() => objectCount++);
+                console.warn(`📊 Объектов в сцене: ${objectCount}`);
+            }
         }
     }
     

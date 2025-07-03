@@ -16,6 +16,47 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 const processingModels = new Map();
 
 /**
+ * Гарантирует, что preloader отображается для модели (fallback для потерянных обработчиков)
+ * @param {string} modelName - Имя модели
+ */
+function ensurePreloaderShown(modelName) {
+    console.log('🔄 [ensurePreloaderShown] Ensuring preloader is shown for:', modelName);
+    
+    // Способ 1: Прямой поиск в DOM и показ preloader
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    console.log('🔍 [ensurePreloaderShown] Found model elements:', modelElements.length, 'for:', modelName);
+    
+    let preloadersShown = 0;
+    modelElements.forEach((element, index) => {
+        const preloader = element.querySelector('.model-preloader');
+        if (preloader) {
+            const wasVisible = preloader.classList.contains('visible');
+            preloader.classList.add('visible');
+            preloader.style.display = ''; // Убираем принудительное скрытие
+            
+            if (!wasVisible) {
+                preloadersShown++;
+                console.log(`✅ [ensurePreloaderShown] Preloader shown (element ${index}) for:`, modelName);
+            } else {
+                console.log(`ℹ️ [ensurePreloaderShown] Preloader was already visible (element ${index}) for:`, modelName);
+            }
+        }
+    });
+    
+    console.log(`📊 [ensurePreloaderShown] Total preloaders shown: ${preloadersShown} for:`, modelName);
+    
+    // Способ 2: Вызов функции из sidebar.js как дополнительная мера
+    import('../sidebar.js').then(sidebarModule => {
+        if (sidebarModule.showModelPreloader) {
+            console.log('🔄 [ensurePreloaderShown] Calling sidebar showModelPreloader for:', modelName);
+            sidebarModule.showModelPreloader(modelName);
+        }
+    }).catch(error => {
+        console.error('❌ [ensurePreloaderShown] Failed to import sidebar:', error);
+    });
+}
+
+/**
  * Надежная функция для скрытия preloader модели
  * @param {string} modelName - Имя модели
  */
@@ -374,6 +415,10 @@ async function handleDrop(event) {
     // Устанавливаем флаг обработки для конкретной модели
     processingModels.set(modelName, true);
     
+    // Показываем preloader в начале drop (fallback на случай если dragstart не сработал)
+    console.log("🔄 [handleDrop] Ensuring preloader is shown for:", modelName);
+    ensurePreloaderShown(modelName);
+    
     try {
         console.log("Model name from event:", modelName);
         
@@ -504,11 +549,23 @@ async function handleDrop(event) {
         hidePreloaderForModel(modelName);
         console.log("Preloader hidden after general error for:", modelName);
     } finally {
-        // Финальное принудительное скрытие preloader
+        // Финальное принудительное скрытие preloader с несколькими попытками
         setTimeout(() => {
             console.log("🔄 [handleDrop] Final forced preloader hide for:", modelName);
             hidePreloaderForModel(modelName);
         }, 200);
+        
+        // Дополнительная попытка через большую задержку на случай медленного рендеринга
+        setTimeout(() => {
+            console.log("🔄 [handleDrop] Extended final preloader hide for:", modelName);
+            hidePreloaderForModel(modelName);
+        }, 1000);
+        
+        // Экстремальная попытка для очень медленных систем
+        setTimeout(() => {
+            console.log("🔄 [handleDrop] Ultimate preloader hide for:", modelName);
+            hidePreloaderForModel(modelName);
+        }, 2000);
         
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
