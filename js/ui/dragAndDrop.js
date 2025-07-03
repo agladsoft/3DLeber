@@ -32,7 +32,7 @@ function ensurePreloaderShown(modelName) {
         if (preloader) {
             const wasVisible = preloader.classList.contains('visible');
             preloader.classList.add('visible');
-            preloader.style.display = ''; // Убираем принудительное скрытие
+            preloader.style.removeProperty('display'); // Полностью убираем style.display
             
             if (!wasVisible) {
                 preloadersShown++;
@@ -276,11 +276,16 @@ export function initDragAndDrop() {
     // Добавляем обработчик начала перетаскивания для элементов каталога
     addDragStartHandlers();
 
-    // Останавливаем поведение по умолчанию для drop
-    canvas.addEventListener("dragover", event => event.preventDefault());
+    // Останавливаем поведение по умолчанию для drop  
+    canvas.addEventListener("dragover", event => {
+        console.log("🎯 [dragover] Dragover event on canvas");
+        event.preventDefault();
+    });
 
     // Обработка события drop для загрузки модели
     canvas.addEventListener("drop", handleDrop);
+    
+    console.log("🎯 [initDragAndDrop] Drop handlers added to canvas");
     
     // Добавляю обновление крестиков при инициализации
     updateSidebarDeleteButtons();
@@ -402,9 +407,11 @@ function addDragStartHandlers() {
  * @param {DragEvent} event - Событие drop
  */
 async function handleDrop(event) {
+    console.log("🎯 [handleDrop] Drop event received!", event);
     event.preventDefault();
     
     const modelName = event.dataTransfer.getData("model");
+    console.log("🎯 [handleDrop] Model name from dataTransfer:", modelName);
     
     // Предотвращаем множественные drop для одной и той же модели
     if (processingModels.has(modelName)) {

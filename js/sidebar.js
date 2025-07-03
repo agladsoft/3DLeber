@@ -694,7 +694,7 @@ export function showModelPreloader(modelName) {
     if (preloaderElement) {
         const wasVisible = preloaderElement.classList.contains('visible');
         preloaderElement.classList.add('visible');
-        preloaderElement.style.display = ''; // Убираем принудительное скрытие если было
+        preloaderElement.style.removeProperty('display'); // Полностью убираем style.display
         
         if (!wasVisible) {
             preloadersShown++;
@@ -711,7 +711,7 @@ export function showModelPreloader(modelName) {
         const preloader = element.querySelector('.model-preloader');
         if (preloader && !preloader.classList.contains('visible')) {
             preloader.classList.add('visible');
-            preloader.style.display = ''; // Убираем принудительное скрытие
+            preloader.style.removeProperty('display'); // Полностью убираем style.display
             preloadersShown++;
             console.log(`✅ [showModelPreloader] Preloader shown via DOM search (element ${index}) for:`, modelName);
         }
