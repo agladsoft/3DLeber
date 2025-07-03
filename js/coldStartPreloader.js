@@ -84,6 +84,9 @@ class ColdStartPreloader {
             this.preloader.classList.add('removing');
             this.isVisible = false;
             
+            // ВАЖНО: Немедленно отключаем pointer events для восстановления drag & drop
+            this.preloader.style.pointerEvents = 'none';
+            
             // Полностью скрываем после анимации
             setTimeout(() => {
                 if (this.preloader) {
