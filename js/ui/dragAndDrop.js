@@ -16,6 +16,54 @@ import { API_BASE_URL } from '../api/serverConfig.js';
 const processingModels = new Map();
 
 /**
+ * Надежная функция для скрытия preloader модели
+ * @param {string} modelName - Имя модели
+ */
+function hidePreloaderForModel(modelName) {
+    console.log('Attempting to hide preloader for:', modelName);
+    
+    // Способ 1: Прямой поиск в DOM
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    console.log('Found model elements:', modelElements.length, 'for:', modelName);
+    
+    let preloadersHidden = 0;
+    modelElements.forEach((element, index) => {
+        const preloader = element.querySelector('.model-preloader');
+        if (preloader) {
+            preloader.classList.remove('visible');
+            preloadersHidden++;
+            console.log(`Preloader hidden (element ${index}) for:`, modelName);
+        }
+    });
+    
+    // Способ 2: Дополнительная проверка по всем preloader элементам
+    const allPreloaders = document.querySelectorAll('.model-preloader.visible');
+    allPreloaders.forEach((preloader, index) => {
+        const parentElement = preloader.closest('[data-model]');
+        if (parentElement && parentElement.getAttribute('data-model') === modelName) {
+            preloader.classList.remove('visible');
+            preloadersHidden++;
+            console.log(`Additional preloader hidden (${index}) for:`, modelName);
+        }
+    });
+    
+    console.log(`Total preloaders hidden: ${preloadersHidden} for:`, modelName);
+    
+    // Способ 3: Вызов функции из sidebar.js как fallback
+    if (preloadersHidden === 0) {
+        console.log('No preloaders found via DOM search, trying import fallback for:', modelName);
+        import('../sidebar.js').then(sidebarModule => {
+            if (sidebarModule.hideModelPreloader) {
+                sidebarModule.hideModelPreloader(modelName);
+                console.log('Preloader hidden via sidebar import for:', modelName);
+            }
+        }).catch(error => {
+            console.error('Failed to import sidebar for preloader hiding:', error);
+        });
+    }
+}
+
+/**
  * Мгновенно обновляет UI без батчинга
  * @param {string} modelName - Имя модели
  * @param {number} delta - Изменение количества
@@ -392,39 +440,24 @@ async function handleDrop(event) {
             console.log("Model loaded successfully, now hiding preloader for:", modelName);
             
             // Скрываем preloader после успешной загрузки модели
-            try {
-                const { hideModelPreloader } = await import('../sidebar.js');
-                hideModelPreloader(modelName);
-                console.log("Preloader hidden successfully for:", modelName);
-            } catch (importError) {
-                console.error("Failed to import or call hideModelPreloader:", importError);
-            }
+            hidePreloaderForModel(modelName);
+            console.log("Preloader hidden successfully for:", modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
             
             // Скрываем preloader и при ошибке загрузки
-            try {
-                console.log("Hiding preloader due to load error for:", modelName);
-                const { hideModelPreloader } = await import('../sidebar.js');
-                hideModelPreloader(modelName);
-                console.log("Preloader hidden after error for:", modelName);
-            } catch (importError) {
-                console.error("Failed to import or call hideModelPreloader after error:", importError);
-            }
+            console.log("Hiding preloader due to load error for:", modelName);
+            hidePreloaderForModel(modelName);
+            console.log("Preloader hidden after error for:", modelName);
         }
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
         // Скрываем preloader при любой ошибке
-        try {
-            console.log("Hiding preloader due to general error for:", modelName);
-            const { hideModelPreloader } = await import('../sidebar.js');
-            hideModelPreloader(modelName);
-            console.log("Preloader hidden after general error for:", modelName);
-        } catch (importError) {
-            console.error('Could not import hideModelPreloader for general error:', importError);
-        }
+        console.log("Hiding preloader due to general error for:", modelName);
+        hidePreloaderForModel(modelName);
+        console.log("Preloader hidden after general error for:", modelName);
     } finally {
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);

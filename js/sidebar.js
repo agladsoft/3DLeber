@@ -324,11 +324,14 @@ function createModelElement(model, sessionData, modelsData) {
         setTimeout(() => {
             // Проверяем, не был ли уже обработан drop
             if (!event.currentTarget.dataset.dragProcessed) {
+                console.log('Dragend: hiding preloader for cancelled drag:', model.name);
                 hideModelPreloader(model.name);
+            } else {
+                console.log('Dragend: drop was processed, not hiding preloader:', model.name);
             }
             // Сбрасываем флаг
             delete event.currentTarget.dataset.dragProcessed;
-        }, 100);
+        }, 150); // Увеличили задержку для надежности
     });
     
     return modelElement;
@@ -702,28 +705,47 @@ export function showModelPreloader(modelName) {
 export function hideModelPreloader(modelName) {
     console.log('hideModelPreloader called for:', modelName);
     
+    let preloadersHidden = 0;
+    
+    // Способ 1: Попытка через кэш
     const preloaderElement = preloaderElementsCache.get(modelName);
     if (preloaderElement) {
         console.log('Found preloader in cache for:', modelName);
         preloaderElement.classList.remove('visible');
+        preloadersHidden++;
         console.log('Preloader hidden via cache for:', modelName);
-    } else {
-        console.log('Preloader not found in cache, using DOM search for:', modelName);
-        // Fallback: поиск в DOM если кэш недоступен
-        const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-        console.log('Found model elements:', modelElements.length, 'for:', modelName);
-        
-        let preloadersFound = 0;
-        modelElements.forEach((element, index) => {
-            const preloader = element.querySelector('.model-preloader');
-            if (preloader) {
-                preloader.classList.remove('visible');
-                preloadersFound++;
-                console.log(`Preloader hidden via DOM search (element ${index}) for:`, modelName);
-            }
-        });
-        
-        console.log(`Total preloaders found and hidden: ${preloadersFound} for:`, modelName);
+    }
+    
+    // Способ 2: Прямой поиск в DOM (даже если кэш сработал, для надежности)
+    console.log('Performing additional DOM search for:', modelName);
+    const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+    console.log('Found model elements:', modelElements.length, 'for:', modelName);
+    
+    modelElements.forEach((element, index) => {
+        const preloader = element.querySelector('.model-preloader');
+        if (preloader && preloader.classList.contains('visible')) {
+            preloader.classList.remove('visible');
+            preloadersHidden++;
+            console.log(`Preloader hidden via DOM search (element ${index}) for:`, modelName);
+        }
+    });
+    
+    // Способ 3: Поиск по всем видимым preloader'ам
+    const allVisiblePreloaders = document.querySelectorAll('.model-preloader.visible');
+    allVisiblePreloaders.forEach((preloader, index) => {
+        const parentElement = preloader.closest('[data-model]');
+        if (parentElement && parentElement.getAttribute('data-model') === modelName) {
+            preloader.classList.remove('visible');
+            preloadersHidden++;
+            console.log(`Additional preloader hidden (${index}) for:`, modelName);
+        }
+    });
+    
+    console.log(`Total preloaders hidden: ${preloadersHidden} for:`, modelName);
+    
+    // Если ничего не нашли, выводим предупреждение
+    if (preloadersHidden === 0) {
+        console.warn(`No visible preloaders found for model: ${modelName}`);
     }
 }
 
