@@ -323,14 +323,17 @@ function createModelElement(model, sessionData, modelsData) {
         // Скрываем preloader через небольшую задержку, чтобы дать время на drop
         setTimeout(() => {
             // Проверяем, не был ли уже обработан drop
-            if (!event.currentTarget.dataset.dragProcessed) {
+            const currentTarget = event.currentTarget;
+            if (currentTarget && currentTarget.dataset && !currentTarget.dataset.dragProcessed) {
                 console.log('Dragend: hiding preloader for cancelled drag:', model.name);
                 hideModelPreloader(model.name);
             } else {
                 console.log('Dragend: drop was processed, not hiding preloader:', model.name);
             }
             // Сбрасываем флаг
-            delete event.currentTarget.dataset.dragProcessed;
+            if (currentTarget && currentTarget.dataset) {
+                delete currentTarget.dataset.dragProcessed;
+            }
         }, 150); // Увеличили задержку для надежности
     });
     

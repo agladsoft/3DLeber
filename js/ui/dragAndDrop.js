@@ -505,9 +505,13 @@ async function handleDrop(event) {
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
         // Отмечаем, что drop был обработан для предотвращения скрытия preloader в dragend
-        if (modelElement) {
-            modelElement.dataset.dragProcessed = 'true';
-        }
+        // Ищем все элементы с данной моделью и помечаем их
+        const allModelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+        allModelElements.forEach(element => {
+            if (element && element.dataset) {
+                element.dataset.dragProcessed = 'true';
+            }
+        });
         
         // Загружаем модель (UI уже обновлен мгновенно в objectManager)
         try {
@@ -553,6 +557,17 @@ async function handleDrop(event) {
         setTimeout(() => {
             console.log("🔄 [handleDrop] Final forced preloader hide for:", modelName);
             hidePreloaderForModel(modelName);
+            
+            // Принудительное скрытие через style для элементов, которые могли быть пересозданы
+            const newModelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
+            newModelElements.forEach(element => {
+                const preloader = element.querySelector('.model-preloader');
+                if (preloader) {
+                    preloader.classList.remove('visible');
+                    preloader.style.display = 'none';
+                    console.log("🔄 [handleDrop] Force hidden via style for:", modelName);
+                }
+            });
         }, 200);
         
         // Дополнительная попытка через большую задержку на случай медленного рендеринга
