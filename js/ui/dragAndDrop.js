@@ -20,47 +20,78 @@ const processingModels = new Map();
  * @param {string} modelName - Имя модели
  */
 function hidePreloaderForModel(modelName) {
-    console.log('Attempting to hide preloader for:', modelName);
+    console.log('🔄 [hidePreloaderForModel] Attempting to hide preloader for:', modelName);
+    
+    let preloadersHidden = 0;
     
     // Способ 1: Прямой поиск в DOM
     const modelElements = document.querySelectorAll(`[data-model="${modelName}"]`);
-    console.log('Found model elements:', modelElements.length, 'for:', modelName);
+    console.log('🔍 [hidePreloaderForModel] Found model elements:', modelElements.length, 'for:', modelName);
     
-    let preloadersHidden = 0;
     modelElements.forEach((element, index) => {
         const preloader = element.querySelector('.model-preloader');
+        console.log(`🔍 [hidePreloaderForModel] Element ${index} preloader:`, preloader, 'visible class:', preloader ? preloader.classList.contains('visible') : 'N/A');
+        
         if (preloader) {
+            const hadVisible = preloader.classList.contains('visible');
             preloader.classList.remove('visible');
-            preloadersHidden++;
-            console.log(`Preloader hidden (element ${index}) for:`, modelName);
+            preloader.style.display = 'none'; // Принудительное скрытие через style
+            
+            if (hadVisible) {
+                preloadersHidden++;
+                console.log(`✅ [hidePreloaderForModel] Preloader hidden (element ${index}) for:`, modelName);
+            } else {
+                console.log(`ℹ️ [hidePreloaderForModel] Preloader was already hidden (element ${index}) for:`, modelName);
+            }
         }
     });
     
     // Способ 2: Дополнительная проверка по всем preloader элементам
     const allPreloaders = document.querySelectorAll('.model-preloader.visible');
+    console.log('🔍 [hidePreloaderForModel] Found all visible preloaders:', allPreloaders.length);
+    
     allPreloaders.forEach((preloader, index) => {
         const parentElement = preloader.closest('[data-model]');
-        if (parentElement && parentElement.getAttribute('data-model') === modelName) {
+        const parentModelName = parentElement ? parentElement.getAttribute('data-model') : null;
+        console.log(`🔍 [hidePreloaderForModel] Visible preloader ${index} parent model:`, parentModelName);
+        
+        if (parentElement && parentModelName === modelName) {
             preloader.classList.remove('visible');
+            preloader.style.display = 'none'; // Принудительное скрытие
             preloadersHidden++;
-            console.log(`Additional preloader hidden (${index}) for:`, modelName);
+            console.log(`✅ [hidePreloaderForModel] Additional preloader hidden (${index}) for:`, modelName);
         }
     });
     
-    console.log(`Total preloaders hidden: ${preloadersHidden} for:`, modelName);
-    
-    // Способ 3: Вызов функции из sidebar.js как fallback
-    if (preloadersHidden === 0) {
-        console.log('No preloaders found via DOM search, trying import fallback for:', modelName);
-        import('../sidebar.js').then(sidebarModule => {
-            if (sidebarModule.hideModelPreloader) {
-                sidebarModule.hideModelPreloader(modelName);
-                console.log('Preloader hidden via sidebar import for:', modelName);
+    // Способ 3: Поиск по всем preloader без класса visible, но с display: block
+    const allModelPreloaders = document.querySelectorAll('.model-preloader');
+    allModelPreloaders.forEach((preloader, index) => {
+        const parentElement = preloader.closest('[data-model]');
+        const parentModelName = parentElement ? parentElement.getAttribute('data-model') : null;
+        
+        if (parentElement && parentModelName === modelName) {
+            const computedStyle = window.getComputedStyle(preloader);
+            if (computedStyle.display !== 'none') {
+                console.log(`🔍 [hidePreloaderForModel] Found visible preloader via computed style (${index}) for:`, modelName);
+                preloader.classList.remove('visible');
+                preloader.style.display = 'none';
+                preloadersHidden++;
+                console.log(`✅ [hidePreloaderForModel] Forced hidden via style (${index}) for:`, modelName);
             }
-        }).catch(error => {
-            console.error('Failed to import sidebar for preloader hiding:', error);
-        });
-    }
+        }
+    });
+    
+    console.log(`📊 [hidePreloaderForModel] Total preloaders hidden: ${preloadersHidden} for:`, modelName);
+    
+    // Способ 4: Вызов функции из sidebar.js как дополнительная мера
+    import('../sidebar.js').then(sidebarModule => {
+        if (sidebarModule.hideModelPreloader) {
+            console.log('🔄 [hidePreloaderForModel] Calling sidebar hideModelPreloader for:', modelName);
+            sidebarModule.hideModelPreloader(modelName);
+        }
+    }).catch(error => {
+        console.error('❌ [hidePreloaderForModel] Failed to import sidebar:', error);
+    });
 }
 
 /**
@@ -441,6 +472,13 @@ async function handleDrop(event) {
             
             // Скрываем preloader после успешной загрузки модели
             hidePreloaderForModel(modelName);
+            
+            // Дополнительное принудительное скрытие через setTimeout для надежности
+            setTimeout(() => {
+                console.log("Forcing preloader hide via setTimeout for:", modelName);
+                hidePreloaderForModel(modelName);
+            }, 100);
+            
             console.log("Preloader hidden successfully for:", modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
@@ -449,6 +487,13 @@ async function handleDrop(event) {
             // Скрываем preloader и при ошибке загрузки
             console.log("Hiding preloader due to load error for:", modelName);
             hidePreloaderForModel(modelName);
+            
+            // Принудительное скрытие при ошибке
+            setTimeout(() => {
+                console.log("Forcing preloader hide after error for:", modelName);
+                hidePreloaderForModel(modelName);
+            }, 100);
+            
             console.log("Preloader hidden after error for:", modelName);
         }
         
@@ -459,6 +504,12 @@ async function handleDrop(event) {
         hidePreloaderForModel(modelName);
         console.log("Preloader hidden after general error for:", modelName);
     } finally {
+        // Финальное принудительное скрытие preloader
+        setTimeout(() => {
+            console.log("🔄 [handleDrop] Final forced preloader hide for:", modelName);
+            hidePreloaderForModel(modelName);
+        }, 200);
+        
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
     }
