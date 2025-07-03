@@ -4,6 +4,7 @@
  */
 import * as THREE from 'three';
 import { scene } from '../../scene.js';
+import { PLAYGROUND_GROUND_PREFIXES } from '../../config.js';
 
 // Настройки отображения стрелок размеров
 const ARROW_SETTINGS = {
@@ -386,6 +387,17 @@ const modelDimensionsMap = new Map();
 export function addDimensionsToModel(model) {
     if (!model) return null;
 
+    // Проверяем, нужно ли показывать размеры для этого объекта
+    if (model.name) {
+        const objName = model.name;
+        const shouldSkip = PLAYGROUND_GROUND_PREFIXES.some(prefix => 
+            objName.includes(prefix)
+        );
+        if (shouldSkip) {
+            return null; // Не создаем размеры для объектов с определенными префиксами
+        }
+    }
+
     // Проверяем, есть ли уже размеры для этой модели
     let dimensions = modelDimensionsMap.get(model.uuid);
 
@@ -415,6 +427,17 @@ export function getModelDimensions(model) {
 export function updateModelDimensions(model) {
     if (!model) return;
 
+    // Проверяем, нужно ли показывать размеры для этого объекта
+    if (model.name) {
+        const objName = model.name;
+        const shouldSkip = PLAYGROUND_GROUND_PREFIXES.some(prefix => 
+            objName.includes(prefix)
+        );
+        if (shouldSkip) {
+            return; // Не обновляем размеры для объектов с определенными префиксами
+        }
+    }
+
     const dimensions = getModelDimensions(model);
     if (dimensions) {
         dimensions.update();
@@ -431,6 +454,17 @@ export function updateModelDimensions(model) {
  */
 export function showModelDimensions(model) {
     if (!model) return;
+
+    // Проверяем, нужно ли показывать размеры для этого объекта
+    if (model.name) {
+        const objName = model.name;
+        const shouldSkip = PLAYGROUND_GROUND_PREFIXES.some(prefix => 
+            objName.includes(prefix)
+        );
+        if (shouldSkip) {
+            return; // Не показываем размеры для объектов с определенными префиксами
+        }
+    }
 
     // Получаем существующий объект размеров или создаем новый
     let dimensions = getModelDimensions(model);
@@ -465,11 +499,24 @@ export function hideModelDimensions(model) {
 export function toggleModelDimensions(model) {
     if (!model) return;
 
+    // Проверяем, нужно ли показывать размеры для этого объекта
+    if (model.name) {
+        const objName = model.name;
+        const shouldSkip = PLAYGROUND_GROUND_PREFIXES.some(prefix => 
+            objName.includes(prefix)
+        );
+        if (shouldSkip) {
+            return; // Не переключаем размеры для объектов с определенными префиксами
+        }
+    }
+
     // Получаем существующий объект размеров или создаем новый
     let dimensions = getModelDimensions(model);
     if (!dimensions) {
         dimensions = addDimensionsToModel(model);
-        dimensions.show();
+        if (dimensions) {
+            dimensions.show();
+        }
         return;
     }
 

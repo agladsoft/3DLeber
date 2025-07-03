@@ -84,10 +84,10 @@ export const TOP_VIEW_SETTINGS = {
 };
 
 // Префиксы для объектов, которые не должны подсвечиваться при выходе за границы площадки
-export const PLAYGROUND_GROUND_PREFIXES = ['tree', 'bush', 'people', 'man', 'woman', 'person', 'human'];
+export const PLAYGROUND_GROUND_PREFIXES = ['tree', 'bush', 'palm', 'people', 'man', 'woman', 'person', 'human'];
 
 // Ключевые слова для определения элементов площадки (деревья, кусты)
-export const PLAYGROUND_ELEMENTS = ['tree', 'bush'];
+export const PLAYGROUND_ELEMENTS = ['tree', 'bush', 'palm'];
 
 // Ключевые слова для определения людей/персонажей
 export const PEOPLE_KEYWORDS = ['people', 'man', 'woman', 'person', 'human'];

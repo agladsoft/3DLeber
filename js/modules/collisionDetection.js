@@ -44,7 +44,7 @@ export function isWithinPlayground(object) {
     if (!object) return true;
     
     // Исключаем объекты площадки (земля, трава и т.д.) из проверки границ
-    if (object.name && PLAYGROUND_GROUND_PREFIXES.some(prefix => object.name.startsWith(prefix))) {
+    if (object.name && PLAYGROUND_GROUND_PREFIXES.some(prefix => object.name.includes(prefix))) {
         return true;
     }
     
