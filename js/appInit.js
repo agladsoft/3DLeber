@@ -10,6 +10,7 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+import { hideColdStartPreloader, updateColdStartProgress } from './coldStartPreloader.js';
 
 /**
  * Инициализирует все компоненты приложения
@@ -74,8 +75,14 @@ async function initializeWithData(modelsData, loadingScreen) {
     sessionStorage.setItem('userId', modelsData.project_id);
     sessionStorage.setItem('models', JSON.stringify(modelsData.models));
     
+    // Обновляем прогресс cold start preloader - приложение инициализировано
+    updateColdStartProgress(85, 'Инициализация компонентов...');
+    
     // Автоматически открываем модальное окно выбора площадки
     await showPlatformSelectModal();
+    
+    // Завершаем cold start preloader после инициализации UI
+    updateColdStartProgress(100, 'Готово!');
     
     console.log('Application components initialized successfully');
 }
