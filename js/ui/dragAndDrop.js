@@ -381,8 +381,11 @@ async function handleDrop(event) {
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
         // Отмечаем, что drop был обработан для предотвращения скрытия preloader в dragend
-        if (modelElement) {
+        if (modelElement && modelElement.dataset) {
             modelElement.dataset.dragProcessed = 'true';
+            console.log("Set dragProcessed flag for:", modelName);
+        } else {
+            console.warn("Could not set dragProcessed flag - modelElement not found for:", modelName);
         }
         
         // Загружаем модель (preloader скрывается автоматически в processLoadedModel)
@@ -407,10 +410,27 @@ async function handleDrop(event) {
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
-        // При общих ошибках preloader останется скрытым если модель не загрузилась
+        // При общих ошибках принудительно скрываем preloader
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader forced hidden due to general error for:", modelName);
+        } catch (importError) {
+            console.error('Could not import hideModelPreloader for general error:', importError);
+        }
     } finally {
-        // Сбрасываем флаг обработки для конкретной модели
+        // ОБЯЗАТЕЛЬНО сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
+        console.log("Processing flag cleared for model:", modelName);
+        
+        // ОБЯЗАТЕЛЬНО скрываем preloader в любом случае
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader ensured hidden in finally block for:", modelName);
+        } catch (importError) {
+            console.error('Could not ensure preloader hiding in finally:', importError);
+        }
     }
 }
 
