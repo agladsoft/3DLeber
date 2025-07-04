@@ -236,7 +236,7 @@ function createModelElement(model, sessionData, modelsData) {
     
     modelElement.innerHTML = `
         <div class="model-image">
-            <img src="textures/${model.name.replace('.glb', '.png')}" alt="${model.description}">
+            <img src="${model.isSpecial ? `textures/${model.name.replace('.glb', '.png')}` : `https://office.leber.ru:9994/tg/clear_wb300/${model.article}.jpg`}" alt="${model.description}">
         </div>
         <div class="model-article">${model.article}</div>
         <div class="model-title">${model.description}</div>
