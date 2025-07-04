@@ -30,7 +30,7 @@ export function showAllSafetyZones() {
     // Показываем все объекты с именем, заканчивающимся на safety_zone в Three.js сцене
     if (scene) {
         scene.traverse((object) => {
-            if (object.isMesh && object.name && object.name.endsWith('safety_zone')) {
+            if (object.isMesh && object.name && object.name.includes('safety_zone')) {
                 object.visible = true;
             }
         });
@@ -51,7 +51,7 @@ export function removeAllSafetyZones() {
 function removeSafetyZonesFromScene() {
     if (scene) {
         scene.traverse((object) => {
-            if (object.isMesh && object.name && object.name.endsWith('safety_zone')) {
+            if (object.isMesh && object.name && object.name.includes('safety_zone')) {
                 object.visible = false;
             }
         });

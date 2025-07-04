@@ -351,7 +351,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                     }
 
                                     // Если это зона безопасности, меняем цвет на белый
-                                    if (child.name && child.name.endsWith('safety_zone')) {
+                                    if (child.name && child.name.includes('safety_zone')) {
                                         if (child.material) {
                                             const newMaterial = new THREE.MeshStandardMaterial({
                                                 color: 0xFFFFFF,

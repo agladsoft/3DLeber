@@ -127,7 +127,7 @@ function getSafetyZoneMeshes(object) {
     const safetyZones = [];
     
     object.traverse((child) => {
-        if (child.isMesh && child.name && child.name.endsWith('safety_zone')) {
+        if (child.isMesh && child.name && child.name.includes('safety_zone')) {
             safetyZones.push(child);
         }
     });
@@ -212,7 +212,7 @@ function getRegularMeshes(object) {
         if (child.isMesh && 
             child.geometry && 
             child.visible &&
-            !child.name.endsWith('safety_zone')) {
+            !child.name.includes('safety_zone')) {
             meshes.push(child);
         }
     });
@@ -416,18 +416,30 @@ function applyObjectHighlight(object) {
             }
             
             if (shouldHighlight) {
-                // Создаем новый красный материал для подсветки
-                const errorMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xff0000,        // Красный цвет
-                    emissive: 0x500000,     // Легкое свечение
-                    metalness: 0.3,
-                    roughness: 0.7,
-                    transparent: false,
-                    opacity: 1.0
-                });
-                
-                // Применяем материал к мешу
-                child.material = errorMaterial;
+                // Проверяем, является ли это safety zone
+                if (child.name && child.name.includes('safety_zone')) {
+                    // Для safety zone всегда используем белый материал
+                    const safetyZoneMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xffffff,        // Белый цвет
+                        emissive: 0x000000,     // Без свечения
+                        metalness: 0.1,
+                        roughness: 0.9,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    child.material = safetyZoneMaterial;
+                } else {
+                    // Для обычных мешей используем красный материал для подсветки
+                    const errorMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xff0000,        // Красный цвет
+                        emissive: 0x500000,     // Легкое свечение
+                        metalness: 0.3,
+                        roughness: 0.7,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    child.material = errorMaterial;
+                }
             } 
             else if (child.userData.originalMaterial) {
                 // Восстанавливаем оригинальный материал
