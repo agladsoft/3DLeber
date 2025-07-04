@@ -145,8 +145,20 @@ export async function showPlatformSelectModal() {
         if (!window.returnToApp) {
             const widthInput = document.getElementById('modalPlaygroundWidth');
             const lengthInput = document.getElementById('modalPlaygroundLength');
-            if (widthInput) widthInput.value = '40';
-            if (lengthInput) lengthInput.value = '30';
+            if (widthInput) {
+                widthInput.value = '40';
+                // Уведомляем систему суффиксов об изменении значения
+                if (window.SuffixManager) {
+                    window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
+                }
+            }
+            if (lengthInput) {
+                lengthInput.value = '30';
+                // Уведомляем систему суффиксов об изменении значения
+                if (window.SuffixManager) {
+                    window.SuffixManager.notifyValueChange('modalPlaygroundLength');
+                }
+            }
         }
         
         // Показываем модальное окно
@@ -169,8 +181,22 @@ function updateModalValuesFromCurrent() {
     const modalPlaygroundLength = document.getElementById('modalPlaygroundLength');
     const modalPlaygroundColor = document.getElementById('modalPlaygroundColor');
     
-    if (modalPlaygroundWidth) modalPlaygroundWidth.value = currentWidth;
-    if (modalPlaygroundLength) modalPlaygroundLength.value = currentLength;
+    if (modalPlaygroundWidth) {
+        modalPlaygroundWidth.value = currentWidth;
+        // Уведомляем систему суффиксов об изменении значения
+        if (window.SuffixManager) {
+            window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
+        }
+    }
+    
+    if (modalPlaygroundLength) {
+        modalPlaygroundLength.value = currentLength;
+        // Уведомляем систему суффиксов об изменении значения
+        if (window.SuffixManager) {
+            window.SuffixManager.notifyValueChange('modalPlaygroundLength');
+        }
+    }
+    
     if (modalPlaygroundColor) modalPlaygroundColor.value = currentColor;
     
     // Обновляем выделение цветного квадратика
@@ -447,8 +473,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Сбрасываем значения в полях ввода
                     const widthInput = document.getElementById('modalPlaygroundWidth');
                     const lengthInput = document.getElementById('modalPlaygroundLength');
-                    if (widthInput) widthInput.value = '40';
-                    if (lengthInput) lengthInput.value = '30';
+                    if (widthInput) {
+                        widthInput.value = '40';
+                        // Уведомляем систему суффиксов об изменении значения
+                        if (window.SuffixManager) {
+                            window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
+                        }
+                    }
+                    if (lengthInput) {
+                        lengthInput.value = '30';
+                        // Уведомляем систему суффиксов об изменении значения
+                        if (window.SuffixManager) {
+                            window.SuffixManager.notifyValueChange('modalPlaygroundLength');
+                        }
+                    }
                     
                     // Показываем модальное окно
                     platformSelectModal.style.display = 'block';
@@ -692,3 +730,13 @@ function cleanupResources() {
         topViewButton.classList.remove("active");
     }
 }
+
+// Уведомляем систему суффиксов о готовности модуля
+document.addEventListener('DOMContentLoaded', () => {
+    // Небольшая задержка для инициализации модуля
+    setTimeout(() => {
+        if (window.SuffixManager) {
+            window.SuffixManager.notifyModuleReady('modal');
+        }
+    }, 100);
+});

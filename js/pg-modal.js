@@ -440,10 +440,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (widthInput && e.detail.width) {
                 widthInput.value = e.detail.width;
+                // Уведомляем систему суффиксов об изменении значения
+                if (window.SuffixManager) {
+                    window.SuffixManager.notifyValueChange('pgWidthInput');
+                }
             }
             
             if (lengthInput && e.detail.length) {
                 lengthInput.value = e.detail.length;
+                // Уведомляем систему суффиксов об изменении значения
+                if (window.SuffixManager) {
+                    window.SuffixManager.notifyValueChange('pgLengthInput');
+                }
             }
             
             // Обновляем выбранный цвет, если передан
@@ -546,5 +554,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         };
+        
+        // Уведомляем систему суффиксов о готовности модуля
+        setTimeout(() => {
+            if (window.SuffixManager) {
+                window.SuffixManager.notifyModuleReady('pgModal');
+            }
+        }, 200);
     }, 1000);
 });
