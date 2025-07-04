@@ -385,25 +385,16 @@ async function handleDrop(event) {
             modelElement.dataset.dragProcessed = 'true';
         }
         
-        // Загружаем модель (UI уже обновлен мгновенно в objectManager)
+        // Загружаем модель (preloader скрывается автоматически в processLoadedModel)
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
-            console.log("Model loaded successfully, now hiding preloader for:", modelName);
-            
-            // Скрываем preloader после успешной загрузки модели
-            try {
-                const { hideModelPreloader } = await import('../sidebar.js');
-                hideModelPreloader(modelName);
-                console.log("Preloader hidden successfully for:", modelName);
-            } catch (importError) {
-                console.error("Failed to import or call hideModelPreloader:", importError);
-            }
+            console.log("Model loaded successfully for:", modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
             
-            // Скрываем preloader и при ошибке загрузки
+            // Скрываем preloader при ошибке загрузки
             try {
                 console.log("Hiding preloader due to load error for:", modelName);
                 const { hideModelPreloader } = await import('../sidebar.js');
@@ -416,15 +407,7 @@ async function handleDrop(event) {
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
-        // Скрываем preloader при любой ошибке
-        try {
-            console.log("Hiding preloader due to general error for:", modelName);
-            const { hideModelPreloader } = await import('../sidebar.js');
-            hideModelPreloader(modelName);
-            console.log("Preloader hidden after general error for:", modelName);
-        } catch (importError) {
-            console.error('Could not import hideModelPreloader for general error:', importError);
-        }
+        // При общих ошибках preloader останется скрытым если модель не загрузилась
     } finally {
         // Сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
