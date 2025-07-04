@@ -48,7 +48,8 @@ function ensureLoadingOverlayHidden(timeout = 5000) {
 export async function initializeApp() {
     try {        
         // Обновляем прогресс cold start - начинаем инициализацию Three.js
-        await safeColdStartCall('updateColdStartProgress', 30, 'Инициализация Three.js сцены...');
+        // Начинаем с 70% так как 60% уже достигнуты в appInit.js
+        await safeColdStartCall('updateColdStartProgress', 70, 'Инициализация Three.js сцены...');
         
         // Устанавливаем таймер для принудительного скрытия индикатора загрузки через 6 секунд
         ensureLoadingOverlayHidden(6000);
@@ -58,7 +59,7 @@ export async function initializeApp() {
         console.log('Сцена инициализирована, компоненты:', sceneComponents);
         
         // Обновляем прогресс - сцена создана
-        await safeColdStartCall('updateColdStartProgress', 45, 'Настройка рендерера...');
+        await safeColdStartCall('updateColdStartProgress', 75, 'Настройка рендерера...');
         
         // Удаляем все объекты отображения размеров из сцены
         if (sceneComponents && sceneComponents.scene) {
@@ -125,7 +126,7 @@ export async function initializeApp() {
         if (playgroundLengthInput) playgroundLengthInput.value = userLength;
         
         // Обновляем прогресс - загружаем площадку
-        await safeColdStartCall('updateColdStartProgress', 55, 'Загрузка площадки...');
+        await safeColdStartCall('updateColdStartProgress', 78, 'Загрузка площадки...');
         
         try {
             // Попытка загрузить площадку с указанными размерами и цветом
@@ -134,7 +135,7 @@ export async function initializeApp() {
             console.log('Площадка загружена, результат:', result);
             
             // Обновляем прогресс - площадка загружена
-            await safeColdStartCall('updateColdStartProgress', 70, 'Настройка освещения...');
+            await safeColdStartCall('updateColdStartProgress', 80, 'Настройка освещения...');
             
             // Обновляем информационную панель со статусом площадки
             const playgroundStatus = document.getElementById('playgroundStatus');
@@ -145,11 +146,11 @@ export async function initializeApp() {
             console.error('Ошибка при загрузке площадки:', playgroundError);
             // Если не удалось загрузить площадку - продолжаем без неё
             // Приложение все равно должно запуститься
-            await safeColdStartCall('updateColdStartProgress', 70, 'Площадка загружена (резервная)');
+            await safeColdStartCall('updateColdStartProgress', 80, 'Площадка загружена (резервная)');
         }
         
         // Обновляем прогресс - инициализируем UI
-        await safeColdStartCall('updateColdStartProgress', 75, 'Инициализация интерфейса...');
+        await safeColdStartCall('updateColdStartProgress', 82, 'Инициализация интерфейса...');
         
         // Инициализируем UI и обработчики событий
         try {
@@ -159,7 +160,7 @@ export async function initializeApp() {
         }
         
         // Обновляем прогресс - настройка объектов
-        await safeColdStartCall('updateColdStartProgress', 80, 'Проверка объектов...');
+        await safeColdStartCall('updateColdStartProgress', 85, 'Проверка объектов...');
         
         try {
             // Проверяем позиции всех объектов после инициализации
@@ -183,20 +184,23 @@ export async function initializeApp() {
         }
         
         // Обновляем прогресс - запуск рендеринга
-        await safeColdStartCall('updateColdStartProgress', 90, 'Запуск 3D рендерера...');
+        await safeColdStartCall('updateColdStartProgress', 88, 'Запуск 3D рендерера...');
         
         // Запускаем цикл рендеринга Three.js
         startRenderLoop();
         
         // Финальная настройка - приложение готово
-        await safeColdStartCall('updateColdStartProgress', 95, 'Финализация...');
+        await safeColdStartCall('updateColdStartProgress', 92, 'Финализация...');
         
         // Небольшая задержка для плавности, затем скрываем preloader
         setTimeout(async () => {
-            await safeColdStartCall('updateColdStartProgress', 100, 'Готово!');
+            await safeColdStartCall('updateColdStartProgress', 96, 'Завершение...');
             setTimeout(async () => {
-                await safeColdStartCall('hideColdStartPreloader');
-            }, 500);
+                await safeColdStartCall('updateColdStartProgress', 100, 'Готово!');
+                setTimeout(async () => {
+                    await safeColdStartCall('hideColdStartPreloader');
+                }, 500);
+            }, 300);
         }, 200);
         
     } catch (error) {

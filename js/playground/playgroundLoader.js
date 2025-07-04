@@ -5,6 +5,7 @@ import { scene } from '../scene.js';
 import { ground, updateGroundReferences, updatePlaygroundDimensions } from './playgroundCore.js';
 import { createSimplePlayground } from './playgroundCreator.js';
 import { PLAYGROUND } from '../config.js';
+import { hideLoadingOverlay } from '../loadingManager.js';
 
 
 /**
@@ -53,12 +54,9 @@ export function loadPlayground(modelName = 'playground.glb', width = null, lengt
     if (simplePlane && simplePlane.userData) {
         simplePlane.userData.groundColor = userColor;
     }
+    // Используем стандартную функцию скрытия loading overlay
     setTimeout(() => {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        if (loadingOverlay) {
-            loadingOverlay.classList.add('hidden');
-            window.isLoading = false;
-        }
+        hideLoadingOverlay();
     }, 500);
     return Promise.resolve(simplePlane);
 }
