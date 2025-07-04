@@ -49,11 +49,6 @@ canvas {
     margin-bottom: 10px;
 }
 
-.loading-subtext {
-    font-size: 14px;
-    color: #666;
-}
-
 #loadingScreen.fade-out {
     opacity: 0;
 }
