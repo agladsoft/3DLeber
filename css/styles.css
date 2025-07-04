@@ -373,15 +373,16 @@ body, html {
 .input-suffix {
     position: absolute;
     top: 50%;
-    left: 35px; /* Приблизительная позиция после текста */
+    left: 35px; /* Начальная позиция, будет пересчитываться динамически */
     transform: translateY(-50%);
     font-family: 'Inter Tight', sans-serif;
     font-size: 18px;
     color: rgba(16, 15, 15, 0.6);
     pointer-events: none;
-    opacity: 0; /* Скрываем до точного позиционирования */
-    transition: opacity 0.2s ease; /* Убираем transition для left */
+    opacity: 0; /* Скрыт по умолчанию */
+    transition: opacity 0.15s ease-out; /* Только opacity, без left */
     z-index: 1;
+    white-space: nowrap; /* Предотвращаем перенос текста */
 }
 
 .input-suffix.visible {

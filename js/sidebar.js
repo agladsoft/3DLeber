@@ -323,11 +323,19 @@ function createModelElement(model, sessionData, modelsData) {
         // Скрываем preloader через небольшую задержку, чтобы дать время на drop
         setTimeout(() => {
             // Проверяем, не был ли уже обработан drop
-            if (!event.currentTarget.dataset.dragProcessed) {
+            if (event.currentTarget && event.currentTarget.dataset && !event.currentTarget.dataset.dragProcessed) {
+                console.log('dragend: calling hideModelPreloader for', model.name);
                 hideModelPreloader(model.name);
+            } else if (event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.dragProcessed) {
+                console.log('dragend: skip hiding preloader, drag was processed for', model.name);
+            } else {
+                console.warn('dragend: could not access dataset for', model.name);
             }
-            // Сбрасываем флаг
-            delete event.currentTarget.dataset.dragProcessed;
+            
+            // Сбрасываем флаг только если элемент и dataset доступны
+            if (event.currentTarget && event.currentTarget.dataset) {
+                delete event.currentTarget.dataset.dragProcessed;
+            }
         }, 100);
     });
     

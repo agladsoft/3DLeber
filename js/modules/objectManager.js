@@ -159,6 +159,14 @@ function processLoadedModel(container, modelName, position) {
     // После успешной загрузки модели обновляем видимость безопасных зон
     updateSafetyZonesVisibility();
     
+    // Скрываем preloader сразу после того, как модель стала интерактивной
+    import('../sidebar.js').then(({ hideModelPreloader }) => {
+        hideModelPreloader(modelName);
+        console.log(`Preloader скрыт для модели ${modelName} после завершения processLoadedModel`);
+    }).catch(error => {
+        console.error('Ошибка при скрытии preloader:', error);
+    });
+    
     console.log(`Модель ${modelName} обработана и настроена с ID: ${container.userData.id}`);
 }
 

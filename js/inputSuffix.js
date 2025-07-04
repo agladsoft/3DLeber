@@ -1,15 +1,26 @@
 /**
  * Модуль для динамического позиционирования суффиксов в полях ввода
+ * Рефакторинг для стабильной работы - упрощенная версия
  */
 
-// Функция для мгновенного позиционирования без анимации
-function instantPositionSuffix(input, suffix) {
-    if (!input || !suffix || !input.value || input.value.trim() === '') return;
+// Глобальное состояние системы
+const SuffixManager = {
+    initialized: false,
+    initPromise: null,
+    trackedInputs: new Map(),
     
-    // Отключаем все transition
-    suffix.style.transition = 'none';
+    // Debounce для предотвращения избыточных обновлений
+    debounceTimers: new Map(),
     
-    // Создаем временный span для измерения
+    // Состояние готовности модулей
+    modulesReady: {
+        modal: false,
+        pgModal: false
+    }
+};
+
+// Функция для точного измерения ширины текста
+function measureTextWidth(input, text) {
     const measureSpan = document.createElement('span');
     measureSpan.style.position = 'absolute';
     measureSpan.style.visibility = 'hidden';
@@ -17,307 +28,188 @@ function instantPositionSuffix(input, suffix) {
     measureSpan.style.fontSize = getComputedStyle(input).fontSize;
     measureSpan.style.fontFamily = getComputedStyle(input).fontFamily;
     measureSpan.style.fontWeight = getComputedStyle(input).fontWeight;
-    measureSpan.textContent = input.value;
+    measureSpan.textContent = text;
     
     document.body.appendChild(measureSpan);
     const textWidth = measureSpan.offsetWidth;
     document.body.removeChild(measureSpan);
     
-    const paddingLeft = parseInt(getComputedStyle(input).paddingLeft);
+    return textWidth;
+}
+
+// Основная функция позиционирования суффикса
+function positionSuffix(input, suffix) {
+    if (!input || !suffix) return;
+    
+    const value = input.value || '';
+    const trimmedValue = value.trim();
+    
+    if (trimmedValue === '') {
+        // Если поле пустое, скрываем суффикс
+        suffix.style.opacity = '0';
+        suffix.style.left = 'auto';
+        suffix.style.right = '20px';
+        return;
+    }
+    
+    // Вычисляем позицию
+    const textWidth = measureTextWidth(input, value);
+    const paddingLeft = parseInt(getComputedStyle(input).paddingLeft) || 20;
     const spacing = (input.id === 'pgWidthInput' || input.id === 'pgLengthInput') ? 2 : 5;
     
-    // Мгновенное позиционирование
+    // Устанавливаем позицию и показываем суффикс
     suffix.style.right = 'auto';
     suffix.style.left = `${paddingLeft + textWidth + spacing}px`;
     suffix.style.opacity = '1';
     
-    // Через минимальную задержку возвращаем transition только для opacity
-    setTimeout(() => {
-        suffix.style.transition = 'opacity 0.2s ease';
-    }, 1);
+    console.log(`Positioned suffix for ${input.id}: "${value}" -> left: ${paddingLeft + textWidth + spacing}px`);
 }
 
+// Debounced версия функции обновления
 function updateSuffixPosition(input, suffix) {
     if (!input || !suffix) return;
     
-    // Временно отключаем transition для мгновенного позиционирования
-    const originalTransition = suffix.style.transition;
-    suffix.style.transition = 'none';
+    const inputId = input.id;
     
-    if (input.value && input.value.trim() !== '') {
-        // Создаем временный скрытый span для точного измерения ширины текста
-        const measureSpan = document.createElement('span');
-        measureSpan.style.position = 'absolute';
-        measureSpan.style.visibility = 'hidden';
-        measureSpan.style.whiteSpace = 'pre';
-        measureSpan.style.fontSize = getComputedStyle(input).fontSize;
-        measureSpan.style.fontFamily = getComputedStyle(input).fontFamily;
-        measureSpan.style.fontWeight = getComputedStyle(input).fontWeight;
-        measureSpan.textContent = input.value;
-        
-        document.body.appendChild(measureSpan);
-        const textWidth = measureSpan.offsetWidth;
-        document.body.removeChild(measureSpan);
-        
-        // Позиционируем суффикс сразу после текста
-        const paddingLeft = parseInt(getComputedStyle(input).paddingLeft);
-        
-        // Для pgModal убираем отступ между значением и "м"
-        const spacing = (input.id === 'pgWidthInput' || input.id === 'pgLengthInput') ? 2 : 5;
-        
-        // Сбрасываем right позиционирование и используем left
-        suffix.style.right = 'auto';
-        suffix.style.left = `${paddingLeft + textWidth + spacing}px`;
-    } else {
-        // Если поле пустое, показываем суффикс справа
-        suffix.style.left = 'auto';
-        suffix.style.right = '20px';
+    // Очищаем предыдущий таймер debounce для этого input'а
+    if (SuffixManager.debounceTimers.has(inputId)) {
+        clearTimeout(SuffixManager.debounceTimers.get(inputId));
     }
     
-    // Возвращаем transition и показываем суффикс
-    setTimeout(() => {
-        suffix.style.transition = originalTransition;
-        suffix.classList.add('visible');
-    }, 10); // Небольшая задержка для применения позиции
+    // Устанавливаем новый таймер debounce
+    const timer = setTimeout(() => {
+        positionSuffix(input, suffix);
+        SuffixManager.debounceTimers.delete(inputId);
+    }, 50); // 50ms debounce
+    
+    SuffixManager.debounceTimers.set(inputId, timer);
 }
 
-// Дополнительная функция для инициализации при загрузке страницы
-function checkInitialValues() {
-    const inputs = [
-        'modalPlaygroundWidth', 'modalPlaygroundLength',
-        'pgWidthInput', 'pgLengthInput',
-        'playground-width', 'playground-length',
-        'widthInput', 'lengthInput'
-    ];
+// Функция для настройки одного input с суффиксом
+function setupSuffixInput(input) {
+    if (!input) return;
     
-    inputs.forEach(inputId => {
-        const input = document.getElementById(inputId);
-        if (input) {
-            const suffix = input.parentElement.querySelector('.input-suffix');
-            if (suffix) {
-                // Принудительно обновляем позицию суффикса
-                updateSuffixPosition(input, suffix);
-                console.log(`Updated suffix for ${inputId}, value: "${input.value}"`);
-            }
+    const suffix = input.parentElement.querySelector('.input-suffix');
+    if (!suffix) return;
+    
+    const inputId = input.id;
+    
+    // Проверяем, не настроен ли уже этот input
+    if (SuffixManager.trackedInputs.has(inputId)) {
+        return;
+    }
+    
+    // Создаем обработчик событий
+    const handleInputChange = () => updateSuffixPosition(input, suffix);
+    
+    // Добавляем только один обработчик input событий
+    input.addEventListener('input', handleInputChange);
+    
+    // Сохраняем информацию о настроенном input'е
+    SuffixManager.trackedInputs.set(inputId, {
+        input: input,
+        suffix: suffix,
+        handler: handleInputChange
+    });
+    
+    // Выполняем начальное позиционирование
+    positionSuffix(input, suffix);
+    
+    console.log(`Setup suffix for ${inputId}, initial value: "${input.value}"`);
+}
+
+// Упрощенная функция обновления всех суффиксов
+function updateAllSuffixes() {
+    if (!SuffixManager.initialized) return;
+    
+    // Находим все input'ы с суффиксами
+    const inputs = document.querySelectorAll('.input-with-suffix input');
+    
+    inputs.forEach(input => {
+        if (input.id) {
+            setupSuffixInput(input);
         }
     });
 }
 
-// Функция для проверки и обновления всех суффиксов
-function forceUpdateAllSuffixes() {
-    // Находим все элементы с суффиксами
-    const inputsWithSuffix = document.querySelectorAll('.input-with-suffix input');
-    
-    inputsWithSuffix.forEach(input => {
-        const suffix = input.parentElement.querySelector('.input-suffix');
-        if (suffix) {
-            // Используем мгновенное позиционирование для заполненных полей
-            if (input.value && input.value.trim() !== '') {
-                instantPositionSuffix(input, suffix);
-            } else {
-                updateSuffixPosition(input, suffix);
-            }
-            console.log(`Force updated suffix for ${input.id || 'unnamed'}, value: "${input.value}"`);
-        }
-    });
-}
-
+// Основная функция инициализации
 function initInputSuffixes() {
-    // Основные поля модального окна выбора площадки
-    const widthInput = document.getElementById('modalPlaygroundWidth');
-    const lengthInput = document.getElementById('modalPlaygroundLength');
+    console.log('Starting InputSuffix initialization...');
     
-    // Поля pgModal
-    const pgWidthInput = document.getElementById('pgWidthInput');
-    const pgLengthInput = document.getElementById('pgLengthInput');
-    
-    // Поля playgroundSettings
-    const playgroundWidthInput = document.getElementById('playground-width');
-    const playgroundLengthInput = document.getElementById('playground-length');
-    
-    // Поля size-controls
-    const sizeWidthInput = document.getElementById('widthInput');
-    const sizeLengthInput = document.getElementById('lengthInput');
-    
-    // Функция для настройки обработчиков событий
-    function setupInputSuffix(input, inputName) {
-        if (input) {
-            const suffix = input.parentElement.querySelector('.input-suffix');
-            if (suffix) {
-                input.addEventListener('input', () => updateSuffixPosition(input, suffix));
-                input.addEventListener('keyup', () => updateSuffixPosition(input, suffix));
-                input.addEventListener('change', () => updateSuffixPosition(input, suffix));
-                // Отслеживаем программные изменения значений
-                input.addEventListener('propertychange', () => updateSuffixPosition(input, suffix)); // IE
-                
-                // Создаем наблюдатель для конкретного input'а
-                const inputObserver = new MutationObserver(() => {
-                    updateSuffixPosition(input, suffix);
-                });
-                
-                inputObserver.observe(input, {
-                    attributes: true,
-                    attributeFilter: ['value']
-                });
-                
-                // Инициализация при загрузке
-                updateSuffixPosition(input, suffix);
-            }
-        }
+    // Предотвращаем повторную инициализацию
+    if (SuffixManager.initialized) {
+        console.log('InputSuffix already initialized, skipping...');
+        return SuffixManager.initPromise;
     }
     
-    // Настраиваем все поля
-    setupInputSuffix(widthInput, 'modalPlaygroundWidth');
-    setupInputSuffix(lengthInput, 'modalPlaygroundLength');
-    setupInputSuffix(pgWidthInput, 'pgWidthInput');
-    setupInputSuffix(pgLengthInput, 'pgLengthInput');
-    setupInputSuffix(playgroundWidthInput, 'playground-width');
-    setupInputSuffix(playgroundLengthInput, 'playground-length');
-    setupInputSuffix(sizeWidthInput, 'widthInput');
-    setupInputSuffix(sizeLengthInput, 'lengthInput');
+    // Создаем промис для отслеживания готовности
+    SuffixManager.initPromise = new Promise((resolve) => {
+        // Ждем, пока DOM будет готов
+        const initialize = () => {
+            try {
+                console.log('Initializing input suffixes...');
+                
+                // Находим и настраиваем все input'ы с суффиксами
+                updateAllSuffixes();
+                
+                // Отмечаем как инициализированное
+                SuffixManager.initialized = true;
+                
+                console.log('InputSuffix initialization completed');
+                resolve();
+                
+            } catch (error) {
+                console.error('Error during InputSuffix initialization:', error);
+                resolve(); // Resolve даже при ошибке, чтобы не блокировать другие модули
+            }
+        };
+        
+        // Если DOM готов, инициализируем сразу
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            // DOM уже готов, инициализируем с небольшой задержкой
+            setTimeout(initialize, 100);
+        }
+    });
     
-    // Проверяем начальные значения через небольшой таймаут
-    setTimeout(checkInitialValues, 100);
-    
-    // Дополнительная проверка через больший таймаут для случаев когда значения устанавливаются JavaScript'ом
-    setTimeout(forceUpdateAllSuffixes, 500);
-    setTimeout(forceUpdateAllSuffixes, 1000);
-    setTimeout(forceUpdateAllSuffixes, 2000);
+    return SuffixManager.initPromise;
 }
 
-// Инициализация при загрузке DOM
+// Функции для внешнего API (вызов из других модулей)
+function notifyValueChange(inputId) {
+    const input = document.getElementById(inputId);
+    if (input && SuffixManager.trackedInputs.has(inputId)) {
+        const { suffix } = SuffixManager.trackedInputs.get(inputId);
+        updateSuffixPosition(input, suffix);
+    }
+}
+
+function notifyModuleReady(moduleName) {
+    if (SuffixManager.modulesReady.hasOwnProperty(moduleName)) {
+        SuffixManager.modulesReady[moduleName] = true;
+        console.log(`Module ${moduleName} ready, checking suffixes...`);
+        
+        // Если все ключевые модули готовы, обновляем суффиксы
+        if (SuffixManager.initialized) {
+            setTimeout(updateAllSuffixes, 100);
+        }
+    }
+}
+
+// Единственная точка инициализации
 document.addEventListener('DOMContentLoaded', initInputSuffixes);
 
-// Дополнительная инициализация при полной загрузке страницы
-window.addEventListener('load', () => {
-    console.log('Window loaded, forcing suffix update...');
-    setTimeout(forceUpdateAllSuffixes, 100);
-    setTimeout(forceUpdateAllSuffixes, 500);
-});
-
-// Дополнительная инициализация для случаев когда модальное окно открывается позже
-setTimeout(() => {
-    initInputSuffixes();
-    checkInitialValues();
-    forceUpdateAllSuffixes();
-}, 500);
-
-// Запускаем агрессивную проверку через 1 секунду
-setTimeout(startAggressiveChecking, 1000);
-
-// Наблюдатель за изменениями в DOM для отслеживания динамически добавляемых элементов
-const observer = new MutationObserver((mutations) => {
-    let shouldUpdate = false;
-    
-    mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === 1) { // Element node
-                    // Проверяем, добавлены ли input элементы с суффиксами
-                    if (node.classList && node.classList.contains('input-with-suffix')) {
-                        shouldUpdate = true;
-                    }
-                    // Или если добавлен элемент, содержащий такие input'ы
-                    if (node.querySelector && node.querySelector('.input-with-suffix')) {
-                        shouldUpdate = true;
-                    }
-                }
-            });
+// Делаем функции доступными глобально для координации с другими модулями
+window.SuffixManager = {
+    notifyValueChange,
+    notifyModuleReady,
+    updateAllSuffixes: () => {
+        if (SuffixManager.initialized) {
+            updateAllSuffixes();
         }
-        
-        // Отслеживаем изменения значений в атрибутах
-        if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
-            const target = mutation.target;
-            if (target.closest('.input-with-suffix')) {
-                shouldUpdate = true;
-            }
-        }
-    });
-    
-    if (shouldUpdate) {
-        setTimeout(forceUpdateAllSuffixes, 50);
     }
-});
-
-// Запускаем наблюдатель
-observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['value']
-});
-
-// Очень ранняя инициализация - сразу как только скрипт загружен
-if (document.readyState === 'loading') {
-    // Если DOM еще загружается, ждем его готовности
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            const inputs = document.querySelectorAll('.input-with-suffix input');
-            inputs.forEach(input => {
-                const suffix = input.parentElement.querySelector('.input-suffix');
-                if (suffix && input.value && input.value.trim() !== '') {
-                    instantPositionSuffix(input, suffix);
-                }
-            });
-        }, 1);
-    });
-} else {
-    // DOM уже готов, выполняем сразу
-    setTimeout(() => {
-        const inputs = document.querySelectorAll('.input-with-suffix input');
-        inputs.forEach(input => {
-            const suffix = input.parentElement.querySelector('.input-suffix');
-            if (suffix && input.value && input.value.trim() !== '') {
-                instantPositionSuffix(input, suffix);
-            }
-        });
-    }, 1);
-}
-
-// Агрессивная проверка с интервалом для сервера
-let aggressiveCheckInterval;
-let aggressiveCheckCount = 0;
-const MAX_AGGRESSIVE_CHECKS = 50; // максимум 25 секунд (50 * 500мс)
-
-function startAggressiveChecking() {
-    console.log('Starting aggressive suffix checking...');
-    
-    aggressiveCheckInterval = setInterval(() => {
-        aggressiveCheckCount++;
-        
-        // Ищем поля с заполненными значениями
-        const inputsWithSuffix = document.querySelectorAll('.input-with-suffix input');
-        let foundFilledInputs = 0;
-        let updatedInputs = 0;
-        
-        inputsWithSuffix.forEach(input => {
-            const suffix = input.parentElement.querySelector('.input-suffix');
-            if (suffix && input.value && input.value.trim() !== '') {
-                foundFilledInputs++;
-                
-                // Проверяем, нужно ли обновить позицию
-                const currentLeft = suffix.style.left;
-                if (!currentLeft || currentLeft === 'auto' || parseInt(currentLeft) > 50) {
-                    updateSuffixPosition(input, suffix);
-                    updatedInputs++;
-                    console.log(`Aggressively updated suffix for ${input.id || 'unnamed'}: "${input.value}"`);
-                }
-            }
-        });
-        
-        console.log(`Aggressive check #${aggressiveCheckCount}: found ${foundFilledInputs} filled inputs, updated ${updatedInputs}`);
-        
-        // Если нашли и обновили заполненные поля, или достигли лимита проверок
-        if ((foundFilledInputs > 0 && updatedInputs === 0) || aggressiveCheckCount >= MAX_AGGRESSIVE_CHECKS) {
-            console.log('Stopping aggressive checking');
-            clearInterval(aggressiveCheckInterval);
-        }
-    }, 500);
-}
-
-// Делаем функцию доступной глобально для вызова из других скриптов
-window.forceUpdateAllSuffixes = forceUpdateAllSuffixes;
-window.startAggressiveChecking = startAggressiveChecking;
+};
 
 // Экспорт для использования в других модулях
-export { initInputSuffixes, updateSuffixPosition, forceUpdateAllSuffixes };
+export { initInputSuffixes, updateSuffixPosition, notifyValueChange, notifyModuleReady };
