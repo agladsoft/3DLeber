@@ -10,21 +10,25 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
-// Функции cold start preloader будут импортированы динамически при необходимости
+
+// Флаг для предотвращения повторной инициализации
+let appInitializationInProgress = false;
 
 /**
- * Безопасно вызывает функции cold start preloader'а
- * @param {string} functionName - Имя функции для вызова
- * @param {...any} args - Аргументы для функции
+ * Плавно скрывает loadingScreen
  */
-async function safeColdStartCall(functionName, ...args) {
-    try {
-        const { [functionName]: fn } = await import('./coldStartPreloader.js');
-        if (typeof fn === 'function') {
-            return fn(...args);
-        }
-    } catch (error) {
-        console.warn(`Cold start preloader function ${functionName} not available:`, error);
+function hideLoadingScreenSmooth() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen && !loadingScreen.classList.contains('fade-out')) {
+        console.log('Starting smooth hide of loadingScreen');
+        // Начинаем плавное исчезновение
+        loadingScreen.classList.add('fade-out');
+        
+        // Полностью скрываем после завершения анимации
+        setTimeout(() => {
+            loadingScreen.classList.add('hidden');
+            console.log('LoadingScreen fully hidden');
+        }, 800); // Время анимации из CSS (0.8s)
     }
 }
 
@@ -32,42 +36,36 @@ async function safeColdStartCall(functionName, ...args) {
  * Инициализирует все компоненты приложения
  */
 async function initializeApp() {
+    if (appInitializationInProgress) {
+        console.log('App initialization already in progress, skipping');
+        return;
+    }
+    
+    appInitializationInProgress = true;
     console.log('Initializing application components...');
     
     const loadingScreen = document.getElementById('loadingScreen');
-
-    // Показываем cold start preloader в начале инициализации
-    await safeColdStartCall('showColdStartPreloader');
-    await safeColdStartCall('updateColdStartProgress', 5, 'Инициализация приложения...');
 
     // Инициализируем модальное окно помощи
     initHelpModal();
     
     try {
-        // Обновляем прогресс - проверка сессии
-        await safeColdStartCall('updateColdStartProgress', 10, 'Проверка сессии...');
-        
         // Проверяем sessionId
         const sessionId = getSessionIdFromURL();
         
         if (!sessionId) {
             console.error('No sessionId found in URL - access denied');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            await safeColdStartCall('hideColdStartPreloader');
+            hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
         
-        // Обновляем прогресс - получение данных сессии
-        await safeColdStartCall('updateColdStartProgress', 20, 'Получение данных сессии...');
-                
         // Получаем данные сессии
         const sessionResult = await getSessionData(sessionId);
         
         if (!sessionResult.isValid) {
             console.error('Session validation failed or session expired');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            await safeColdStartCall('hideColdStartPreloader');
+            hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
@@ -75,13 +73,6 @@ async function initializeApp() {
         // Определяем тип сессии (новая или продолжение)
         const isNewSession = !sessionResult.userData.sessionData || 
                            Object.keys(sessionResult.userData.sessionData).length === 0;
-        
-        // Обновляем прогресс в зависимости от типа сессии
-        if (isNewSession) {
-            await safeColdStartCall('updateColdStartProgress', 30, 'Подготовка новой сессии...');
-        } else {
-            await safeColdStartCall('updateColdStartProgress', 30, 'Восстановление сессии...');
-        }
                 
         // Извлекаем данные моделей из сессии
         const modelsData = extractModelsDataFromSession(sessionResult.userData);        
@@ -94,9 +85,11 @@ async function initializeApp() {
         
     } catch (error) {
         console.error('Error initializing application:', error);
-        if (loadingScreen) loadingScreen.classList.add('hidden');
-        await safeColdStartCall('hideColdStartPreloader');
+        hideLoadingScreenSmooth();
         showTokenError();
+    } finally {
+        // Сбрасываем флаг инициализации
+        appInitializationInProgress = false;
     }
 }
 
@@ -106,15 +99,8 @@ async function initializeApp() {
  * @param {HTMLElement} loadingScreen - элемент загрузочного экрана
  */
 async function initializeWithData(modelsData, loadingScreen) {
-    // Обновляем прогресс - подготовка данных
-    if (modelsData.isNewSession) {
-        await safeColdStartCall('updateColdStartProgress', 40, 'Подготовка новой сессии...');
-    } else {
-        await safeColdStartCall('updateColdStartProgress', 40, 'Загрузка сохраненных данных...');
-    }
-    
     // Скрываем загрузочный экран
-    if (loadingScreen) loadingScreen.classList.add('hidden');
+    hideLoadingScreenSmooth();
     
     // Скрываем кнопку запуска (если она есть)
     const launchContainer = document.getElementById('launchContainer');
@@ -126,18 +112,8 @@ async function initializeWithData(modelsData, loadingScreen) {
     sessionStorage.setItem('userId', modelsData.project_id);
     sessionStorage.setItem('models', JSON.stringify(modelsData.models));
     
-    // Обновляем прогресс - инициализация компонентов
-    if (modelsData.isNewSession) {
-        await safeColdStartCall('updateColdStartProgress', 50, 'Создание новой сессии...');
-    } else {
-        await safeColdStartCall('updateColdStartProgress', 50, 'Восстановление сессии...');
-    }
-    
     // Автоматически открываем модальное окно выбора площадки
     await showPlatformSelectModal();
-    
-    // Обновляем прогресс перед завершением
-    await safeColdStartCall('updateColdStartProgress', 60, 'Подготовка к запуску...');
     
     console.log('Application components initialized successfully');
 }

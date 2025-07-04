@@ -18,6 +18,8 @@ canvas {
     display: block; 
 }
 
+
+
 /* Загрузочный экран */
 #loadingScreen {
     position: fixed;
@@ -32,6 +34,8 @@ canvas {
     align-items: center;
     z-index: 10000;
     font-family: 'Inter Tight', sans-serif;
+    opacity: 1;
+    transition: opacity 0.8s ease-out;
 }
 
 @keyframes spin {
@@ -50,55 +54,18 @@ canvas {
     color: #666;
 }
 
+#loadingScreen.fade-out {
+    opacity: 0;
+}
+
 #loadingScreen.hidden {
     display: none !important;
 }
 
-/* Preloader для холодного запуска Three.js */
-#coldStartPreloader {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 11000;
-    font-family: 'Inter Tight', sans-serif;
-    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-#coldStartPreloader.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-#coldStartPreloader.removing {
-    animation: fadeOutPreloader 0.8s ease-out forwards;
-}
-
-@keyframes fadeOutPreloader {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.95);
-        visibility: hidden;
-    }
-}
-
-.cold-start-logo {
-    margin-bottom: 30px;
-    position: relative;
+/* Обновленные стили для loading-spinner-svg */
+.loading-spinner-svg {
+    width: 200px;
+    height: 80px;
     background: #FFFFFF;
     border-radius: 15px;
     padding: 20px;
@@ -108,17 +75,17 @@ canvas {
     justify-content: center;
 }
 
-.cold-start-logo svg {
+.loading-spinner-svg svg {
     width: 140px;
     height: 55px;
     cursor: pointer;
 }
 
-.bounce-odd {
+.loading-spinner-svg .bounce-odd {
     animation: logobounce-odd 2s ease-in-out infinite;
 }
 
-.bounce-even {
+.loading-spinner-svg .bounce-even {
     animation: logobounce-even 2s ease-in-out infinite 0.5s;
 }
 
@@ -132,91 +99,6 @@ canvas {
     0%, 100% { transform: translateY(0); }
     25% { transform: translateY(2px); }
     75% { transform: translateY(-4px); }
-}
-
-.cold-start-text {
-    font-size: 20px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    text-align: center;
-}
-
-.cold-start-subtext {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.cold-start-progress {
-    width: 280px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 4px;
-    background-color: rgba(240, 83, 35, 0.1);
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #F05323 0%, #ff6b3d 100%);
-    border-radius: 2px;
-    width: 0%;
-    transition: width 0.3s ease-out;
-    position: relative;
-}
-
-.progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-.progress-percentage {
-    font-size: 12px;
-    font-weight: 500;
-    color: #F05323;
-    min-width: 30px;
-    text-align: center;
-}
-
-/* Адаптивность для загрузочных экранов */
-@media (max-width: 768px) {
-    .cold-start-logo {
-        padding: 15px;
-    }
-    
-    .cold-start-logo svg {
-        width: 110px;
-        height: 43px;
-    }
-    
-    .cold-start-text {
-        font-size: 18px;
-    }
-    
-    .cold-start-progress {
-        width: 240px;
-    }
 }
 
 /* Логотип в правом нижнем углу */
@@ -1345,32 +1227,7 @@ body, html {
     color: #100F0F;
 }
 
-/* Обновленные стили для loading-spinner-svg */
-.loading-spinner-svg {
-    width: 200px;
-    height: 80px;
-    background: #FFFFFF;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
-.loading-spinner-svg svg {
-    width: 140px;
-    height: 55px;
-    cursor: pointer;
-}
-
-.loading-spinner-svg .bounce-odd {
-    animation: logobounce-odd 2s ease-in-out infinite;
-}
-
-.loading-spinner-svg .bounce-even {
-    animation: logobounce-even 2s ease-in-out infinite 0.5s;
-}
 
 /* Статус площадки */
 #playgroundStatus {

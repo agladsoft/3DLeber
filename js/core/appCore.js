@@ -7,23 +7,6 @@ import { loadPlayground } from '../playground.js';
 import { initUI } from '../ui.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { initDimensionUpdates } from '../modules/dimensionDisplay/index.js';
-// Функции cold start preloader будут импортированы динамически при необходимости
-
-/**
- * Безопасно вызывает функции cold start preloader'а
- * @param {string} functionName - Имя функции для вызова
- * @param {...any} args - Аргументы для функции
- */
-async function safeColdStartCall(functionName, ...args) {
-    try {
-        const { [functionName]: fn } = await import('../coldStartPreloader.js');
-        if (typeof fn === 'function') {
-            return fn(...args);
-        }
-    } catch (error) {
-        console.warn(`Cold start preloader function ${functionName} not available:`, error);
-    }
-}
 
 /**
  * Функция для безопасного скрытия индикатора загрузки с проверками
@@ -32,6 +15,19 @@ async function safeColdStartCall(functionName, ...args) {
 function ensureLoadingOverlayHidden(timeout = 5000) {    
     // Устанавливаем таймер для принудительного скрытия индикатора загрузки
     setTimeout(() => {
+        // Проверяем, что не показывается модальное окно
+        const platformSelectModal = document.getElementById('platformSelectModal');
+        const sessionModal = document.getElementById('sessionModal');
+        const appModal = document.getElementById('appModal');
+        
+        // Если показывается модальное окно выбора площадки или сессии, не скрываем loading overlay
+        if ((platformSelectModal && platformSelectModal.style.display === 'block') ||
+            (sessionModal && sessionModal.style.display === 'block')) {
+            console.log('Modal window is open, keeping loading overlay as is');
+            return;
+        }
+        
+        // Если показывается приложение, скрываем loading overlay
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
             console.log('Принудительное скрытие индикатора загрузки по таймауту');
@@ -47,19 +43,12 @@ function ensureLoadingOverlayHidden(timeout = 5000) {
  */
 export async function initializeApp() {
     try {        
-        // Обновляем прогресс cold start - начинаем инициализацию Three.js
-        // Начинаем с 70% так как 60% уже достигнуты в appInit.js
-        await safeColdStartCall('updateColdStartProgress', 70, 'Инициализация Three.js сцены...');
-        
         // Устанавливаем таймер для принудительного скрытия индикатора загрузки через 6 секунд
         ensureLoadingOverlayHidden(6000);
         
         // Инициализируем Three.js сцену, камеру и освещение
         const sceneComponents = initScene();
         console.log('Сцена инициализирована, компоненты:', sceneComponents);
-        
-        // Обновляем прогресс - сцена создана
-        await safeColdStartCall('updateColdStartProgress', 75, 'Настройка рендерера...');
         
         // Удаляем все объекты отображения размеров из сцены
         if (sceneComponents && sceneComponents.scene) {
@@ -78,7 +67,9 @@ export async function initializeApp() {
         window.app = {
             ...sceneComponents,
             // Добавляем дополнительные экспортируемые переменные из scene.js
-            isTopViewActive: sceneComponents.isTopViewActive
+            isTopViewActive: sceneComponents.isTopViewActive,
+            // Флаг для отслеживания состояния рендер loop
+            renderLoopRunning: false
         };
         
         // Получаем тип площадки из глобальных переменных, установленных в модальном окне
@@ -125,17 +116,11 @@ export async function initializeApp() {
         if (playgroundWidthInput) playgroundWidthInput.value = userWidth;
         if (playgroundLengthInput) playgroundLengthInput.value = userLength;
         
-        // Обновляем прогресс - загружаем площадку
-        await safeColdStartCall('updateColdStartProgress', 78, 'Загрузка площадки...');
-        
         try {
             // Попытка загрузить площадку с указанными размерами и цветом
             console.log('Начинаем загрузку площадки:', playgroundType, 'с размерами:', userWidth, 'x', userLength, 'цвет:', userColor);
             const result = await loadPlayground(playgroundType, userWidth, userLength, userColor);
             console.log('Площадка загружена, результат:', result);
-            
-            // Обновляем прогресс - площадка загружена
-            await safeColdStartCall('updateColdStartProgress', 80, 'Настройка освещения...');
             
             // Обновляем информационную панель со статусом площадки
             const playgroundStatus = document.getElementById('playgroundStatus');
@@ -146,11 +131,7 @@ export async function initializeApp() {
             console.error('Ошибка при загрузке площадки:', playgroundError);
             // Если не удалось загрузить площадку - продолжаем без неё
             // Приложение все равно должно запуститься
-            await safeColdStartCall('updateColdStartProgress', 80, 'Площадка загружена (резервная)');
         }
-        
-        // Обновляем прогресс - инициализируем UI
-        await safeColdStartCall('updateColdStartProgress', 82, 'Инициализация интерфейса...');
         
         // Инициализируем UI и обработчики событий
         try {
@@ -158,9 +139,6 @@ export async function initializeApp() {
         } catch (uiError) {
             console.error('Ошибка при инициализации UI:', uiError);
         }
-        
-        // Обновляем прогресс - настройка объектов
-        await safeColdStartCall('updateColdStartProgress', 85, 'Проверка объектов...');
         
         try {
             // Проверяем позиции всех объектов после инициализации
@@ -183,31 +161,11 @@ export async function initializeApp() {
             console.error('Ошибка при обновлении safety zones:', safetyError);
         }
         
-        // Обновляем прогресс - запуск рендеринга
-        await safeColdStartCall('updateColdStartProgress', 88, 'Запуск 3D рендерера...');
-        
         // Запускаем цикл рендеринга Three.js
         startRenderLoop();
         
-        // Финальная настройка - приложение готово
-        await safeColdStartCall('updateColdStartProgress', 92, 'Финализация...');
-        
-        // Небольшая задержка для плавности, затем скрываем preloader
-        setTimeout(async () => {
-            await safeColdStartCall('updateColdStartProgress', 96, 'Завершение...');
-            setTimeout(async () => {
-                await safeColdStartCall('updateColdStartProgress', 100, 'Готово!');
-                setTimeout(async () => {
-                    await safeColdStartCall('hideColdStartPreloader');
-                }, 500);
-            }, 300);
-        }, 200);
-        
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
-        
-        // Скрываем preloader при ошибке
-        await safeColdStartCall('hideColdStartPreloader');
         
         // Скрываем индикатор загрузки только в случае критической ошибки
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -225,6 +183,11 @@ export async function initializeApp() {
  */
 export function startRenderLoop() {
     console.log("Запуск цикла рендеринга");
+    
+    // Устанавливаем флаг что рендер loop запущен
+    if (window.app) {
+        window.app.renderLoopRunning = true;
+    }
     
     // Счетчик кадров для дебага
     let frameCount = 0;

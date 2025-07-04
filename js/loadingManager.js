@@ -4,22 +4,6 @@
  */
 
 /**
- * Безопасно вызывает функции cold start preloader'а
- * @param {string} functionName - Имя функции для вызова
- * @param {...any} args - Аргументы для функции
- */
-async function safeColdStartCall(functionName, ...args) {
-    try {
-        const { [functionName]: fn } = await import('./coldStartPreloader.js');
-        if (typeof fn === 'function') {
-            return fn(...args);
-        }
-    } catch (error) {
-        console.warn(`Cold start preloader function ${functionName} not available:`, error);
-    }
-}
-
-/**
  * Показывает loading overlay
  */
 function showLoadingOverlay() {
@@ -42,15 +26,10 @@ function hideLoadingOverlay() {
 }
 
 /**
- * Стандартный процесс начала загрузки с preloader'ом
- * @param {string} loadingText - Текст для отображения в preloader
- * @param {number} initialProgress - Начальный прогресс (по умолчанию 5)
+ * Стандартный процесс начала загрузки
+ * @param {string} loadingText - Текст для отображения
  */
-export async function startStandardLoading(loadingText = 'Подготовка к загрузке...', initialProgress = 5) {
-    // Показываем cold start preloader
-    await safeColdStartCall('showColdStartPreloader');
-    await safeColdStartCall('updateColdStartProgress', initialProgress, loadingText);
-    
+export async function startStandardLoading(loadingText = 'Подготовка к загрузке...') {
     // Показываем loading overlay
     showLoadingOverlay();
 }
@@ -61,7 +40,8 @@ export async function startStandardLoading(loadingText = 'Подготовка �
  * @param {string} text - Текст для отображения
  */
 export async function updateStandardLoadingProgress(progress, text) {
-    await safeColdStartCall('updateColdStartProgress', progress, text);
+    // В данной реализации только показываем/скрываем overlay
+    // При необходимости можно добавить текст в overlay
 }
 
 /**
@@ -69,14 +49,6 @@ export async function updateStandardLoadingProgress(progress, text) {
  * @param {number} delay - Задержка перед скрытием в миллисекундах (по умолчанию 500)
  */
 export async function finishStandardLoading(delay = 500) {
-    // Устанавливаем 100% прогресс
-    await safeColdStartCall('updateColdStartProgress', 100, 'Готово!');
-    
-    // Скрываем preloader
-    setTimeout(async () => {
-        await safeColdStartCall('hideColdStartPreloader');
-    }, 300);
-    
     // Скрываем loading overlay
     setTimeout(() => {
         hideLoadingOverlay();
@@ -94,19 +66,10 @@ export async function finishStandardLoading(delay = 500) {
 export async function standardPlaygroundLoading(loadPlaygroundFn, playgroundType, width, length, color) {
     try {
         // Начинаем стандартную загрузку
-        await startStandardLoading('Инициализация загрузки площадки...', 10);
-        
-        // Обновляем прогресс - подготовка
-        await updateStandardLoadingProgress(20, 'Подготовка параметров площадки...');
-        
-        // Обновляем прогресс - загрузка
-        await updateStandardLoadingProgress(40, 'Загрузка площадки...');
+        await startStandardLoading('Загрузка площадки...');
         
         // Выполняем загрузку площадки
         const result = await loadPlaygroundFn(playgroundType, width, length, color);
-        
-        // Обновляем прогресс - финализация
-        await updateStandardLoadingProgress(80, 'Финализация...');
         
         // Завершаем загрузку
         await finishStandardLoading();
@@ -116,7 +79,6 @@ export async function standardPlaygroundLoading(loadPlaygroundFn, playgroundType
         console.error('Error during standard playground loading:', error);
         
         // В случае ошибки тоже скрываем индикаторы
-        await safeColdStartCall('hideColdStartPreloader');
         hideLoadingOverlay();
         
         throw error;
@@ -129,11 +91,7 @@ export async function standardPlaygroundLoading(loadPlaygroundFn, playgroundType
 export async function standardNewSessionInit() {
     try {
         // Начинаем загрузку
-        await startStandardLoading('Создание новой сессии...', 5);
-        
-        // Показываем cold start preloader перед инициализацией Three.js
-        await updateStandardLoadingProgress(10, 'Инициализация приложения...');
-        await updateStandardLoadingProgress(20, 'Подготовка новой сессии...');
+        await startStandardLoading('Создание новой сессии...');
         
         // Возвращаем функции для дальнейшего использования
         return {
@@ -142,7 +100,6 @@ export async function standardNewSessionInit() {
         };
     } catch (error) {
         console.error('Error during standard new session init:', error);
-        await safeColdStartCall('hideColdStartPreloader');
         hideLoadingOverlay();
         throw error;
     }
@@ -154,10 +111,7 @@ export async function standardNewSessionInit() {
 export async function standardSessionRestore() {
     try {
         // Начинаем загрузку
-        await startStandardLoading('Восстановление сессии...', 5);
-        
-        await updateStandardLoadingProgress(15, 'Загрузка данных сессии...');
-        await updateStandardLoadingProgress(30, 'Восстановление состояния...');
+        await startStandardLoading('Восстановление сессии...');
         
         // Возвращаем функции для дальнейшего использования
         return {
@@ -166,7 +120,6 @@ export async function standardSessionRestore() {
         };
     } catch (error) {
         console.error('Error during standard session restore:', error);
-        await safeColdStartCall('hideColdStartPreloader');
         hideLoadingOverlay();
         throw error;
     }
@@ -176,13 +129,11 @@ export async function standardSessionRestore() {
  * Быстрое скрытие всех индикаторов загрузки (для экстренных случаев)
  */
 export async function forceHideAllLoading() {
-    await safeColdStartCall('hideColdStartPreloader');
     hideLoadingOverlay();
 }
 
 // Экспортируем также вспомогательные функции для прямого использования
 export {
     showLoadingOverlay,
-    hideLoadingOverlay,
-    safeColdStartCall
+    hideLoadingOverlay
 };
