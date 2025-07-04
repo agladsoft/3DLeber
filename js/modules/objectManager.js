@@ -160,13 +160,12 @@ function processLoadedModel(container, modelName, position) {
     updateSafetyZonesVisibility();
     
     // Скрываем preloader сразу после того, как модель стала интерактивной
-    try {
-        const { hideModelPreloader } = await import('../sidebar.js');
+    import('../sidebar.js').then(({ hideModelPreloader }) => {
         hideModelPreloader(modelName);
         console.log(`Preloader скрыт для модели ${modelName} после завершения processLoadedModel`);
-    } catch (error) {
+    }).catch(error => {
         console.error('Ошибка при скрытии preloader:', error);
-    }
+    });
     
     console.log(`Модель ${modelName} обработана и настроена с ID: ${container.userData.id}`);
 }
