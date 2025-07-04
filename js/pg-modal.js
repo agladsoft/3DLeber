@@ -381,6 +381,13 @@ const PlaygroundModal = {
         } catch (error) {
             console.error('Ошибка при применении настроек площадки:', error);
             this.showNotification('Ошибка при применении настроек площадки');
+            // Скрываем все индикаторы загрузки при ошибке
+            try {
+                const { forceHideAllLoading } = await import('./loadingManager.js');
+                await forceHideAllLoading();
+            } catch (importError) {
+                console.warn('Failed to import loading manager:', importError);
+            }
         }
     },
     
