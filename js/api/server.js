@@ -9,6 +9,8 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
+import { promisify } from 'util';
+import dns from 'dns';
 
 const { Pool } = pg;
 
@@ -684,20 +686,60 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
     try {
+        // Проверяем DNS разрешение
+        console.log('0. Проверка DNS разрешения smtp.mail.ru...');
+        const dnsLookup = promisify(dns.lookup);
+        try {
+            const dnsResult = await dnsLookup('smtp.mail.ru');
+            console.log('✅ DNS разрешение успешно:', dnsResult);
+        } catch (dnsError) {
+            console.error('❌ DNS ошибка:', dnsError.message);
+            throw new Error(`DNS resolution failed: ${dnsError.message}`);
+        }
+
         console.log('1. Создание транспорта...');
-        const transporter = nodemailer.createTransport({
+        const transportConfig = {
             host: 'smtp.mail.ru',
             port: 465,
             secure: true, // true для порта 465, false для других портов
             auth: {
                 user: 'grafana_test_ruscon@mail.ru',
                 pass: 'BCaWNbWNLdDoSwn6p5lL'
-            }
+            },
+            // Настройки timeout
+            connectionTimeout: 10000, // 10 секунд на подключение
+            greetingTimeout: 5000,    // 5 секунд на приветствие
+            socketTimeout: 15000,     // 15 секунд на сокет операции
+            // Настройки отладки
+            debug: true,
+            logger: true
+        };
+        
+        console.log('📋 Конфигурация транспорта:', {
+            host: transportConfig.host,
+            port: transportConfig.port,
+            secure: transportConfig.secure,
+            connectionTimeout: transportConfig.connectionTimeout,
+            user: transportConfig.auth.user
         });
+        
+        const transporter = nodemailer.createTransport(transportConfig);
 
         console.log('2. Проверка SMTP подключения...');
-        await transporter.verify();
-        console.log('✅ SMTP подключение успешно');
+        const verifyStartTime = Date.now();
+        
+        try {
+            await transporter.verify();
+            const verifyDuration = Date.now() - verifyStartTime;
+            console.log(`✅ SMTP подключение успешно (${verifyDuration}ms)`);
+        } catch (verifyError) {
+            const verifyDuration = Date.now() - verifyStartTime;
+            console.error(`❌ SMTP verify failed after ${verifyDuration}ms:`);
+            console.error('Error code:', verifyError.code);
+            console.error('Error message:', verifyError.message);
+            console.error('Error stack:', verifyError.stack);
+            throw verifyError;
+        }
 
         console.log('3. Отправка отчета об отсутствующих моделях...');
         const mailOptions = {
@@ -731,19 +773,66 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
             ]
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        console.log('📧 Параметры письма:', {
+            from: mailOptions.from,
+            to: mailOptions.to,
+            subject: mailOptions.subject,
+            attachmentsCount: mailOptions.attachments.length
+        });
+
+        const sendStartTime = Date.now();
         
-        console.log('✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО!');
-        console.log('Message ID:', info.messageId);
-        console.log('Response:', info.response);
-        console.log('Получатель: uventus_work@mail.ru');
-        
-        return info;
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            const sendDuration = Date.now() - sendStartTime;
+            
+            console.log(`✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО! (${sendDuration}ms)`);
+            console.log('Message ID:', info.messageId);
+            console.log('Response:', info.response);
+            console.log('Получатель: uventus_work@mail.ru');
+            
+            return info;
+        } catch (sendError) {
+            const sendDuration = Date.now() - sendStartTime;
+            console.error(`❌ Ошибка отправки после ${sendDuration}ms:`);
+            console.error('Send error code:', sendError.code);
+            console.error('Send error message:', sendError.message);
+            throw sendError;
+        }
 
     } catch (error) {
         console.error('❌ ОШИБКА ПРИ ОТПРАВКЕ ОТЧЕТА:');
         console.error('Тип ошибки:', error.code || error.name);
         console.error('Сообщение:', error.message);
+        
+        // Дополнительная диагностика ошибок
+        if (error.code === 'ETIMEDOUT') {
+            console.error('🕐 TIMEOUT ДИАГНОСТИКА:');
+            console.error('- Проверьте интернет соединение сервера');
+            console.error('- Возможно блокировка SMTP портов файрволом');
+            console.error('- smtp.mail.ru:465 может быть недоступен из Docker контейнера');
+        } else if (error.code === 'ECONNREFUSED') {
+            console.error('🚫 CONNECTION REFUSED:');
+            console.error('- SMTP сервер отклонил соединение');
+            console.error('- Возможно неправильный порт или хост');
+        } else if (error.code === 'EAUTH') {
+            console.error('🔐 AUTHENTICATION ERROR:');
+            console.error('- Неверный логин или пароль');
+            console.error('- Возможно нужен пароль для внешних приложений');
+        } else if (error.code === 'ENOTFOUND') {
+            console.error('🌐 DNS ERROR:');
+            console.error('- Не удается разрешить smtp.mail.ru');
+            console.error('- Проблемы с DNS сервером');
+        }
+        
+        console.error('📊 Error details:');
+        console.error('- Code:', error.code);
+        console.error('- Command:', error.command);
+        console.error('- Errno:', error.errno);
+        console.error('- Syscall:', error.syscall);
+        console.error('- Address:', error.address);
+        console.error('- Port:', error.port);
+        
         throw error;
     }
 }
