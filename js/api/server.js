@@ -671,16 +671,9 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
  * Отправляет email с JSON отчетом (используя рабочую конфигурацию из test-email-sending.js)
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
-                         process.env.NODE_ENV !== 'production';
-    
-    if (isDevelopment) {
-        return { messageId: 'dev-mode-' + Date.now(), development: true };
-    }
-
     try {
         console.log('1. Создание транспорта...');
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
             host: 'smtp.mail.ru',
             port: 465,
             secure: true, // true для порта 465, false для других портов
