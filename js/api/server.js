@@ -35,6 +35,10 @@ app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит �
 const sessionCache = new Map();
 const SESSION_CACHE_TTL = 5000; // 5 секунд
 
+// Очередь фоновых задач для отправки email
+const emailQueue = [];
+let emailQueueProcessing = false;
+
 // Функция для кэширования сессий
 function getCachedSession(userId) {
     const cached = sessionCache.get(userId);
@@ -606,7 +610,7 @@ app.get('/api/missing-models/:userId', async (req, res) => {
     }
 });
 
-// Endpoint для отправки отчета об отсутствующих моделях по email
+// Endpoint для отправки отчета об отсутствующих моделях по email (асинхронная фоновая отправка)
 app.post('/api/send-missing-models-report', async (req, res) => {
     try {
         const { userId, missingModels, stats, userEmail, projectInfo } = req.body;
@@ -615,19 +619,27 @@ app.post('/api/send-missing-models-report', async (req, res) => {
             return res.status(400).json({ error: 'Missing models data is required' });
         }
         
+        // Создаем данные для отправки
         const jsonData = createMissingModelsJson(missingModels, stats, userId, projectInfo, userEmail);
-        const emailResult = await sendEmailWithJson(jsonData, userId, stats, userEmail);
         
+        // Добавляем задачу в фоновую очередь
+        const taskId = addEmailToQueue(jsonData, userId, stats, userEmail);
+        
+        // Немедленно возвращаем успешный ответ пользователю
         res.json({ 
             success: true, 
-            message: 'Отчет успешно отправлен администрации',
-            development: emailResult.development || false
+            message: 'Отчет принят к отправке администрации',
+            taskId: taskId,
+            status: 'queued'
         });
         
+        // Обрабатываем очередь в фоне
+        processEmailQueue();
+        
     } catch (error) {
-        console.error('Error sending missing models report:', error);
+        console.error('Error queueing missing models report:', error);
         res.status(500).json({ 
-            error: 'Ошибка при отправке отчета',
+            error: 'Ошибка при постановке отчета в очередь',
             details: error.message
         });
     }
@@ -734,6 +746,86 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         console.error('Сообщение:', error.message);
         throw error;
     }
+}
+
+/**
+ * Добавляет задачу отправки email в фоновую очередь
+ */
+function addEmailToQueue(jsonData, userId, stats, userEmail) {
+    const taskId = `email-${Date.now()}-${Math.random().toString(36).substr(2)}`;
+    
+    const task = {
+        id: taskId,
+        jsonData,
+        userId,
+        stats,
+        userEmail,
+        createdAt: new Date().toISOString(),
+        status: 'queued',
+        attempts: 0,
+        maxAttempts: 3
+    };
+    
+    emailQueue.push(task);
+    console.log(`📧 Email задача добавлена в очередь: ${taskId} (очередь: ${emailQueue.length})`);
+    
+    return taskId;
+}
+
+/**
+ * Обрабатывает очередь email отправки в фоновом режиме
+ */
+async function processEmailQueue() {
+    if (emailQueueProcessing || emailQueue.length === 0) {
+        return;
+    }
+    
+    emailQueueProcessing = true;
+    console.log(`🔄 Начало обработки очереди email (задач: ${emailQueue.length})`);
+    
+    while (emailQueue.length > 0) {
+        const task = emailQueue.shift();
+        
+        try {
+            console.log(`📤 Обработка email задачи: ${task.id} (попытка ${task.attempts + 1}/${task.maxAttempts})`);
+            
+            task.attempts++;
+            task.status = 'processing';
+            task.startedAt = new Date().toISOString();
+            
+            // Отправляем email
+            const emailResult = await sendEmailWithJson(task.jsonData, task.userId, task.stats, task.userEmail);
+            
+            task.status = 'completed';
+            task.completedAt = new Date().toISOString();
+            task.result = emailResult;
+            
+            console.log(`✅ Email задача выполнена успешно: ${task.id} (Message ID: ${emailResult.messageId})`);
+            
+        } catch (error) {
+            task.status = 'failed';
+            task.error = error.message;
+            task.failedAt = new Date().toISOString();
+            
+            console.error(`❌ Ошибка при выполнении email задачи: ${task.id}`);
+            console.error('Детали ошибки:', error.message);
+            
+            // Повторяем попытку если не достигли лимита
+            if (task.attempts < task.maxAttempts) {
+                task.status = 'retry';
+                emailQueue.push(task);
+                console.log(`🔄 Email задача возвращена в очередь для повтора: ${task.id} (попытка ${task.attempts}/${task.maxAttempts})`);
+            } else {
+                console.error(`💀 Email задача окончательно провалена: ${task.id} (превышено количество попыток)`);
+            }
+        }
+        
+        // Пауза между обработкой задач
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    emailQueueProcessing = false;
+    console.log(`✅ Обработка очереди email завершена`);
 }
 
 app.use('/models', express.static(modelsDir));
