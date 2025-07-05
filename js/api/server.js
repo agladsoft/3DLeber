@@ -722,8 +722,9 @@ async function checkPortAvailability(host, port, timeout = 5000) {
  * Отправляет email с JSON отчетом с fallback на разные SMTP конфигурации
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
-    // Конфигурации SMTP в порядке приоритета
+    // Конфигурации SMTP в порядке приоритета (несколько провайдеров)
     const smtpConfigs = [
+        // Mail.ru (основной)
         {
             name: 'Mail.ru SMTP SSL (465)',
             host: 'smtp.mail.ru',
@@ -744,6 +745,50 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
                 pass: 'BCaWNbWNLdDoSwn6p5lL'
             }
         },
+        // Gmail (резервный)
+        {
+            name: 'Gmail SMTP SSL (465)',
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'grafana_test_ruscon@gmail.com',
+                pass: 'your_app_password_here' // Замените на реальный пароль приложения
+            }
+        },
+        {
+            name: 'Gmail SMTP STARTTLS (587)',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'grafana_test_ruscon@gmail.com',
+                pass: 'your_app_password_here'
+            }
+        },
+        // Yandex (альтернативный)
+        {
+            name: 'Yandex SMTP SSL (465)',
+            host: 'smtp.yandex.ru',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'grafana_test_ruscon@yandex.ru',
+                pass: 'your_password_here'
+            }
+        },
+        // Outlook (Microsoft)
+        {
+            name: 'Outlook SMTP STARTTLS (587)',
+            host: 'smtp-mail.outlook.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'grafana_test_ruscon@outlook.com',
+                pass: 'your_password_here'
+            }
+        },
+        // Mail.ru обычный порт (последний шанс)
         {
             name: 'Mail.ru SMTP Plain (25)',
             host: 'smtp.mail.ru',
@@ -768,27 +813,52 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
             throw new Error(`DNS resolution failed: ${dnsError.message}`);
         }
 
-        // Проверяем доступность портов
+        // Проверяем доступность портов (группируем по хостам)
         console.log('0.5. Проверка доступности SMTP портов...');
+        const uniqueHostPorts = [...new Set(smtpConfigs.map(config => `${config.host}:${config.port}`))];
         const portChecks = await Promise.all(
-            smtpConfigs.map(config => 
-                checkPortAvailability(config.host, config.port, 3000)
-            )
+            uniqueHostPorts.map(hostPort => {
+                const [host, port] = hostPort.split(':');
+                return checkPortAvailability(host, parseInt(port), 3000);
+            })
         );
         
-        portChecks.forEach((result, index) => {
-            const config = smtpConfigs[index];
+        // Создаем мапу результатов проверки портов
+        const portResults = new Map();
+        uniqueHostPorts.forEach((hostPort, index) => {
+            portResults.set(hostPort, portChecks[index]);
+        });
+        
+        // Выводим результаты проверки
+        smtpConfigs.forEach(config => {
+            const hostPort = `${config.host}:${config.port}`;
+            const result = portResults.get(hostPort);
             if (result.available) {
-                console.log(`✅ Порт ${config.port} доступен (${config.name})`);
+                console.log(`✅ ${config.host}:${config.port} доступен (${config.name})`);
             } else {
-                console.log(`❌ Порт ${config.port} недоступен: ${result.error} (${config.name})`);
+                console.log(`❌ ${config.host}:${config.port} недоступен: ${result.error} (${config.name})`);
             }
         });
+        
+        // Считаем доступные порты
+        const availablePorts = Array.from(portResults.values()).filter(r => r.available).length;
+        console.log(`📊 Доступно портов: ${availablePorts}/${uniqueHostPorts.length}`);
+        
+        if (availablePorts === 0) {
+            console.error('🚫 КРИТИЧЕСКАЯ ОШИБКА: ВСЕ SMTP ПОРТЫ ЗАБЛОКИРОВАНЫ!');
+            console.error('📋 Возможные решения:');
+            console.error('1. 🔧 Обратитесь к хостинг-провайдеру для разблокировки SMTP портов');
+            console.error('2. 🐳 Проверьте настройки Docker сети (network_mode: host)');
+            console.error('3. 🌐 Используйте внешний email API сервис (SendGrid, Mailgun)');
+            console.error('4. 🔑 Настройте VPN или proxy для SMTP');
+            throw new Error('All SMTP ports are blocked by firewall/hosting provider');
+        }
 
-        // Пробуем каждую конфигурацию по очереди
+        // Пробуем каждую конфигурацию по очереди (только с доступными портами)
         for (let i = 0; i < smtpConfigs.length; i++) {
             const config = smtpConfigs[i];
-            const portCheck = portChecks[i];
+            const hostPort = `${config.host}:${config.port}`;
+            const portCheck = portResults.get(hostPort);
             
             if (!portCheck.available) {
                 console.log(`⏭️ Пропускаем ${config.name} - порт недоступен`);
