@@ -11,6 +11,7 @@ import nodemailer from 'nodemailer';
 import compression from 'compression';
 import { promisify } from 'util';
 import dns from 'dns';
+import net from 'net';
 
 const { Pool } = pg;
 
@@ -682,9 +683,79 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
 }
 
 /**
- * Отправляет email с JSON отчетом (используя рабочую конфигурацию из test-email-sending.js)
+ * Проверяет доступность TCP порта
+ */
+async function checkPortAvailability(host, port, timeout = 5000) {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let isResolved = false;
+        
+        const cleanup = () => {
+            if (!isResolved) {
+                isResolved = true;
+                socket.destroy();
+            }
+        };
+        
+        socket.setTimeout(timeout);
+        
+        socket.on('connect', () => {
+            cleanup();
+            resolve({ available: true, port });
+        });
+        
+        socket.on('timeout', () => {
+            cleanup();
+            resolve({ available: false, port, error: 'timeout' });
+        });
+        
+        socket.on('error', (error) => {
+            cleanup();
+            resolve({ available: false, port, error: error.code || error.message });
+        });
+        
+        socket.connect(port, host);
+    });
+}
+
+/**
+ * Отправляет email с JSON отчетом с fallback на разные SMTP конфигурации
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
+    // Конфигурации SMTP в порядке приоритета
+    const smtpConfigs = [
+        {
+            name: 'Mail.ru SMTP SSL (465)',
+            host: 'smtp.mail.ru',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'grafana_test_ruscon@mail.ru',
+                pass: 'BCaWNbWNLdDoSwn6p5lL'
+            }
+        },
+        {
+            name: 'Mail.ru SMTP STARTTLS (587)',
+            host: 'smtp.mail.ru',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'grafana_test_ruscon@mail.ru',
+                pass: 'BCaWNbWNLdDoSwn6p5lL'
+            }
+        },
+        {
+            name: 'Mail.ru SMTP Plain (25)',
+            host: 'smtp.mail.ru',
+            port: 25,
+            secure: false,
+            auth: {
+                user: 'grafana_test_ruscon@mail.ru',
+                pass: 'BCaWNbWNLdDoSwn6p5lL'
+            }
+        }
+    ];
+
     try {
         // Проверяем DNS разрешение
         console.log('0. Проверка DNS разрешения smtp.mail.ru...');
@@ -697,108 +768,92 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
             throw new Error(`DNS resolution failed: ${dnsError.message}`);
         }
 
-        console.log('1. Создание транспорта...');
-        const transportConfig = {
-            host: 'smtp.mail.ru',
-            port: 465,
-            secure: true, // true для порта 465, false для других портов
-            auth: {
-                user: 'grafana_test_ruscon@mail.ru',
-                pass: 'BCaWNbWNLdDoSwn6p5lL'
-            },
-            // Настройки timeout
-            connectionTimeout: 10000, // 10 секунд на подключение
-            greetingTimeout: 5000,    // 5 секунд на приветствие
-            socketTimeout: 15000,     // 15 секунд на сокет операции
-            // Настройки отладки
-            debug: true,
-            logger: true
-        };
+        // Проверяем доступность портов
+        console.log('0.5. Проверка доступности SMTP портов...');
+        const portChecks = await Promise.all(
+            smtpConfigs.map(config => 
+                checkPortAvailability(config.host, config.port, 3000)
+            )
+        );
         
-        console.log('📋 Конфигурация транспорта:', {
-            host: transportConfig.host,
-            port: transportConfig.port,
-            secure: transportConfig.secure,
-            connectionTimeout: transportConfig.connectionTimeout,
-            user: transportConfig.auth.user
+        portChecks.forEach((result, index) => {
+            const config = smtpConfigs[index];
+            if (result.available) {
+                console.log(`✅ Порт ${config.port} доступен (${config.name})`);
+            } else {
+                console.log(`❌ Порт ${config.port} недоступен: ${result.error} (${config.name})`);
+            }
         });
-        
-        const transporter = nodemailer.createTransport(transportConfig);
 
-        console.log('2. Проверка SMTP подключения...');
-        const verifyStartTime = Date.now();
-        
-        try {
-            await transporter.verify();
-            const verifyDuration = Date.now() - verifyStartTime;
-            console.log(`✅ SMTP подключение успешно (${verifyDuration}ms)`);
-        } catch (verifyError) {
-            const verifyDuration = Date.now() - verifyStartTime;
-            console.error(`❌ SMTP verify failed after ${verifyDuration}ms:`);
-            console.error('Error code:', verifyError.code);
-            console.error('Error message:', verifyError.message);
-            console.error('Error stack:', verifyError.stack);
-            throw verifyError;
-        }
+        // Пробуем каждую конфигурацию по очереди
+        for (let i = 0; i < smtpConfigs.length; i++) {
+            const config = smtpConfigs[i];
+            const portCheck = portChecks[i];
+            
+            if (!portCheck.available) {
+                console.log(`⏭️ Пропускаем ${config.name} - порт недоступен`);
+                continue;
+            }
+            
+            try {
+                console.log(`🔄 Попытка ${i + 1}/${smtpConfigs.length}: ${config.name}`);
+                
+                const transportConfig = {
+                    ...config,
+                    // Настройки timeout
+                    connectionTimeout: 8000,  // 8 секунд на подключение
+                    greetingTimeout: 5000,    // 5 секунд на приветствие
+                    socketTimeout: 12000,     // 12 секунд на сокет операции
+                    // Настройки отладки только для первой попытки
+                    debug: i === 0,
+                    logger: i === 0
+                };
+                
+                console.log('📋 Конфигурация транспорта:', {
+                    host: transportConfig.host,
+                    port: transportConfig.port,
+                    secure: transportConfig.secure,
+                    connectionTimeout: transportConfig.connectionTimeout,
+                    user: transportConfig.auth.user
+                });
+                
+                const transporter = nodemailer.createTransport(transportConfig);
 
-        console.log('3. Отправка отчета об отсутствующих моделях...');
-        const mailOptions = {
-            from: 'grafana_test_ruscon@mail.ru',
-            to: 'uventus_work@mail.ru',
-            subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
-            html: `
-                <h2>📊 Отчет об отсутствующих моделях</h2>
-                <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
-                <p><strong>ID проекта:</strong> ${userId || 'Не указан'}</p>
-                ${userEmail ? `<p><strong>Email пользователя:</strong> ${userEmail}</p>` : ''}
+                console.log('2. Проверка SMTP подключения...');
+                const verifyStartTime = Date.now();
                 
-                <h3>📈 Статистика:</h3>
-                <ul>
-                    <li>Всего моделей: <strong>${stats?.total || 0}</strong></li>
-                    <li>Найдено: <strong style="color: green;">${stats?.found || 0}</strong></li>
-                    <li>Отсутствует: <strong style="color: red;">${stats?.missing || 0}</strong></li>
-                </ul>
-                
-                <p>Подробная информация об отсутствующих моделях во вложенном JSON файле.</p>
-                
-                <hr>
-                <p><small>Это автоматически сгенерированное сообщение из системы Leber 3D Constructor</small></p>
-            `,
-            attachments: [
-                {
-                    filename: `missing-models-report-${userId}-${new Date().toISOString().split('T')[0]}.json`,
-                    content: JSON.stringify(jsonData, null, 2),
-                    contentType: 'application/json'
+                try {
+                    await transporter.verify();
+                    const verifyDuration = Date.now() - verifyStartTime;
+                    console.log(`✅ SMTP подключение успешно (${verifyDuration}ms) - ${config.name}`);
+                    
+                    // Если подключение успешно, отправляем email
+                    return await sendEmailUsingTransporter(transporter, jsonData, userId, stats, userEmail, config.name);
+                    
+                } catch (verifyError) {
+                    const verifyDuration = Date.now() - verifyStartTime;
+                    console.error(`❌ SMTP verify failed after ${verifyDuration}ms (${config.name}):`);
+                    console.error('Error code:', verifyError.code);
+                    console.error('Error message:', verifyError.message);
+                    
+                    if (i === smtpConfigs.length - 1) {
+                        // Это была последняя попытка
+                        throw verifyError;
+                    } else {
+                        console.log(`⏭️ Переходим к следующей конфигурации...`);
+                        continue;
+                    }
                 }
-            ]
-        };
-
-        console.log('📧 Параметры письма:', {
-            from: mailOptions.from,
-            to: mailOptions.to,
-            subject: mailOptions.subject,
-            attachmentsCount: mailOptions.attachments.length
-        });
-
-        const sendStartTime = Date.now();
-        
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            const sendDuration = Date.now() - sendStartTime;
-            
-            console.log(`✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО! (${sendDuration}ms)`);
-            console.log('Message ID:', info.messageId);
-            console.log('Response:', info.response);
-            console.log('Получатель: uventus_work@mail.ru');
-            
-            return info;
-        } catch (sendError) {
-            const sendDuration = Date.now() - sendStartTime;
-            console.error(`❌ Ошибка отправки после ${sendDuration}ms:`);
-            console.error('Send error code:', sendError.code);
-            console.error('Send error message:', sendError.message);
-            throw sendError;
+                
+            } catch (configError) {
+                console.error(`❌ Ошибка с конфигурацией ${config.name}:`, configError.message);
+                if (i === smtpConfigs.length - 1) {
+                    throw configError;
+                }
+            }
         }
+        
+        throw new Error('Все SMTP конфигурации не удались');
 
     } catch (error) {
         console.error('❌ ОШИБКА ПРИ ОТПРАВКЕ ОТЧЕТА:');
@@ -810,7 +865,7 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
             console.error('🕐 TIMEOUT ДИАГНОСТИКА:');
             console.error('- Проверьте интернет соединение сервера');
             console.error('- Возможно блокировка SMTP портов файрволом');
-            console.error('- smtp.mail.ru:465 может быть недоступен из Docker контейнера');
+            console.error('- smtp.mail.ru может быть недоступен из Docker контейнера');
         } else if (error.code === 'ECONNREFUSED') {
             console.error('🚫 CONNECTION REFUSED:');
             console.error('- SMTP сервер отклонил соединение');
@@ -834,6 +889,72 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         console.error('- Port:', error.port);
         
         throw error;
+    }
+}
+
+/**
+ * Отправляет email используя готовый транспорт
+ */
+async function sendEmailUsingTransporter(transporter, jsonData, userId, stats, userEmail, configName) {
+    console.log(`3. Отправка отчета через ${configName}...`);
+    const mailOptions = {
+        from: 'grafana_test_ruscon@mail.ru',
+        to: 'uventus_work@mail.ru',
+        subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
+        html: `
+            <h2>📊 Отчет об отсутствующих моделях</h2>
+            <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
+            <p><strong>ID проекта:</strong> ${userId || 'Не указан'}</p>
+            <p><strong>SMTP конфигурация:</strong> ${configName}</p>
+            ${userEmail ? `<p><strong>Email пользователя:</strong> ${userEmail}</p>` : ''}
+            
+            <h3>📈 Статистика:</h3>
+            <ul>
+                <li>Всего моделей: <strong>${stats?.total || 0}</strong></li>
+                <li>Найдено: <strong style="color: green;">${stats?.found || 0}</strong></li>
+                <li>Отсутствует: <strong style="color: red;">${stats?.missing || 0}</strong></li>
+            </ul>
+            
+            <p>Подробная информация об отсутствующих моделях во вложенном JSON файле.</p>
+            
+            <hr>
+            <p><small>Это автоматически сгенерированное сообщение из системы Leber 3D Constructor</small></p>
+        `,
+        attachments: [
+            {
+                filename: `missing-models-report-${userId}-${new Date().toISOString().split('T')[0]}.json`,
+                content: JSON.stringify(jsonData, null, 2),
+                contentType: 'application/json'
+            }
+        ]
+    };
+
+    console.log('📧 Параметры письма:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        attachmentsCount: mailOptions.attachments.length,
+        config: configName
+    });
+
+    const sendStartTime = Date.now();
+    
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        const sendDuration = Date.now() - sendStartTime;
+        
+        console.log(`✅ ОТЧЕТ ОТПРАВЛЕН УСПЕШНО! (${sendDuration}ms) через ${configName}`);
+        console.log('Message ID:', info.messageId);
+        console.log('Response:', info.response);
+        console.log('Получатель: uventus_work@mail.ru');
+        
+        return info;
+    } catch (sendError) {
+        const sendDuration = Date.now() - sendStartTime;
+        console.error(`❌ Ошибка отправки после ${sendDuration}ms через ${configName}:`);
+        console.error('Send error code:', sendError.code);
+        console.error('Send error message:', sendError.message);
+        throw sendError;
     }
 }
 
