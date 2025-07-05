@@ -15,7 +15,7 @@ services:
     environment:
       - SERVER_NAME=${SERVER_NAME}
       - SERVER_PORT=${SERVER_PORT}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_HOST=localhost
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -30,7 +30,7 @@ services:
       start_period: 10s
 
   postgres:
-    container_name: ${POSTGRES_HOST}
+    container_name: postgres_db
     image: postgres:13.3
     command:
       - "postgres"
