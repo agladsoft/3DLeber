@@ -1,41 +1,38 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
 
-// Загружаем переменные окружения
-dotenv.config();
+// Настройки email (встроенные в файл)
+const EMAIL_CONFIG = {
+    // SMTP настройки Mail.ru
+    smtp: {
+        host: 'smtp.mail.ru',
+        port: 465,
+        secure: true
+    },
+    // Учетные данные отправителя
+    auth: {
+        user: 'grafana_test_ruscon@mail.ru',
+        pass: 'BCaWNbWNLdDoSwn6p5lL'
+    },
+    // Получатель
+    recipient: 'uventus_work@mail.ru'
+};
 
 async function testEmailSending() {
     console.log('=== ТЕСТ ОТПРАВКИ EMAIL ===');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('EMAIL_USER:', process.env.EMAIL_USER ? process.env.EMAIL_USER.substring(0, 5) + '***' : 'НЕ НАСТРОЕН');
-    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '***' : 'НЕ НАСТРОЕН');
+    console.log('Отправитель:', EMAIL_CONFIG.auth.user);
+    console.log('Получатель:', EMAIL_CONFIG.recipient);
+    console.log('SMTP сервер:', EMAIL_CONFIG.smtp.host + ':' + EMAIL_CONFIG.smtp.port);
     console.log();
-
-    // Проверяем настройки
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error('❌ ОШИБКА: EMAIL_USER или EMAIL_PASS не настроены в .env файле');
-        process.exit(1);
-    }
-
-    // Проверяем режим разработки
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
-                         process.env.NODE_ENV !== 'production';
-    
-    if (isDevelopment) {
-        console.log('⚠️  РЕЖИМ РАЗРАБОТКИ: Email не будет отправлен реально');
-        console.log('Для реальной отправки установите NODE_ENV=production');
-        return;
-    }
 
     try {
         console.log('1. Создание транспорта...');
         const transporter = nodemailer.createTransport({
-            host: 'smtp.mail.ru',
-            port: 465,
-            secure: true, // true для порта 465, false для других портов
+            host: EMAIL_CONFIG.smtp.host,
+            port: EMAIL_CONFIG.smtp.port,
+            secure: EMAIL_CONFIG.smtp.secure,
             auth: {
-                user: 'grafana_test_ruscon@mail.ru',
-                pass: 'BCaWNbWNLdDoSwn6p5lL'
+                user: EMAIL_CONFIG.auth.user,
+                pass: EMAIL_CONFIG.auth.pass
             }
         });
 
@@ -45,14 +42,21 @@ async function testEmailSending() {
 
         console.log('3. Отправка тестового сообщения...');
         const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: 'uventus_work@mail.ru',
+            from: EMAIL_CONFIG.auth.user,
+            to: EMAIL_CONFIG.recipient,
             subject: 'ТЕСТ - Проверка отправки email из Leber 3D',
             html: `
                 <h2>🧪 Тестовое сообщение</h2>
                 <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
-                <p><strong>Отправитель:</strong> ${process.env.EMAIL_USER}</p>
+                <p><strong>Отправитель:</strong> ${EMAIL_CONFIG.auth.user}</p>
                 <p><strong>Статус:</strong> Система отправки email работает корректно!</p>
+                
+                <h3>📋 Настройки подключения:</h3>
+                <ul>
+                    <li>SMTP сервер: ${EMAIL_CONFIG.smtp.host}</li>
+                    <li>Порт: ${EMAIL_CONFIG.smtp.port}</li>
+                    <li>Безопасное соединение: ${EMAIL_CONFIG.smtp.secure ? 'Да' : 'Нет'}</li>
+                </ul>
                 
                 <hr>
                 <p><small>Это тестовое сообщение из системы Leber 3D Constructor</small></p>
@@ -64,7 +68,7 @@ async function testEmailSending() {
         console.log('✅ СООБЩЕНИЕ ОТПРАВЛЕНО УСПЕШНО!');
         console.log('Message ID:', info.messageId);
         console.log('Response:', info.response);
-        console.log('Получатель: uventus_work@mail.ru');
+        console.log('Получатель:', EMAIL_CONFIG.recipient);
         console.log();
         console.log('📧 Проверьте почту (включая папку Спам)');
 
@@ -76,7 +80,7 @@ async function testEmailSending() {
         if (error.code === 'EAUTH') {
             console.error();
             console.error('🔑 ПРОБЛЕМА С АУТЕНТИФИКАЦИЕЙ:');
-            console.error('- Проверьте правильность EMAIL_USER и EMAIL_PASS');
+            console.error('- Проверьте правильность логина и пароля');
             console.error('- Убедитесь, что логин и пароль от Mail.ru корректны');
             console.error('- Включите IMAP/SMTP в настройках Mail.ru (Почта → Настройки → IMAP/POP3/SMTP)');
             console.error('- Возможно нужно создать пароль для внешних приложений в Mail.ru');
@@ -84,8 +88,15 @@ async function testEmailSending() {
             console.error();
             console.error('🌐 ПРОБЛЕМА С ПОДКЛЮЧЕНИЕМ:');
             console.error('- Проверьте интернет соединение');
-            console.error('- Возможно заблокирован доступ к Gmail SMTP');
+            console.error('- Возможно заблокирован доступ к Mail.ru SMTP');
+            console.error('- Проверьте настройки файрвола');
         }
+        
+        console.error();
+        console.error('📝 ТЕКУЩИЕ НАСТРОЙКИ:');
+        console.error('Отправитель:', EMAIL_CONFIG.auth.user);
+        console.error('SMTP сервер:', EMAIL_CONFIG.smtp.host);
+        console.error('Порт:', EMAIL_CONFIG.smtp.port);
     }
 }
 
