@@ -11,15 +11,42 @@ import {
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
 
+// Флаг для предотвращения повторной инициализации
+let appInitializationInProgress = false;
+
+/**
+ * Плавно скрывает loadingScreen
+ */
+function hideLoadingScreenSmooth() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen && !loadingScreen.classList.contains('fade-out')) {
+        console.log('Starting smooth hide of loadingScreen');
+        // Начинаем плавное исчезновение
+        loadingScreen.classList.add('fade-out');
+        
+        // Полностью скрываем после завершения анимации
+        setTimeout(() => {
+            loadingScreen.classList.add('hidden');
+            console.log('LoadingScreen fully hidden');
+        }, 800); // Время анимации из CSS (0.8s)
+    }
+}
+
 /**
  * Инициализирует все компоненты приложения
  */
 async function initializeApp() {
+    if (appInitializationInProgress) {
+        console.log('App initialization already in progress, skipping');
+        return;
+    }
+    
+    appInitializationInProgress = true;
     console.log('Initializing application components...');
     
     const loadingScreen = document.getElementById('loadingScreen');
 
-    // Инициализируем модальное окно помощиAdd commentMore actions
+    // Инициализируем модальное окно помощи
     initHelpModal();
     
     try {
@@ -28,30 +55,41 @@ async function initializeApp() {
         
         if (!sessionId) {
             console.error('No sessionId found in URL - access denied');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
+            hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
-                
+        
         // Получаем данные сессии
         const sessionResult = await getSessionData(sessionId);
         
         if (!sessionResult.isValid) {
             console.error('Session validation failed or session expired');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
+            hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
+        
+        // Определяем тип сессии (новая или продолжение)
+        const isNewSession = !sessionResult.userData.sessionData || 
+                           Object.keys(sessionResult.userData.sessionData).length === 0;
                 
         // Извлекаем данные моделей из сессии
         const modelsData = extractModelsDataFromSession(sessionResult.userData);        
+        
+        // Передаем информацию о типе сессии в данные
+        modelsData.isNewSession = isNewSession;
+        
         // Инициализируем приложение с данными
         await initializeWithData(modelsData, loadingScreen);
         
     } catch (error) {
         console.error('Error initializing application:', error);
-        if (loadingScreen) loadingScreen.classList.add('hidden');
+        hideLoadingScreenSmooth();
         showTokenError();
+    } finally {
+        // Сбрасываем флаг инициализации
+        appInitializationInProgress = false;
     }
 }
 
@@ -62,7 +100,7 @@ async function initializeApp() {
  */
 async function initializeWithData(modelsData, loadingScreen) {
     // Скрываем загрузочный экран
-    if (loadingScreen) loadingScreen.classList.add('hidden');
+    hideLoadingScreenSmooth();
     
     // Скрываем кнопку запуска (если она есть)
     const launchContainer = document.getElementById('launchContainer');

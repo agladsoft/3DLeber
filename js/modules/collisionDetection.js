@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { placedObjects } from './objectManager.js';
-import { PLAYGROUND_GROUND_PREFIXES } from '../config.js';
+import { PLAYGROUND_GROUND_PREFIXES, PLAYGROUND_ELEMENTS, PEOPLE_KEYWORDS } from '../config.js';
 
 // Расширяем THREE.BufferGeometry с методами BVH
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -36,12 +36,17 @@ export function getObjectBounds(object) {
 }
 
 /**
- * Проверяет, находится ли объект в пределах площадки
+ * Проверяет, находится ли объект в пределах площадки (улучшенная версия)
  * @param {Object} object - Объект для проверки
  * @returns {Boolean} Результат проверки (true - в пределах, false - за пределами)
  */
 export function isWithinPlayground(object) {
     if (!object) return true;
+    
+    // Исключаем объекты площадки (земля, трава и т.д.) из проверки границ
+    if (object.name && PLAYGROUND_GROUND_PREFIXES.some(prefix => object.name.includes(prefix))) {
+        return true;
+    }
     
     // Получаем текущие размеры площадки из глобальных переменных
     const playgroundWidth = window.selectedPlaygroundWidth || 40;
@@ -51,26 +56,43 @@ export function isWithinPlayground(object) {
     const halfWidth = playgroundWidth / 2;
     const halfLength = playgroundLength / 2;
     
-    // Получаем ограничивающий бокс объекта
+    // Используем улучшенную проверку границ с учетом поворота
+    return isObjectFullyWithinBounds(object, halfWidth, halfLength);
+}
+
+/**
+ * Проверяет, находится ли объект полностью в пределах заданных границ
+ * с учетом поворота и сложной геометрии
+ * @param {Object} object - Объект для проверки
+ * @param {number} halfWidth - Половина ширины площадки
+ * @param {number} halfLength - Половина длины площадки
+ * @returns {Boolean} true если объект полностью внутри границ
+ */
+function isObjectFullyWithinBounds(object, halfWidth, halfLength) {
+    // Обновляем матрицы мира для точного расчета
+    object.updateMatrixWorld(true);
+    
+    // Получаем ограничивающий бокс с учетом текущего состояния объекта
     const box = new THREE.Box3().setFromObject(object);
-    const size = new THREE.Vector3();
-    box.getSize(size);
     
-    // Получаем центр объекта
-    const center = new THREE.Vector3();
-    box.getCenter(center);
+    // Проверяем, что все углы bounding box находятся внутри площадки
+    const min = box.min;
+    const max = box.max;
     
-    // Проверяем, находится ли объект полностью в пределах площадки
-    // Учитываем размер объекта (радиус)
-    const radius = Math.max(size.x, size.z) / 2;
+    // Проверяем все 4 угла проекции объекта на плоскость XZ
+    const corners = [
+        { x: min.x, z: min.z }, // левый передний
+        { x: max.x, z: min.z }, // правый передний  
+        { x: min.x, z: max.z }, // левый задний
+        { x: max.x, z: max.z }  // правый задний
+    ];
     
-    // Объект внутри площадки, если его крайние точки находятся внутри границы
-    // Применяем различные смещения для левой и правой границ
-    return (
-        center.x - radius >= -halfWidth && // Сдвигаем левую границу вправо
-        center.x + radius <= halfWidth &&  // Сдвигаем правую границу вправо
-        center.z - radius >= -halfLength &&
-        center.z + radius <= halfLength
+    // Объект внутри площадки только если ВСЕ углы внутри границ
+    return corners.every(corner => 
+        corner.x >= -halfWidth && 
+        corner.x <= halfWidth && 
+        corner.z >= -halfLength && 
+        corner.z <= halfLength
     );
 }
 
@@ -105,12 +127,38 @@ function getSafetyZoneMeshes(object) {
     const safetyZones = [];
     
     object.traverse((child) => {
-        if (child.isMesh && child.name && child.name.endsWith('safety_zone')) {
+        if (child.isMesh && child.name && child.name.includes('safety_zone')) {
             safetyZones.push(child);
         }
     });
     
     return safetyZones;
+}
+
+
+/**
+ * Проверяет пересечение bounding box с учетом полного вложения
+ * @param {THREE.Box3} box1 - Первый bounding box
+ * @param {THREE.Box3} box2 - Второй bounding box
+ * @returns {Boolean} true, если боксы пересекаются или один содержится в другом
+ */
+function checkBoundingBoxIntersection(box1, box2) {
+    // Стандартная проверка пересечения
+    if (box1.intersectsBox(box2)) {
+        return true;
+    }
+    
+    // Проверяем, содержится ли один бокс полностью в другом
+    if (box1.containsBox(box2) || box2.containsBox(box1)) {
+        return true;
+    }
+    
+    // Дополнительная проверка на случай, если объекты касаются или очень близко
+    const epsilon = 0.001; // Небольшая погрешность
+    const expandedBox1 = box1.clone().expandByScalar(epsilon);
+    const expandedBox2 = box2.clone().expandByScalar(epsilon);
+    
+    return expandedBox1.intersectsBox(box2) || expandedBox2.intersectsBox(box1);
 }
 
 /**
@@ -144,21 +192,42 @@ function checkMeshIntersection(mesh1, mesh2) {
     } catch (error) {
         console.warn('Ошибка при точной проверке пересечения, используем bounding box:', error);
         
-        // Fallback на bounding box проверку
+        // Fallback на улучшенную bounding box проверку
         const box1 = new THREE.Box3().setFromObject(mesh1);
         const box2 = new THREE.Box3().setFromObject(mesh2);
-ъ    
         
-        return box1.intersectsBox(box2);
+        return checkBoundingBoxIntersection(box1, box2);
     }
 }
 
 /**
- * Проверяет пересечение (коллизию) между двумя объектами
- * Приоритет проверки:
- * 1. Safety zones между объектами (если есть)
- * 2. Safety zones против обычных мешей
- * 3. Fallback на bounding box (только если нет safety zones)
+ * Получает все обычные мэши из объекта (исключая safety zones)
+ * @param {Object} object - Объект для поиска мэшей
+ * @returns {Array} Массив обычных мэшей
+ */
+function getRegularMeshes(object) {
+    const meshes = [];
+    
+    object.traverse((child) => {
+        if (child.isMesh && 
+            child.geometry && 
+            child.visible &&
+            !child.name.includes('safety_zone')) {
+            meshes.push(child);
+        }
+    });
+    
+    return meshes;
+}
+
+
+/**
+ * ОПТИМИЗИРОВАННАЯ: Проверяет пересечение (коллизию) между двумя объектами
+ * Оптимизированная логика проверки:
+ * 1. Быстрая предварительная bounding box проверка
+ * 2. Если пересечение найдено - делаем точную проверку моделей
+ * 3. Дополнительно проверяем safety zones, если они есть
+ * 4. Специальные правила для объектов площадки (деревья, кусты, люди)
  * @param {Object} object1 - Первый объект для проверки
  * @param {Object} object2 - Второй объект для проверки
  * @returns {Boolean} true, если объекты пересекаются, иначе false
@@ -169,16 +238,55 @@ export function checkObjectsIntersection(object1, object2) {
     const obj1Name = object1.userData?.modelName || object1.name || 'unknown';
     const obj2Name = object2.userData?.modelName || object2.name || 'unknown';
     
+    // Проверяем, являются ли объекты элементами площадки (деревья, кусты)
+    const isObj1PlaygroundElement = PLAYGROUND_ELEMENTS.some(keyword => obj1Name.includes(keyword));
+    const isObj2PlaygroundElement = PLAYGROUND_ELEMENTS.some(keyword => obj2Name.includes(keyword));
+    
+    // Проверяем, являются ли объекты людьми
+    const isObj1People = PEOPLE_KEYWORDS.some(keyword => obj1Name.includes(keyword));
+    const isObj2People = PEOPLE_KEYWORDS.some(keyword => obj2Name.includes(keyword));
+    
+    // Специальные правила пересечений:
+    // 1. Деревья, кусты и люди могут пересекаться между собой
+    if (isObj1PlaygroundElement && isObj2PlaygroundElement) {
+        return false;
+    }
+    
+    // 2. Люди могут пересекаться с любыми объектами площадки
+    if (isObj1People || isObj2People) {
+        return false;
+    }
+    
     try {
-        // Получаем safety zone мэши из обоих объектов
+        // БЫСТРАЯ ПРЕДВАРИТЕЛЬНАЯ ПРОВЕРКА: сначала проверяем bounding boxes
+        const box1 = new THREE.Box3().setFromObject(object1);
+        const box2 = new THREE.Box3().setFromObject(object2);
+        
+        // Если bounding boxes не пересекаются - объекты точно не пересекаются
+        const hasBasicIntersection = checkBoundingBoxIntersection(box1, box2);
+        if (!hasBasicIntersection) {
+            return false;
+        }
+        
+        // Получаем safety zones для дальнейших проверок
         const safetyZones1 = getSafetyZoneMeshes(object1);
         const safetyZones2 = getSafetyZoneMeshes(object2);
         
-        // Случай 1: Оба объекта имеют safety zones - проверяем их пересечения
+        // СЛУЧАЙ 1: Оба объекта имеют safety zones - проверяем их пересечения и вложения
         if (safetyZones1.length > 0 && safetyZones2.length > 0) {
             for (const zone1 of safetyZones1) {
                 for (const zone2 of safetyZones2) {
+                    // Проверяем классическое пересечение
                     if (checkMeshIntersection(zone1, zone2)) {
+                        return true;
+                    }
+                    
+                    // Проверяем полное вложение safety zones друг в друга
+                    const box1 = new THREE.Box3().setFromObject(zone1);
+                    const box2 = new THREE.Box3().setFromObject(zone2);
+                    
+                    // Если одна зона полностью содержится в другой - это тоже коллизия
+                    if (box1.containsBox(box2) || box2.containsBox(box1)) {
                         return true;
                     }
                 }
@@ -186,49 +294,80 @@ export function checkObjectsIntersection(object1, object2) {
             return false;
         }
         
-        // Случай 2: Один объект имеет safety zone, другой - нет
-        // Проверяем safety zone против всех мешей второго объекта
+        // СЛУЧАЙ 2: Один объект имеет safety zone, другой - нет
         if (safetyZones1.length > 0) {
-            const allMeshes2 = [];
-            object2.traverse((child) => {
-                if (child.isMesh && child.geometry && !child.name.endsWith('safety_zone')) {
-                    allMeshes2.push(child);
-                }
-            });
-            
+            const meshes2 = getRegularMeshes(object2);
             for (const zone1 of safetyZones1) {
-                for (const mesh2 of allMeshes2) {
+                // Проверяем пересечение safety zone с мешами
+                for (const mesh2 of meshes2) {
                     if (checkMeshIntersection(zone1, mesh2)) {
                         return true;
                     }
+                }
+                
+                // Проверяем полное вложение: содержит ли safety zone весь второй объект
+                const zoneBox = new THREE.Box3().setFromObject(zone1);
+                const objectBox = new THREE.Box3().setFromObject(object2);
+                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
+                    return true;
                 }
             }
             return false;
         }
         
         if (safetyZones2.length > 0) {
-            const allMeshes1 = [];
-            object1.traverse((child) => {
-                if (child.isMesh && child.geometry && !child.name.endsWith('safety_zone')) {
-                    allMeshes1.push(child);
-                }
-            });
-            
+            const meshes1 = getRegularMeshes(object1);
             for (const zone2 of safetyZones2) {
-                for (const mesh1 of allMeshes1) {
+                // Проверяем пересечение safety zone с мешами
+                for (const mesh1 of meshes1) {
                     if (checkMeshIntersection(zone2, mesh1)) {
                         return true;
                     }
+                }
+                
+                // Проверяем полное вложение: содержит ли safety zone весь первый объект
+                const zoneBox = new THREE.Box3().setFromObject(zone2);
+                const objectBox = new THREE.Box3().setFromObject(object1);
+                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
+                    return true;
                 }
             }
             return false;
         }
         
-        // Случай 3: Ни у одного объекта нет safety zones
-        // Используем простую bounding box проверку как fallback
-        const box1 = new THREE.Box3().setFromObject(object1);
-        const box2 = new THREE.Box3().setFromObject(object2);
-        return box1.intersectsBox(box2);;
+        // СЛУЧАЙ 3: Ни у одного объекта нет safety zones
+        // Используем улучшенную bounding box проверку (которая уже была выполнена выше)
+        // Точная проверка мешей нужна только если простая bounding box проверка неточна
+        const simpleIntersection = box1.intersectsBox(box2);
+        if (simpleIntersection && hasBasicIntersection) {
+            // Если есть простое пересечение И улучшенная проверка тоже показала пересечение,
+            // то скорее всего объекты действительно пересекаются
+            return true;
+        }
+        
+        // Если улучшенная проверка показала пересечение, но простая нет,
+        // значит возможно полное вложение - делаем точную проверку
+        if (hasBasicIntersection && !simpleIntersection) {
+            const meshes1 = getRegularMeshes(object1);
+            const meshes2 = getRegularMeshes(object2);
+            
+            // Ограничиваем количество точных проверок для производительности
+            const maxChecks = 4; // Проверяем максимум 4 пары мешей
+            let checksPerformed = 0;
+            
+            for (const mesh1 of meshes1) {
+                for (const mesh2 of meshes2) {
+                    if (checksPerformed >= maxChecks) break;
+                    if (checkMeshIntersection(mesh1, mesh2)) {
+                        return true;
+                    }
+                    checksPerformed++;
+                }
+                if (checksPerformed >= maxChecks) break;
+            }
+        }
+        
+        return hasBasicIntersection;
         
     } catch (error) {
         console.warn('Ошибка при проверке коллизий, используем bounding box fallback:', error);
@@ -277,18 +416,30 @@ function applyObjectHighlight(object) {
             }
             
             if (shouldHighlight) {
-                // Создаем новый красный материал для подсветки
-                const errorMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xff0000,        // Красный цвет
-                    emissive: 0x500000,     // Легкое свечение
-                    metalness: 0.3,
-                    roughness: 0.7,
-                    transparent: false,
-                    opacity: 1.0
-                });
-                
-                // Применяем материал к мешу
-                child.material = errorMaterial;
+                // Проверяем, является ли это safety zone
+                if (child.name && child.name.includes('safety_zone')) {
+                    // Для safety zone всегда используем белый материал
+                    const safetyZoneMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xffffff,        // Белый цвет
+                        emissive: 0x000000,     // Без свечения
+                        metalness: 0.1,
+                        roughness: 0.9,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    child.material = safetyZoneMaterial;
+                } else {
+                    // Для обычных мешей используем красный материал для подсветки
+                    const errorMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xff0000,        // Красный цвет
+                        emissive: 0x500000,     // Легкое свечение
+                        metalness: 0.3,
+                        roughness: 0.7,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    child.material = errorMaterial;
+                }
             } 
             else if (child.userData.originalMaterial) {
                 // Восстанавливаем оригинальный материал

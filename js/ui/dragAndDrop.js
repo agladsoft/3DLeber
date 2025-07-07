@@ -12,27 +12,47 @@ import {
 import * as THREE from 'three';
 import { API_BASE_URL } from '../api/serverConfig.js';
 
-// Флаг для предотвращения множественных запусков обработчика drop
-let isDropProcessing = false;
-
-// Кэш для хранения данных сессии
-let sessionDataCache = null;
-let sessionCacheTimeout = null;
-const SESSION_CACHE_DURATION = 2000; // 2 секунды
+// Map для отслеживания обработки drop по моделям (вместо глобальной блокировки)
+const processingModels = new Map();
 
 /**
- * Получает данные сессии с кэшированием
+ * Мгновенно обновляет UI без батчинга
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества
+ */
+function batchUIUpdate(modelName, delta) {
+    // Прямое мгновенное обновление
+    updateSidebarInstantly(modelName, delta);
+}
+
+/**
+ * Мгновенно обновляет UI в sidebar (используется из батчинга)
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества
+ */
+function updateSidebarInstantly(modelName, delta) {
+    // Прямое обновление без async для мгновенного выполнения
+    if (window.updateModelCounterDirectly) {
+        window.updateModelCounterDirectly(modelName, delta);
+    } else {
+        import('../sidebar.js').then(sidebarModule => {
+            if (sidebarModule.updateModelCounterDirectly) {
+                sidebarModule.updateModelCounterDirectly(modelName, delta);
+                // Сохраняем функцию глобально для быстрого доступа
+                window.updateModelCounterDirectly = sidebarModule.updateModelCounterDirectly;
+            }
+        });
+    }
+}
+
+/**
+ * Получает актуальные данные сессии без кэширования
  * @returns {Promise<Object>} Данные сессии
  */
-async function getCachedSessionData() {
+async function getSessionData() {
     const userId = sessionStorage.getItem('userId');
     if (!userId) {
         throw new Error('No user ID found');
-    }
-
-    // Возвращаем кэшированные данные если они есть и актуальные
-    if (sessionDataCache && sessionCacheTimeout) {
-        return sessionDataCache;
     }
 
     try {
@@ -42,32 +62,10 @@ async function getCachedSessionData() {
         }
 
         const { session } = await sessionResponse.json();
-        sessionDataCache = session || { quantities: {}, placedObjects: [] };
-        
-        // Устанавливаем таймер для инвалидации кэша
-        if (sessionCacheTimeout) {
-            clearTimeout(sessionCacheTimeout);
-        }
-        sessionCacheTimeout = setTimeout(() => {
-            sessionDataCache = null;
-            sessionCacheTimeout = null;
-        }, SESSION_CACHE_DURATION);
-
-        return sessionDataCache;
+        return session || { quantities: {}, placedObjects: [] };
     } catch (error) {
         console.error('Error getting session data:', error);
         return { quantities: {}, placedObjects: [] };
-    }
-}
-
-/**
- * Инвалидирует кэш сессии (вызывается после изменений)
- */
-function invalidateSessionCache() {
-    sessionDataCache = null;
-    if (sessionCacheTimeout) {
-        clearTimeout(sessionCacheTimeout);
-        sessionCacheTimeout = null;
     }
 }
 
@@ -78,7 +76,7 @@ function invalidateSessionCache() {
  */
 export async function getQuantityFromDatabase(modelName) {
     try {
-        const sessionData = await getCachedSessionData();
+        const sessionData = await getSessionData();
         return sessionData.quantities?.[modelName] || 0;
     } catch (error) {
         console.error('Error getting quantity from database:', error);
@@ -98,7 +96,7 @@ export async function saveQuantityToDatabase(modelName, quantity) {
             throw new Error('No user ID found');
         }
 
-        const sessionData = await getCachedSessionData();
+        const sessionData = await getSessionData();
         sessionData.quantities = sessionData.quantities || {};
         sessionData.quantities[modelName] = quantity;
 
@@ -113,9 +111,6 @@ export async function saveQuantityToDatabase(modelName, quantity) {
         if (!saveResponse.ok) {
             throw new Error('Failed to save session');
         }
-
-        // Инвалидируем кэш после сохранения
-        invalidateSessionCache();
         
         // Обновляем UI
         const items = document.querySelectorAll('.item');
@@ -287,18 +282,20 @@ function addDragStartHandlers() {
  * @param {DragEvent} event - Событие drop
  */
 async function handleDrop(event) {
-    event.preventDefault();    
-    // Предотвращаем множественные вызовы
-    if (isDropProcessing) {
-        console.log("Ignore duplicate drop event - already processing");
+    event.preventDefault();
+    
+    const modelName = event.dataTransfer.getData("model");
+    
+    // Предотвращаем множественные drop для одной и той же модели
+    if (processingModels.has(modelName)) {
+        console.log(`Drop for ${modelName} already processing, skipping`);
         return;
     }
     
-    // Устанавливаем флаг обработки
-    isDropProcessing = true;
+    // Устанавливаем флаг обработки для конкретной модели
+    processingModels.set(modelName, true);
     
     try {
-        const modelName = event.dataTransfer.getData("model");
         console.log("Model name from event:", modelName);
         
         // Проверка наличия имени модели
@@ -314,6 +311,10 @@ async function handleDrop(event) {
         // Получаем article из data transfer (если есть) или из модели
         const article = event.dataTransfer.getData("article");
         
+        // Проверяем, является ли модель специальной (из sidebar)
+        const modelElement = document.querySelector(`[data-model="${modelName}"]`);
+        const isSpecialModel = modelElement && modelElement.hasAttribute('data-special');
+        
         // Находим модель по имени или артикулу
         let modelData = null;
         if (article) {
@@ -324,38 +325,33 @@ async function handleDrop(event) {
             modelData = modelsData.find(m => m.name === modelNameWithoutExt);
         }
         
+        // Для специальных моделей создаем временные данные если их нет в sessionStorage
+        if (!modelData && isSpecialModel) {
+            console.log(`Special model detected: ${modelName}, skipping sessionStorage check`);
+            modelData = {
+                name: modelName.replace('.glb', ''),
+                article: article || 'SPECIAL',
+                quantity: Infinity,
+                isSpecial: true
+            };
+        }
+        
         if (!modelData) {
             console.warn("Model data not found for:", modelName);
             return;
         }
         
-        // ВАЖНО: Получаем свежие данные из БД для точной проверки
-        // Не используем кэш для критической проверки количества
-        let sessionData = null;
-        try {
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-            if (sessionResponse.ok) {
-                const { session } = await sessionResponse.json();
-                sessionData = session || { quantities: {}, placedObjects: [] };
-            } else {
-                console.error('Failed to get fresh session data');
-                return;
-            }
-        } catch (error) {
-            console.error('Error getting fresh session data:', error);
-            return;
-        }
-        
-        // Считаем размещенные объекты из свежих данных
-        const placedCount = sessionData?.placedObjects ? 
-            sessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
+        // БЫСТРАЯ ПРОВЕРКА: считаем размещенные объекты локально
+        const { placedObjects } = await import('../modules/objectManager.js');
+        const placedCount = placedObjects.filter(obj => obj.userData.modelName === modelName).length;
         
         const totalQuantity = modelData.quantity || 0;
         const remainingQuantity = totalQuantity - placedCount;
         
-        console.log(`Drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}`);
+        console.log(`Fast drop check for ${modelName}: placed=${placedCount}, total=${totalQuantity}, remaining=${remainingQuantity}, isSpecial=${isSpecialModel}`);
         
-        if (remainingQuantity <= 0) {
+        // Пропускаем проверку количества для специальных моделей
+        if (!isSpecialModel && remainingQuantity <= 0) {
             console.warn(`No available quantity for model ${modelName}: ${remainingQuantity} remaining`);
             return;
         }
@@ -384,34 +380,57 @@ async function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
-        // Ждем завершения загрузки модели перед обновлением UI
+        // Отмечаем, что drop был обработан для предотвращения скрытия preloader в dragend
+        if (modelElement && modelElement.dataset) {
+            modelElement.dataset.dragProcessed = 'true';
+            console.log("Set dragProcessed flag for:", modelName);
+        } else {
+            console.warn("Could not set dragProcessed flag - modelElement not found for:", modelName);
+        }
+        
+        // Загружаем модель (preloader скрывается автоматически в processLoadedModel)
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
-            console.log("Model loaded successfully, now updating UI counter");
-            
-            // Обновляем счетчик в UI только после успешной загрузки
-            // Инвалидируем кэш, чтобы получить актуальные данные
-            invalidateSessionCache();
-            
-            // Получаем обновленные данные сессии
-            const updatedSessionData = await getCachedSessionData();
-            const newPlacedCount = updatedSessionData?.placedObjects ? 
-                updatedSessionData.placedObjects.filter(obj => obj.modelName === modelName).length : 0;
-            
-            console.log(`UI Update: ${modelName} - new placed count: ${newPlacedCount}`);
-            await updateModelPlacementAfterDrop(modelName, newPlacedCount);
+            console.log("Model loaded successfully for:", modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
-            // Если загрузка не удалась, НЕ обновляем счетчик
+            
+            // Скрываем preloader при ошибке загрузки
+            try {
+                console.log("Hiding preloader due to load error for:", modelName);
+                const { hideModelPreloader } = await import('../sidebar.js');
+                hideModelPreloader(modelName);
+                console.log("Preloader hidden after error for:", modelName);
+            } catch (importError) {
+                console.error("Failed to import or call hideModelPreloader after error:", importError);
+            }
         }
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
+        // При общих ошибках принудительно скрываем preloader
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader forced hidden due to general error for:", modelName);
+        } catch (importError) {
+            console.error('Could not import hideModelPreloader for general error:', importError);
+        }
     } finally {
-        // Сбрасываем флаг сразу без задержки для ускорения работы
-        isDropProcessing = false;
+        // ОБЯЗАТЕЛЬНО сбрасываем флаг обработки для конкретной модели
+        processingModels.delete(modelName);
+        console.log("Processing flag cleared for model:", modelName);
+        
+        // ОБЯЗАТЕЛЬНО скрываем preloader в любом случае
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader ensured hidden in finally block for:", modelName);
+        } catch (importError) {
+            console.error('Could not ensure preloader hiding in finally:', importError);
+        }
     }
 }
 
@@ -492,9 +511,6 @@ function determineDropPosition() {
  * @param {string} modelName - Имя модели
  */
 export async function updateModelQuantityOnRemove(modelName) {
-    // Инвалидируем кэш при удалении объекта
-    invalidateSessionCache();
-    
     // Проверяем новую структуру sidebar с .model элементами
     const modelElements = document.querySelectorAll('.model');
     if (modelElements.length > 0) {
@@ -549,14 +565,33 @@ function updateSidebarDeleteButtons() {
         const newDeleteBtn = deleteBtn.cloneNode(true);
         deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
         if (exists) {
-            newDeleteBtn.addEventListener('click', () => {
-                // Удаляем все объекты этой модели с площадки
+            newDeleteBtn.addEventListener('click', async () => {
+                // Удаляем все объекты этой модели с площадки используя оптимизированную функцию
                 const objectsToRemove = placedObjects.filter(obj => obj.userData.modelName === modelName);
-                objectsToRemove.forEach(obj => {
-                    removeObject(obj);
-                    // Обновляем количество в сайдбаре после каждого удаления
+                
+                if (objectsToRemove.length > 1) {
+                    // Массовое удаление - используем оптимизированную функцию
+                    try {
+                        const { removeObjectsBatch } = await import('../modules/objectManager.js');
+                        await removeObjectsBatch(objectsToRemove, modelName);
+                        console.log(`Массово удалено ${objectsToRemove.length} объектов модели ${modelName}`);
+                    } catch (error) {
+                        console.error('Ошибка при массовом удалении:', error);
+                        // Fallback к старому способу
+                        objectsToRemove.forEach((obj, index) => {
+                            const isMassRemoval = index < objectsToRemove.length - 1;
+                            removeObject(obj, isMassRemoval);
+                            if (!isMassRemoval) {
+                                updateModelQuantityOnRemove(modelName);
+                            }
+                        });
+                    }
+                } else if (objectsToRemove.length === 1) {
+                    // Одиночное удаление - используем стандартную функцию
+                    removeObject(objectsToRemove[0]);
                     updateModelQuantityOnRemove(modelName);
-                });
+                }
+                
                 // После удаления обновляем кнопки
                 setTimeout(updateSidebarDeleteButtons, 100);
             });
@@ -564,5 +599,5 @@ function updateSidebarDeleteButtons() {
     });
 }
 
-// Экспортируем функции для инвалидации кэша из других модулей
-export { invalidateSessionCache, getCachedSessionData };
+// Экспортируем функции для использования в других модулях
+export { getSessionData, batchUIUpdate };

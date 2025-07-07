@@ -19,6 +19,41 @@ export let placedObjects = [];
 const modelCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
+/**
+ * Обновляет UI с батчингом для лучшей производительности при множественных операциях
+ * @param {string} modelName - Имя модели  
+ * @param {number} delta - Изменение количества
+ */
+async function updateSidebarWithBatching(modelName, delta) {
+    try {
+        const { batchUIUpdate } = await import('../ui/dragAndDrop.js');
+        batchUIUpdate(modelName, delta);
+    } catch (error) {
+        console.error('Батчинг недоступен, используем мгновенное обновление:', error);
+        updateSidebarInstantly(modelName, delta);
+    }
+}
+
+/**
+ * Мгновенно обновляет UI в sidebar без API вызовов (fallback)
+ * @param {string} modelName - Имя модели
+ * @param {number} delta - Изменение количества (+1 для увеличения, -1 для уменьшения)
+ */
+function updateSidebarInstantly(modelName, delta) {
+    // Прямое обновление без async для мгновенного выполнения
+    if (window.updateModelCounterDirectly) {
+        window.updateModelCounterDirectly(modelName, delta);
+    } else {
+        import('../sidebar.js').then(sidebarModule => {
+            if (sidebarModule.updateModelCounterDirectly) {
+                sidebarModule.updateModelCounterDirectly(modelName, delta);
+                // Сохраняем функцию глобально для быстрого доступа
+                window.updateModelCounterDirectly = sidebarModule.updateModelCounterDirectly;
+            }
+        });
+    }
+}
+
 // Счетчик для ID объектов
 let objectIdCounter = 0;
 
@@ -59,7 +94,7 @@ function processLoadedModel(container, modelName, position) {
     container.userData.created = new Date().toISOString();
     
     // Устанавливаем имя контейнера для отладки
-    container.name = `PlacedObject_${modelName}_${container.userData.id}`;
+    container.name = `${modelName}_${container.userData.id}`;
     
     // ВАЖНО: Добавляем контейнер в сцену (это было пропущено)
     scene.add(container);
@@ -123,6 +158,14 @@ function processLoadedModel(container, modelName, position) {
     
     // После успешной загрузки модели обновляем видимость безопасных зон
     updateSafetyZonesVisibility();
+    
+    // Скрываем preloader сразу после того, как модель стала интерактивной
+    import('../sidebar.js').then(({ hideModelPreloader }) => {
+        hideModelPreloader(modelName);
+        console.log(`Preloader скрыт для модели ${modelName} после завершения processLoadedModel`);
+    }).catch(error => {
+        console.error('Ошибка при скрытии preloader:', error);
+    });
     
     console.log(`Модель ${modelName} обработана и настроена с ID: ${container.userData.id}`);
 }
@@ -203,6 +246,9 @@ export function generateObjectId() {
 export async function loadAndPlaceModel(modelName, position, isRestoring = false) {
     console.log("Попытка загрузки модели:", modelName, "в позицию:", position);
     
+    // Убираем optimistic update для добавления модели - обновление происходит через refreshAllModelCounters
+    // после успешного размещения, что исключает рассинхронизацию с БД
+    
     return new Promise((resolve, reject) => {
         try {
             // Определяем расширение файла
@@ -240,7 +286,16 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
                     updateSessionForNewObject(container, modelName)
-                        .then(() => resolve(container))
+                        .then(async () => {
+                            // Обновляем счетчики в sidebar после успешного размещения кэшированной модели
+                            try {
+                                const { refreshAllModelCounters } = await import('../sidebar.js');
+                                await refreshAllModelCounters();
+                            } catch (error) {
+                                console.error('Error updating sidebar counters for cached model:', error);
+                            }
+                            resolve(container);
+                        })
                         .catch(reject);
                 } else {
                     resolve(container);
@@ -296,7 +351,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                     }
 
                                     // Если это зона безопасности, меняем цвет на белый
-                                    if (child.name && child.name.endsWith('safety_zone')) {
+                                    if (child.name && child.name.includes('safety_zone')) {
                                         if (child.material) {
                                             const newMaterial = new THREE.MeshStandardMaterial({
                                                 color: 0xFFFFFF,
@@ -336,8 +391,20 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         // Обновляем сессию в базе данных только если это не восстановление
                         if (!isRestoring) {
                             updateSessionForNewObject(container, modelName)
-                                .then(() => resolve(container))
-                                .catch(reject);
+                                .then(async () => {
+                                    // Обновляем счетчики в sidebar после успешного размещения
+                                    try {
+                                        const { refreshAllModelCounters } = await import('../sidebar.js');
+                                        await refreshAllModelCounters();
+                                    } catch (error) {
+                                        console.error('Error updating sidebar counters:', error);
+                                    }
+                                    resolve(container);
+                                })
+                                .catch(error => {
+                                    console.error('Ошибка при обновлении сессии:', error);
+                                    reject(error);
+                                });
                         } else {
                             resolve(container);
                         }
@@ -415,14 +482,7 @@ async function updateSessionForNewObject(container, modelName) {
             throw new Error('Failed to save session');
         }
 
-        // Инвалидируем кэш после сохранения
-        try {
-            const { invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            invalidateSessionCache();
-        } catch (error) {
-            // Игнорируем ошибку если модуль недоступен
-            console.log('Cache invalidation module not available');
-        }
+        // Кэширование убрано - данные всегда актуальные
 
         console.log('Session updated successfully for new object:', objectData);
     } catch (error) {
@@ -438,6 +498,11 @@ async function updateSessionForNewObject(container, modelName) {
  */
 export function removeObject(container, isMassRemoval = false) {
     if (!container) return;
+    
+    const modelName = container.userData.modelName;
+    
+    // Убираем optimistic update для удаления - обновление происходит через refreshAllModelCounters
+    // после успешного удаления, что исключает рассинхронизацию с БД
     
     // Импортируем функцию удаления размеров динамически
     import('./dimensionDisplay/index.js').then(async module => {
@@ -476,9 +541,157 @@ export function removeObject(container, isMassRemoval = false) {
             placedObjects.splice(index, 1);
         }
 
-        // Обновляем сессию в базе данных после удаления объекта
-        await updateSessionForRemovedObject(container, isMassRemoval);
+        // Обновляем состояния коллизий для всех оставшихся объектов (только для одиночного удаления)
+        if (!isMassRemoval && placedObjects.length > 0) {
+            try {
+                const { checkAllObjectsPositions } = await import('./collisionDetection.js');
+                checkAllObjectsPositions();
+                console.log('Обновлены состояния коллизий после удаления объекта:', container.userData.id);
+            } catch (error) {
+                console.warn('Не удалось обновить состояния коллизий:', error);
+            }
+        }
+
+        // 2. СИНХРОНИЗАЦИЯ С БД - обновляем базу данных (только для одиночного удаления)
+        if (!isMassRemoval) {
+            try {
+                await updateSessionForRemovedObject(container, isMassRemoval);
+            } catch (error) {
+                console.error('Ошибка при синхронизации с БД:', error);
+            }
+        } else {
+            console.log('Массовое удаление: пропускаем API синхронизацию для объекта', container.userData.id);
+        }
     });
+}
+
+/**
+ * Оптимизированная функция для массового удаления объектов
+ * @param {Array} containers - Массив контейнеров для удаления
+ * @param {string} modelName - Имя модели (для объектов одного типа)
+ */
+export async function removeObjectsBatch(containers, modelName = null) {
+    if (!containers || containers.length === 0) return;
+    
+    console.log(`Начинаем массовое удаление ${containers.length} объектов`);
+    
+    // 1. Быстрое удаление из сцены и массива без API вызовов
+    const removedObjectIds = [];
+    
+    for (const container of containers) {
+        if (!container) continue;
+        
+        const objectId = container.userData.id;
+        const objectModelName = container.userData.modelName || modelName;
+        
+        // Удаляем размеры модели (если модуль доступен)
+        try {
+            const dimensionModule = await import('./dimensionDisplay/index.js');
+            if (typeof dimensionModule.removeModelDimensions === 'function') {
+                dimensionModule.removeModelDimensions(container);
+            }
+        } catch (error) {
+            console.warn('Dimension module not available:', error);
+        }
+        
+        // Освобождаем ресурсы
+        container.traverse((child) => {
+            if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(material => {
+                            if (material.map) material.map.dispose();
+                            material.dispose();
+                        });
+                    } else {
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                }
+            }
+        });
+        
+        // Удаляем из сцены и массива
+        scene.remove(container);
+        const index = placedObjects.indexOf(container);
+        if (index > -1) {
+            placedObjects.splice(index, 1);
+        }
+        
+        removedObjectIds.push(objectId);
+    }
+    
+    // 2. Единократное обновление базы данных для всех объектов
+    try {
+        await updateSessionForBatchRemoval(removedObjectIds);
+        console.log(`Успешно удалено ${removedObjectIds.length} объектов из БД`);
+    } catch (error) {
+        console.error('Ошибка при массовом обновлении БД:', error);
+    }
+    
+    // 3. Единократное обновление UI
+    try {
+        const { refreshAllModelCounters } = await import('../sidebar.js');
+        await refreshAllModelCounters();
+        console.log('Sidebar обновлен после массового удаления');
+    } catch (error) {
+        console.error('Ошибка при обновлении sidebar:', error);
+    }
+
+    // 4. Обновляем состояния коллизий для всех оставшихся объектов (если они есть)
+    if (placedObjects.length > 0) {
+        try {
+            const { checkAllObjectsPositions } = await import('./collisionDetection.js');
+            checkAllObjectsPositions();
+            console.log('Обновлены состояния коллизий после массового удаления');
+        } catch (error) {
+            console.warn('Не удалось обновить состояния коллизий после массового удаления:', error);
+        }
+    }
+}
+
+/**
+ * Обновляет сессию в БД при массовом удалении объектов
+ * @param {Array} objectIds - Массив ID удаленных объектов
+ */
+async function updateSessionForBatchRemoval(objectIds) {
+    try {
+        const userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            console.error('No user ID found');
+            return;
+        }
+
+        // Получаем актуальные данные сессии
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        if (!sessionResponse.ok) {
+            throw new Error('Failed to get session');
+        }
+        const { session } = await sessionResponse.json();
+        const sessionData = session || { quantities: {}, placedObjects: [] };
+
+        // Удаляем все объекты из массива placedObjects одним проходом
+        sessionData.placedObjects = sessionData.placedObjects.filter(obj => !objectIds.includes(obj.id));
+
+        // Сохраняем обновленную сессию
+        const saveResponse = await fetch(`${API_BASE_URL}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, sessionData }),
+        });
+
+        if (!saveResponse.ok) {
+            throw new Error('Failed to save session');
+        }
+
+        console.log(`Массовое удаление: обновлена сессия для ${objectIds.length} объектов`);
+    } catch (error) {
+        console.error('Error in batch session update:', error);
+        throw error;
+    }
 }
 
 /**
@@ -494,19 +707,14 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             return;
         }
 
-        // Пытаемся получить данные из кэша drag-and-drop модуля
+        // Получаем актуальные данные сессии
         let sessionData = null;
         try {
-            const { getCachedSessionData, invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            sessionData = await getCachedSessionData();
-        } catch (cacheError) {
-            // Если кэш недоступен, делаем прямой запрос
-            const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-            if (!sessionResponse.ok) {
-                throw new Error('Failed to get session');
-            }
-            const { session } = await sessionResponse.json();
-            sessionData = session || { quantities: {}, placedObjects: [] };
+            const { getSessionData } = await import('../ui/dragAndDrop.js');
+            sessionData = await getSessionData();
+        } catch (error) {
+            console.error('Error getting session data:', error);
+            throw new Error('Failed to get session data');
         }
 
         // Удаляем объект из массива placedObjects в сессии
@@ -543,12 +751,16 @@ async function updateSessionForRemovedObject(container, isMassRemoval) {
             throw new Error('Failed to save session');
         }
 
-        // Инвалидируем кэш после сохранения
-        try {
-            const { invalidateSessionCache } = await import('../ui/dragAndDrop.js');
-            invalidateSessionCache();
-        } catch (error) {
-            // Игнорируем ошибку если модуль недоступен
+        // Обновляем счетчики в sidebar после успешного удаления (только если не массовое удаление)
+        if (!isMassRemoval) {
+            try {
+                const { refreshAllModelCounters } = await import('../sidebar.js');
+                await refreshAllModelCounters();
+            } catch (error) {
+                console.error('Error updating sidebar counters after removal:', error);
+            }
+        } else {
+            console.log('Массовое удаление: пропускаем обновление sidebar для объекта', container.userData.id);
         }
 
         console.log('Session updated successfully after removing object:', container.userData.id);

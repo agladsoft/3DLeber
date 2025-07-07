@@ -5,6 +5,162 @@
     box-sizing: border-box;
 }
 
+html, body { 
+    width: 100%; 
+    height: 100%; 
+    margin: 0; 
+    overflow: hidden; 
+}
+
+canvas { 
+    width: 100%; 
+    height: 100%; 
+    display: block; 
+}
+
+
+
+/* Загрузочный экран */
+#loadingScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Inter Tight', sans-serif;
+    opacity: 1;
+    transition: opacity 0.8s ease-out;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#loadingScreen.fade-out {
+    opacity: 0;
+}
+
+#loadingScreen.hidden {
+    display: none !important;
+}
+
+/* Обновленные стили для loading-spinner-svg */
+.loading-spinner-svg {
+    width: 200px;
+    height: 80px;
+    background: #FFFFFF;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-spinner-svg svg {
+    width: 140px;
+    height: 55px;
+    cursor: pointer;
+}
+
+.loading-spinner-svg .bounce-odd {
+    animation: logobounce-odd 2s ease-in-out infinite;
+}
+
+.loading-spinner-svg .bounce-even {
+    animation: logobounce-even 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes logobounce-odd {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-4px); }
+    75% { transform: translateY(2px); }
+}
+
+@keyframes logobounce-even {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(2px); }
+    75% { transform: translateY(-4px); }
+}
+
+/* Логотип в правом нижнем углу */
+.app-logo {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999; /* Ниже модальных окон (10000) но выше canvas */
+    pointer-events: auto; /* Включаем интерактивность для hover */
+    opacity: 1; /* Максимальная яркость (0.96 + 0.24 = 1.2, но max 1) */
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.app-logo:hover {
+    opacity: 1;
+}
+
+.app-logo svg {
+    width: 188px; /* Увеличен еще на 25% (150px * 1.25) */
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1)) brightness(1.5); /* Увеличена яркость еще на 25% (1.2 * 1.25) */
+    transition: all 0.3s ease;
+}
+
+/* Hover состояние - меняем непрозрачность внутреннего g элемента */
+.app-logo:hover svg g[opacity="0.5"] {
+    opacity: 1 !important;
+}
+
+/* Подчеркивание внутри SVG */
+.app-logo svg #underline {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.app-logo:hover svg #underline {
+    opacity: 1;
+}
+
+@keyframes underlineSlide {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+    to {
+        width: 80%;
+        opacity: 1;
+    }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .app-logo {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .app-logo svg {
+        width: 140px; /* Увеличен еще на 25% (112px * 1.25) */
+    }
+}
+
+/* Скрытие логотипа при открытии модальных окон */
+.modal:not(.hidden) ~ .app-logo {
+    opacity: 0.3;
+}
+
 body, html {
     width: 100%;
     height: 100%;
@@ -42,6 +198,12 @@ body, html {
 .platform-select-content,
 .session-select-content {
     width: 387px;
+}
+
+/* Оригинальная ширина модального окна настроек площадки */
+#playgroundSettings .modal-content {
+    width: 387px;
+    max-width: 387px;
 }
 
 /* Новый стиль для модального окна выбора площадки */
@@ -96,9 +258,9 @@ body, html {
 /* Современные цветовые квадраты */
 .modern-color-picker {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     margin-top: 10px;
-    justify-content: space-between;
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 5px 0;
@@ -125,14 +287,13 @@ body, html {
 }
 
 .modern-square {
-    width: 160px;
-    height: 70px;
-    border-radius: 15px;
+    width: 115px;
+    height: 55px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
     flex-shrink: 0; /* Предотвращаем сжатие */
-    min-width: 160px; /* Минимальная ширина */
 }
 
 .modern-square:hover {
@@ -203,6 +364,30 @@ body, html {
     gap: 8px;
 }
 
+/* Стили для полей ввода с суффиксом */
+.input-with-suffix {
+    position: relative;
+}
+
+.input-suffix {
+    position: absolute;
+    top: 50%;
+    left: 35px; /* Начальная позиция, будет пересчитываться динамически */
+    transform: translateY(-50%);
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 18px;
+    color: rgba(16, 15, 15, 0.6);
+    pointer-events: none;
+    opacity: 0; /* Скрыт по умолчанию */
+    transition: opacity 0.15s ease-out; /* Только opacity, без left */
+    z-index: 1;
+    white-space: nowrap; /* Предотвращаем перенос текста */
+}
+
+.input-suffix.visible {
+    opacity: 1;
+}
+
 .control-group label {
     font-family: 'Inter Tight', sans-serif;
     font-weight: 400;
@@ -266,9 +451,9 @@ body, html {
 }
 
 .color-square {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
     flex: none; /* Убираем flex:1 чтобы квадраты не растягивались */
@@ -1037,44 +1222,7 @@ body, html {
     color: #100F0F;
 }
 
-/* Индикатор загрузки */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(16, 15, 15, 0.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 4000;
-}
 
-.loading-overlay.hidden {
-    display: none;
-}
-
-.loading-spinner {
-    width: 60px;
-    height: 60px;
-    border: 5px solid #FFFFFF;
-    border-top-color: #F05323;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loading-text {
-    margin-top: 20px;
-    font-family: 'Inter Tight', sans-serif;
-    font-size: 18px;
-    color: #FFFFFF;
-}
 
 /* Статус площадки */
 #playgroundStatus {
@@ -1615,7 +1763,7 @@ model-viewer::part(default-progress-mask) {
     display: flex !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
-    padding: 48px 100px 48px 30px !important;
+    padding: 35px 10px 20px 20px !important;
     background-color: white !important;
     border-radius: 12px !important;
     min-height: 120px !important; /* Минимальная высота */
@@ -1651,7 +1799,7 @@ model-viewer::part(default-progress-mask) {
 #sidebar.categories-sidebar .category-arrow {
     transition: transform 0.3s !important;
     width: 24px !important;
-    transform: rotate(-45deg) !important;
+    transform: rotate(135deg) !important;
     flex-shrink: 0 !important; /* Запрещаем стрелке сжиматься */
     margin-top: 0 !important; /* Выравнивание стрелки по верхнему краю */
 }
@@ -1666,7 +1814,7 @@ model-viewer::part(default-progress-mask) {
 }
 
 #sidebar.categories-sidebar .category.active .category-arrow {
-    transform: rotate(45deg) !important; /* Изменено на 45 градусов для активного состояния */
+    transform: rotate(225deg) !important; /* Изменено на 45 градусов для активного состояния */
 }
 
 #sidebar.categories-sidebar .category.active .category-arrow path {
@@ -2276,7 +2424,7 @@ color: #333 !important;
     font-family: 'Inter Tight', sans-serif;
     font-size: 18px;
     line-height: 130%;
-    text-align: center;
+    text-align: left;
     color: #100F0F;
     outline: none;
 }
@@ -2294,7 +2442,7 @@ color: #333 !important;
 .pg-color-picker {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     margin-bottom: 30px;
     overflow-x: auto;
@@ -2324,9 +2472,9 @@ color: #333 !important;
 
 /* Цветной квадрат */
 .pg-color-square {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     flex: none; /* Фиксированный размер, не растягивается */
     flex-shrink: 0; /* Не сжимается */
@@ -2493,7 +2641,7 @@ color: #333 !important;
 .color-options {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 10px 0;
@@ -2520,9 +2668,9 @@ color: #333 !important;
 }
 
 .color-option {
-    width: 74.25px;
-    height: 74.25px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     cursor: pointer;
     flex: none;
     flex-shrink: 0;
@@ -2540,11 +2688,11 @@ color: #333 !important;
 
 /* Важные переопределения для modern-square */
 .color-square.modern-square {
-    width: 160px !important;
-    height: 70px !important;
-    border-radius: 15px !important;
+    width: 115px !important;
+    height: 55px !important;
+    border-radius: 12px !important;
     flex-shrink: 0 !important;
-    min-width: 160px !important;
+    min-width: 115px !important;
     flex: none !important;
 }
 
@@ -2657,7 +2805,7 @@ color: #333 !important;
     color: #666;
 }
 
-.missing-models-loading .loading-spinner {
+.missing-models-loading {
     width: 32px;
     height: 32px;
     border: 3px solid #f3f3f3;
@@ -2918,4 +3066,47 @@ color: #333 !important;
 /* Скрытие кнопки проверки отсутствующих моделей */
 #checkMissingModelsButton {
     display: none !important;
+}
+
+/* Preloader для моделей в сайдбаре */
+.model-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(245, 245, 245, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.model-preloader.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.model-preloader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(240, 83, 35, 0.2);
+    border-top-color: #F05323;
+    border-radius: 50%;
+    animation: modelSpin 1s linear infinite;
+}
+
+@keyframes modelSpin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+/* Обеспечиваем относительное позиционирование для модели */
+.model {
+    position: relative;
 }

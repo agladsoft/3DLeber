@@ -94,3 +94,49 @@ ON CONFLICT (article) DO UPDATE
 SET name = EXCLUDED.name,
     description = EXCLUDED.description,
     category = EXCLUDED.category;
+
+-- Добавление моделей деревьев, кустарников, пальм и людей
+INSERT INTO models (article, name, description, category) VALUES
+    -- Деревья
+    ('TREE-001', 'tree_test', 'Тестовое дерево', 'Деревья'),
+    ('TREE-002', 'tree_for_games', 'Дерево для игр', 'Деревья'),
+    ('TREE-003', 'tree_elm', 'Вяз', 'Деревья'),
+    ('TREE-004', 'tree_3d_model_linden_tree', '3D модель липы', 'Деревья'),
+    ('TREE-005', 'realistic_tree', 'Реалистичное дерево', 'Деревья'),
+    ('TREE-006', 'realistic_tree_2_free', 'Реалистичное дерево 2', 'Деревья'),
+    ('TREE-007', 'realistic_high_poly_tree', 'Реалистичное высокополигональное дерево', 'Деревья'),
+    ('TREE-008', 'maple_tree', 'Клён', 'Деревья'),
+    ('TREE-009', 'pine_tree (2)', 'Сосна', 'Деревья'),
+    ('TREE-010', 'realistic_hd_hong_kong_orchid_tree_1540', 'Гонконгское орхидейное дерево', 'Деревья'),
+    -- Пальмы
+    ('PALM-001', 'realistic_palm_tree_4_free', 'Реалистичная пальма 4', 'Пальмы'),
+    ('PALM-002', 'realistic_hd_christmas_palm_935', 'Рождественская пальма', 'Пальмы'),
+    ('PALM-003', 'realistic_hd_alexander_palm_2830', 'Пальма Александра', 'Пальмы'),
+    ('PALM-004', 'realistic_hd_alexander_palm_2830 (1)', 'Пальма Александра (вариант 2)', 'Пальмы'),
+    ('PALM-005', 'palm_tree_55k_triangles', 'Пальма (55k треугольников)', 'Пальмы'),
+    ('PALM-006', 'palm_tree', 'Пальма', 'Пальмы'),
+    ('PALM-007', 'free_game_ready_palm', 'Игровая пальма', 'Пальмы'),
+    ('PALM-008', 'date_palm', 'Финиковая пальма', 'Пальмы'),
+    ('PALM-009', 'coconut_tree_low_poly', 'Кокосовая пальма (низкополигональная)', 'Пальмы'),
+    ('PALM-010', 'coconut_palm', 'Кокосовая пальма', 'Пальмы'),
+    -- Кустарники и растения
+    ('BUSH-001', 'bush', 'Кустарник базовый', 'Кустарники'),
+    ('BUSH-002', 'realistic_bushtree_dwarf_umbrella', 'Карликовое зонтичное дерево-куст', 'Кустарники'),
+    ('BUSH-003', 'photorealistic_bush', 'Фотореалистичный куст', 'Кустарники'),
+    ('BUSH-004', 'low_poly_bush_buxus', 'Самшит (низкополигональный)', 'Кустарники'),
+    ('BUSH-005', 'realistic_hd_yellow_bush_lupine_2425', 'Жёлтый куст люпина 2425', 'Кустарники'),
+    ('BUSH-006', 'realistic_hd_yellow_bush_lupine_2425 (1)', 'Жёлтый куст люпина 2425 (вариант 2)', 'Кустарники'),
+    ('BUSH-007', 'realistic_hd_yellow_bush_lupine_225', 'Жёлтый куст люпина 225', 'Кустарники'),
+    ('BUSH-008', 'realistic_hd_yellow_bush_lupine_2225', 'Жёлтый куст люпина 2225', 'Кустарники'),
+    ('BUSH-009', 'realistic_hd_yellow_bush_lupine_2025', 'Жёлтый куст люпина 2025', 'Кустарники'),
+    ('BUSH-010', 'realistic_hd_yellow_bush_lupine_1625', 'Жёлтый куст люпина 1625', 'Кустарники'),
+    ('BUSH-011', 'realistic_hd_yellow_bush_lupine_1525', 'Жёлтый куст люпина 1525', 'Кустарники'),
+    ('BUSH-012', 'realistic_hd_yellow_bush_lupine_125', 'Жёлтый куст люпина 125', 'Кустарники'),
+    ('BUSH-013', 'realistic_hd_yellow_bush_lupine_1125', 'Жёлтый куст люпина 1125', 'Кустарники'),
+    -- Люди
+    ('PEOPLE-001', 'teen_boy_running__rigged__free', 'Бегущий подросток (с риггингом)', 'Люди'),
+    ('PEOPLE-002', 'nathan_animated_003_-_walking_3d_man', 'Натан - идущий человек (анимированный)', 'Люди')
+ON CONFLICT (article) DO UPDATE 
+SET name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category;

@@ -14,30 +14,7 @@ export async function getModelsByArticles(articles) {
     return result.rows;
 }
 
-export async function getModelByArticle(article) {
-    const query = `
-        SELECT m.*, s.quantity 
-        FROM models m
-        LEFT JOIN sessions s ON m.id = s.model_id
-        WHERE m.article = $1
-    `;
-    const result = await pool.query(query, [article]);
-    return result.rows[0];
-}
 
-export async function createOrUpdateSession(userId, modelId, quantity) {
-    const query = `
-        INSERT INTO sessions (project_id, model_id, quantity)
-        SELECT u.id, m.id, $3
-        FROM projects u, models m
-        WHERE u.project_id = $1 AND m.id = $2
-        ON CONFLICT (project_id, model_id) 
-        DO UPDATE SET quantity = $3
-        RETURNING id
-    `;
-    const result = await pool.query(query, [userId, modelId, quantity]);
-    return result.rows[0];
-}
 
 export async function getOrCreateUser(userId) {
     // Используем INSERT ... ON CONFLICT DO UPDATE чтобы всегда получать id
@@ -58,18 +35,7 @@ export async function getOrCreateUser(userId) {
     return result.rows[0];
 }
 
-export async function getModelsWithSessions(userId) {
-    const query = `
-        SELECT m.*, COALESCE(s.quantity, 0) as quantity
-        FROM models m
-        LEFT JOIN sessions s ON m.id = s.model_id
-        LEFT JOIN projects u ON s.project_id = u.id
-        WHERE u.project_id = $1
-    `;
-    const result = await pool.query(query, [userId]);
-    console.log(result.rows);
-    return result.rows;
-}
+
 
 export async function saveSession(userId, sessionData) {
     try {

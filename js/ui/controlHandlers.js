@@ -11,9 +11,9 @@ import {
     playgroundLength 
 } from '../playground.js';
 import { API_BASE_URL } from '../api/serverConfig.js';
-import { updateModelPlacementCounter } from '../sidebar.js';
+// import { updateModelPlacementCounter } from '../sidebar.js'; // Убрано - используем refreshAllModelCounters для массового обновления
 import { showNotification } from '../utils/notifications.js';
-import { hideAllDimensions, placedObjects, showModelDimensions } from '../objects.js';
+import { hideAllDimensions, placedObjects, showModelDimensions, removeObjectsBatch } from '../objects.js';
 import { removeAllSafetyZones, toggleSafetyZones, showAllSafetyZones, syncSafetyZonesState } from '../core/safetyManager.js';
 
 // Описания для инструментов
@@ -503,25 +503,13 @@ function setupDeleteAllButton() {
                     throw new Error('Failed to save session');
                 }
 
-                // Удаляем все объекты с площадки
-                const module = await import('../objects.js');
+                // Удаляем все объекты с площадки используя оптимизированную batch функцию
                 // Копируем массив, чтобы не было проблем при изменении во время итерации
-                const objectsToDelete = [...module.placedObjects];
+                const objectsToDelete = [...placedObjects];
                 
-                // Удаляем все объекты с площадки, передавая флаг массового удаления
-                for (const obj of objectsToDelete) {
-                    module.removeObject(obj, true);
-                }
-
-                // Обновляем UI для отображения новых количеств
-                const items = document.querySelectorAll('.model');
-                items.forEach(item => {
-                    const modelName = item.getAttribute('data-model');
-                    if (modelName && updatedQuantities[modelName] !== undefined) {
-                        const placedCount = 0; // Все объекты удалены
-                        updateModelPlacementCounter(modelName, placedCount);
-                    }
-                });
+                // Используем новую removeObjectsBatch функцию для лучшей производительности
+                // Она автоматически обновляет БД и UI в одной операции
+                await removeObjectsBatch(objectsToDelete);
 
                 console.log('All models removed and session updated with new quantities:', updatedQuantities);
             } catch (error) {

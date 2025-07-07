@@ -21,6 +21,10 @@ export let mouse = new THREE.Vector2();
 // Реэкспортируем canvas и другие элементы сцены для использования в других модулях
 export { canvas, scene, camera, renderer };
 
+// Debouncing для API вызовов
+let updateSessionTimeout = null;
+const SESSION_UPDATE_DELAY = 500; // 500ms задержка для группировки обновлений
+
 /**
  * Инициализирует обработчики событий пользовательского интерфейса
  */
@@ -54,6 +58,17 @@ export function initUI() {
     
     // Добавляем глобальный обработчик кликов для скрытия кнопки удаления
     initGlobalClickHandler();
+    
+    // Обновляем счетчики моделей в sidebar при инициализации UI для актуальных данных
+    setTimeout(async () => {
+        try {
+            const { refreshAllModelCounters } = await import('../sidebar.js');
+            await refreshAllModelCounters();
+            console.log('Model counters refreshed on UI init');
+        } catch (error) {
+            console.error('Error refreshing model counters on UI init:', error);
+        }
+    }, 500); // Небольшая задержка, чтобы sidebar успел инициализироваться
     
 }
 
@@ -162,8 +177,8 @@ async function handleArrowKeyMovement(event) {
     // Показываем кнопку удаления для объекта при движении стрелками
     showDeleteButtonForSelectedObject(selectedObject);
     
-    // Обновляем сессию в базе данных
-    updateSessionInDatabase(selectedObject);
+    // Обновляем сессию в базе данных с debouncing
+    debouncedUpdateSession(selectedObject);
     
     // Логируем перемещение
     console.log(`Объект ${selectedObject.userData.modelName} перемещен стрелкой ${event.key} на ${step}м. Новые координаты:`, {
@@ -177,6 +192,22 @@ async function handleArrowKeyMovement(event) {
  * Обновляет сессию в базе данных
  * @param {Object} object - Объект, который был изменен
  */
+/**
+ * Debounced обертка для updateSessionInDatabase
+ * @param {Object} object - 3D объект для обновления
+ */
+function debouncedUpdateSession(object) {
+    // Отменяем предыдущий таймер
+    if (updateSessionTimeout) {
+        clearTimeout(updateSessionTimeout);
+    }
+    
+    // Устанавливаем новый таймер
+    updateSessionTimeout = setTimeout(() => {
+        updateSessionInDatabase(object);
+    }, SESSION_UPDATE_DELAY);
+}
+
 async function updateSessionInDatabase(object) {
     try {
         // Получаем project_id из sessionStorage
@@ -230,6 +261,14 @@ async function updateSessionInDatabase(object) {
 
         if (!saveResponse.ok) {
             throw new Error('Failed to save session');
+        }
+
+        // Обновляем счетчики в sidebar после обновления сессии
+        try {
+            const { refreshAllModelCounters } = await import('../sidebar.js');
+            await refreshAllModelCounters();
+        } catch (error) {
+            console.error('Error updating sidebar counters after position change:', error);
         }
 
         console.log('Session updated successfully for keyboard movement:', objectData);
