@@ -9,6 +9,14 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
+import { 
+    validateSessionData, 
+    validateModelsArray, 
+    validateUserId, 
+    validateEmail, 
+    validateMissingModelsRequest,
+    sanitizeString 
+} from '../utils/validation.js';
 
 const { Pool } = pg;
 
@@ -28,8 +36,160 @@ const pool = new Pool({
 
 // Добавляем middleware для оптимизации
 app.use(compression()); // Сжатие ответов
-app.use(cors());
+
+// CORS с ограничениями для безопасности
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Разрешаем запросы без origin (например, мобильные приложения)
+        if (!origin) return callback(null, true);
+        
+        // Разрешенные домены
+        const allowedOrigins = [
+            'https://3d.leber.ru',
+            'https://leber.ru',
+            'https://office.leber.ru',
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:5173'
+        ];
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для JSON
+
+// Middleware для логирования подозрительной активности
+app.use((req, res, next) => {
+    // Логируем подозрительные запросы
+    const suspiciousPatterns = [
+        /script/i,
+        /javascript/i,
+        /eval\(/i,
+        /function\(/i,
+        /<iframe/i,
+        /<object/i
+    ];
+    
+    const requestData = JSON.stringify({
+        url: req.url,
+        body: req.body,
+        query: req.query,
+        headers: req.headers
+    });
+    
+    if (suspiciousPatterns.some(pattern => pattern.test(requestData))) {
+        console.warn('Suspicious request detected:', {
+            ip: req.ip,
+            url: req.url,
+            userAgent: req.get('User-Agent'),
+            origin: req.get('Origin')
+        });
+    }
+    
+    next();
+});
+
+// Простая защита от CSRF через проверку заголовков
+app.use((req, res, next) => {
+    // Временная возможность отключить CSRF для отладки (установите переменную окружения)
+    if (process.env.DISABLE_CSRF === 'true') {
+        console.log('CSRF protection disabled via environment variable');
+        return next();
+    }
+    
+    // Пропускаем GET запросы и запросы к health endpoint
+    if (req.method === 'GET' || req.url === '/health') {
+        return next();
+    }
+    
+    const origin = req.get('Origin');
+    const referer = req.get('Referer');
+    const host = req.get('Host');
+    
+    console.log('CSRF Check:', {
+        method: req.method,
+        url: req.url,
+        origin,
+        referer,
+        host,
+        userAgent: req.get('User-Agent')
+    });
+    
+    // Проверяем, что запрос идет с разрешенного домена
+    const allowedHosts = [
+        '3d.leber.ru',
+        'leber.ru',
+        'office.leber.ru',
+        'localhost:5173',
+        'localhost:3000',
+        '127.0.0.1:5173',
+        '127.0.0.1:3000',
+        'localhost',
+        '127.0.0.1'
+    ];
+    
+    let isValidOrigin = false;
+    
+    // Проверяем origin
+    if (origin) {
+        isValidOrigin = allowedHosts.some(allowedHost => {
+            return origin.includes(allowedHost) || origin === `http://${allowedHost}` || origin === `https://${allowedHost}`;
+        });
+    }
+    
+    // Если origin нет, проверяем referer
+    if (!isValidOrigin && referer) {
+        isValidOrigin = allowedHosts.some(allowedHost => {
+            return referer.includes(allowedHost);
+        });
+    }
+    
+    // Если это запрос с того же хоста (например, SSR или внутренние запросы)
+    if (!isValidOrigin && host) {
+        isValidOrigin = allowedHosts.some(allowedHost => {
+            return host.includes(allowedHost);
+        });
+    }
+    
+    // Режим разработки - более мягкие проверки
+    const isDevelopment = host && (host.includes('localhost') || host.includes('127.0.0.1'));
+    if (isDevelopment && !origin && !referer) {
+        console.log('Development mode: allowing request without origin/referer');
+        isValidOrigin = true;
+    }
+    
+    if (!isValidOrigin) {
+        console.warn('CSRF protection triggered:', {
+            ip: req.ip,
+            origin,
+            referer,
+            host,
+            url: req.url,
+            allowedHosts
+        });
+        return res.status(403).json({ 
+            error: 'Forbidden: Invalid origin',
+            debug: {
+                origin,
+                referer,
+                host,
+                allowedHosts
+            }
+        });
+    }
+    
+    console.log('CSRF check passed');
+    next();
+});
 
 // Кэш для сессий на уровне сервера
 const sessionCache = new Map();
@@ -155,12 +315,17 @@ app.post('/api/models/match', async (req, res) => {
     try {
         const { models } = req.body;
         
-        if (!models || !Array.isArray(models)) {
-            return res.status(400).json({ error: 'Invalid models data' });
+        // Валидация входных данных
+        const validation = validateModelsArray(models);
+        if (!validation.isValid) {
+            return res.status(400).json({ 
+                error: 'Invalid models data', 
+                details: validation.errors 
+            });
         }
 
-        // Получаем артикулы из JSON
-        const articles = models.map(model => model.article);
+        // Получаем артикулы из JSON с санитизацией
+        const articles = models.map(model => sanitizeString(model.article));
         
         // Получаем соответствующие модели из БД
         const dbModels = await getModelsByArticles(articles);
@@ -170,13 +335,13 @@ app.post('/api/models/match', async (req, res) => {
         
         // Объединяем данные из JSON с данными из БД
         const matchedModels = models.map(jsonModel => {
-            const dbModel = dbModelsMap.get(jsonModel.article);
+            const dbModel = dbModelsMap.get(sanitizeString(jsonModel.article));
             if (dbModel) {
                 return {
                     ...jsonModel,
-                    name: dbModel.name,
-                    description: dbModel.description,
-                    category: dbModel.category
+                    name: sanitizeString(dbModel.name),
+                    description: sanitizeString(dbModel.description),
+                    category: sanitizeString(dbModel.category)
                 };
             }
             return null;
@@ -194,6 +359,7 @@ app.get('/api/validate-token', async (req, res) => {
     try {
         const { token } = req.query;
         
+        // Базовая проверка токена (восстанавливаем оригинальную логику)
         if (!token) {
             return res.status(400).json({ error: 'Token is required' });
         }
@@ -270,18 +436,14 @@ app.post('/api/launch', async (req, res) => {
 
         console.log('Launch request received:', { project_id, modelsCount: models.length });
 
-        // Проверяем режим разработки
-        const isDevelopment = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-        let isTokenValid = false;
-
-        if (isDevelopment) {
-            console.log('Development mode: skipping token validation');
-            isTokenValid = true;
-        } else {
-            // Валидируем токен через внешний API
-            isTokenValid = await validateTokenInternal(token);
-            console.log('Token validation result:', isTokenValid);
+        // Базовая проверка токена (восстанавливаем оригинальную логику)
+        if (!token || typeof token !== 'string' || token.trim() === '') {
+            return res.status(400).json({ error: 'Token, project_id and models are required' });
         }
+        
+        // Всегда валидируем токен через внешний API для безопасности
+        const isTokenValid = await validateTokenInternal(token);
+        console.log('Token validation result:', isTokenValid);
         
         if (!isTokenValid) {
             return res.status(401).json({ error: 'Invalid token' });
@@ -499,11 +661,25 @@ app.get('/api/session/:userId', async (req, res) => {
 app.post('/api/session', async (req, res) => {
     try {
         const { userId, sessionData } = req.body;
-        if (!userId || !sessionData) {
-            return res.status(400).json({ error: 'userId and sessionData are required' });
+        
+        // Валидация входных данных
+        const userIdValidation = validateUserId(userId);
+        if (!userIdValidation.isValid) {
+            return res.status(400).json({ 
+                error: 'Invalid userId', 
+                details: userIdValidation.errors 
+            });
         }
         
-        await saveSession(userId, sessionData);
+        const sessionValidation = validateSessionData(sessionData);
+        if (!sessionValidation.isValid) {
+            return res.status(400).json({ 
+                error: 'Invalid sessionData', 
+                details: sessionValidation.errors 
+            });
+        }
+        
+        await saveSession(sanitizeString(userId), sessionData);
         
         // Инвалидируем кэш после сохранения
         invalidateCachedSession(userId);
@@ -544,12 +720,16 @@ app.get('/api/missing-models/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         
-        // Получаем модели из sessionStorage (переданы в запросе)
-        const requestedModels = JSON.parse(req.query.models || '[]');
-        
-        if (!Array.isArray(requestedModels)) {
-            return res.status(400).json({ error: 'Invalid models data' });
+        // Валидация запроса
+        const validation = validateMissingModelsRequest(userId, req.query.models);
+        if (!validation.isValid) {
+            return res.status(400).json({ 
+                error: 'Invalid request parameters', 
+                details: validation.errors 
+            });
         }
+        
+        const requestedModels = validation.models;
                 
         // Получаем список файлов из папки models
         const filesInFolder = collectGlbModels(modelsDir);

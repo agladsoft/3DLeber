@@ -2,6 +2,7 @@
  * Модуль управления модальным окном проверки отсутствующих моделей
  */
 import { API_BASE_URL } from './api/serverConfig.js';
+import { showSafeNotification, stripHtml, createSafeElement } from './utils/security.js';
 
 /**
  * Отображает модальное окно проверки отсутствующих моделей
@@ -172,31 +173,38 @@ function updateStats(stats, totalCountEl, missingCountEl, foundCountEl) {
  * Отображает список отсутствующих моделей
  */
 function displayMissingModels(missingModels, container) {
-    const html = missingModels.map(model => {
-        const statusBadges = [];
+    // Очищаем контейнер
+    container.innerHTML = '';
+    
+    missingModels.forEach(model => {
+        // Создаем элементы безопасно
+        const modelItem = createSafeElement('div', '', { class: 'missing-model-item' });
+        const modelInfo = createSafeElement('div', '', { class: 'missing-model-info' });
+        const modelArticle = createSafeElement('div', stripHtml(model.article), { class: 'missing-model-article' });
+        
+        modelInfo.appendChild(modelArticle);
+        
+        if (model.name) {
+            const modelName = createSafeElement('div', stripHtml(model.name), { class: 'missing-model-name' });
+            modelInfo.appendChild(modelName);
+        }
+        
+        const modelStatus = createSafeElement('div', '', { class: 'missing-model-status' });
         
         if (model.missingInFolder) {
-            statusBadges.push('<span class="status-badge missing-folder">Нет в папке</span>');
+            const folderBadge = createSafeElement('span', 'Нет в папке', { class: 'status-badge missing-folder' });
+            modelStatus.appendChild(folderBadge);
         }
         
         if (model.missingInDb) {
-            statusBadges.push('<span class="status-badge missing-db">Нет в БД</span>');
+            const dbBadge = createSafeElement('span', 'Нет в БД', { class: 'status-badge missing-db' });
+            modelStatus.appendChild(dbBadge);
         }
         
-        return `
-            <div class="missing-model-item">
-                <div class="missing-model-info">
-                    <div class="missing-model-article">${model.article}</div>
-                    ${model.name ? `<div class="missing-model-name">${model.name}</div>` : ''}
-                </div>
-                <div class="missing-model-status">
-                    ${statusBadges.join('')}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML = html;
+        modelItem.appendChild(modelInfo);
+        modelItem.appendChild(modelStatus);
+        container.appendChild(modelItem);
+    });
 }
 
 /**
@@ -234,13 +242,23 @@ function showNoModelsMessage() {
 function showErrorMessage(message) {
     const listContainer = document.getElementById('missingModelsList');
     if (listContainer) {
-        listContainer.innerHTML = `
-            <div class="no-missing-models" style="color: #dc3545;">
-                <div class="success-icon">❌</div>
-                <h4>Произошла ошибка</h4>
-                <p>${message}</p>
-            </div>
-        `;
+        // Очищаем контейнер
+        listContainer.innerHTML = '';
+        
+        // Создаем элементы безопасно
+        const errorContainer = createSafeElement('div', '', { 
+            class: 'no-missing-models',
+            style: 'color: #dc3545;'
+        });
+        
+        const errorIcon = createSafeElement('div', '❌', { class: 'success-icon' });
+        const errorTitle = createSafeElement('h4', 'Произошла ошибка');
+        const errorMessage = createSafeElement('p', stripHtml(message));
+        
+        errorContainer.appendChild(errorIcon);
+        errorContainer.appendChild(errorTitle);
+        errorContainer.appendChild(errorMessage);
+        listContainer.appendChild(errorContainer);
     }
 }
 
@@ -492,15 +510,8 @@ function showNotification(message, type = 'info') {
         document.body.appendChild(notification);
     }
     
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-message">${message}</span>
-            <span class="notification-close" onclick="this.parentElement.parentElement.classList.add('hidden')">&times;</span>
-        </div>
-    `;
-    
-    notification.classList.remove('hidden');
+    // Используем безопасную функцию для отображения уведомлений
+    showSafeNotification(notification, message, type);
     
     setTimeout(() => {
         notification.classList.add('hidden');

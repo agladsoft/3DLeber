@@ -11,6 +11,7 @@ import {
     standardPlaygroundLoading,
     forceHideAllLoading 
 } from './loadingManager.js';
+import { safeFetch } from './utils/security.js';
 
 // Флаг для отслеживания инициализации sidebar
 let sidebarInitialized = false;
@@ -146,7 +147,7 @@ function ensureAppVisibility() {
 export async function initializeNewSession(userId, models) {
     try {        
         // Сначала получаем полные данные моделей через API
-        const matchResponse = await fetch(`${API_BASE_URL}/models/match`, {
+        const matchResponse = await safeFetch(`${API_BASE_URL}/models/match`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -179,7 +180,7 @@ export async function initializeNewSession(userId, models) {
         console.log('Final session data to save:', sessionData);
 
         // Сохраняем сессию в БД
-        const response = await fetch(`${API_BASE_URL}/session`, {
+        const response = await safeFetch(`${API_BASE_URL}/session`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -620,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await loadingManager.updateProgress(30, 'Очистка предыдущей сессии...');
                     
                     // Очищаем сессию в базе данных
-                    const clearResponse = await fetch(`${API_BASE_URL}/session/${userId}`, {
+                    const clearResponse = await safeFetch(`${API_BASE_URL}/session/${userId}`, {
                         method: 'DELETE'
                     });
 

@@ -2,6 +2,7 @@
  * Модуль для интеграции новой версии категорий в основной проект
  */
 import { API_BASE_URL } from './api/serverConfig.js';
+import { stripHtml, createSafeElement, escapeHtml } from './utils/security.js';
 
 // Переменная для отслеживания последнего обновления
 let lastUpdateTime = 0;
@@ -236,23 +237,39 @@ function createModelElement(model, sessionData, modelsData) {
         modelElement.setAttribute('draggable', 'true');
     }
     
-    modelElement.innerHTML = `
-        <div class="model-image">
-            <img src="${model.isSpecial ? `textures/${model.name.replace('.glb', '.png')}` : `https://office.leber.ru:9994/tg/clear_wb300/${model.article}.jpg`}" alt="${model.description}">
-        </div>
-        <div class="model-article">${model.article}</div>
-        <div class="model-title">${model.description}</div>
-        <div class="model-placement">${model.isSpecial ? `Добавлено на площадку: ${placedCount}` : `Добавлено на площадку: ${placedCount} из ${totalQuantity}`}</div>
-        <div class="model-preloader">
-            <div class="model-preloader-spinner"></div>
-        </div>
-    `;
+    // Безопасное создание содержимого модели
+    const imageContainer = createSafeElement('div', '', { class: 'model-image' });
+    const img = document.createElement('img');
+    const imageSrc = model.isSpecial ? 
+        `textures/${escapeHtml(model.name.replace('.glb', '.png'))}` : 
+        `https://office.leber.ru:9994/tg/clear_wb300/${escapeHtml(model.article)}.jpg`;
+    img.src = imageSrc;
+    img.alt = stripHtml(model.description);
+    imageContainer.appendChild(img);
+    
+    const articleElement = createSafeElement('div', stripHtml(model.article), { class: 'model-article' });
+    const titleElement = createSafeElement('div', stripHtml(model.description), { class: 'model-title' });
+    
+    const placementText = model.isSpecial ? 
+        `Добавлено на площадку: ${placedCount}` : 
+        `Добавлено на площадку: ${placedCount} из ${totalQuantity}`;
+    const placementElement = createSafeElement('div', placementText, { class: 'model-placement' });
+    
+    const preloaderContainer = createSafeElement('div', '', { class: 'model-preloader' });
+    const preloaderSpinner = createSafeElement('div', '', { class: 'model-preloader-spinner' });
+    preloaderContainer.appendChild(preloaderSpinner);
+    
+    // Очищаем и добавляем элементы
+    modelElement.innerHTML = '';
+    modelElement.appendChild(imageContainer);
+    modelElement.appendChild(articleElement);
+    modelElement.appendChild(titleElement);
+    modelElement.appendChild(placementElement);
+    modelElement.appendChild(preloaderContainer);
     
     // Кэшируем placement и preloader элементы для быстрого доступа
-    const placementElement = modelElement.querySelector('.model-placement');
-    const preloaderElement = modelElement.querySelector('.model-preloader');
     placementElementsCache.set(model.name, placementElement);
-    preloaderElementsCache.set(model.name, preloaderElement);
+    preloaderElementsCache.set(model.name, preloaderContainer);
     
     // Добавляем обработчик drag-and-drop с невидимым изображением
     modelElement.addEventListener('dragstart', function(event) {
