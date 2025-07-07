@@ -224,15 +224,27 @@ function invalidateCachedSession(userId) {
 const modelsDir = path.join(__dirname, '..', '..', 'models');
 
 // Логирование для отладки
+console.log('=== SERVER CONFIGURATION ===');
 console.log('Server __dirname:', __dirname);
 console.log('Models directory path:', modelsDir);
 console.log('Models directory exists:', fs.existsSync(modelsDir));
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('SERVER_NAME:', SERVER_NAME);
+console.log('SERVER_PORT:', SERVER_PORT);
+console.log('=== DATABASE CONFIGURATION ===');
+console.log('POSTGRES_HOST:', DB_CONFIG.host);
+console.log('POSTGRES_DB:', DB_CONFIG.database);
+console.log('POSTGRES_USER:', DB_CONFIG.user);
+console.log('POSTGRES_PASSWORD:', DB_CONFIG.password ? '***HIDDEN***' : 'NOT SET');
+console.log('================================');
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
     try {
         // Проверяем подключение к базе данных
+        console.log('Health check: Testing database connection...');
         await pool.query('SELECT 1');
+        console.log('Health check: Database connection successful');
         
         // Проверяем доступность директории с моделями
         if (!fs.existsSync(modelsDir)) {
@@ -245,14 +257,31 @@ app.get('/health', async (req, res) => {
             services: {
                 database: 'connected',
                 models: 'available'
+            },
+            config: {
+                api_base_url: API_BASE_URL,
+                server_name: SERVER_NAME,
+                server_port: SERVER_PORT
             }
         });
     } catch (error) {
         console.error('Health check failed:', error);
+        console.error('Database config:', {
+            host: DB_CONFIG.host,
+            database: DB_CONFIG.database,
+            user: DB_CONFIG.user,
+            port: DB_CONFIG.port
+        });
         res.status(503).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
-            error: error.message
+            error: error.message,
+            config: {
+                api_base_url: API_BASE_URL,
+                db_host: DB_CONFIG.host,
+                db_name: DB_CONFIG.database,
+                db_user: DB_CONFIG.user
+            }
         });
     }
 });

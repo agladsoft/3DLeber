@@ -1,7 +1,15 @@
 // Server configuration
 const SERVER_NAME = process.env.SERVER_NAME || 'localhost';
 const SERVER_PORT = process.env.SERVER_PORT || '3000';
-const API_BASE_URL = `https://${SERVER_NAME}/api`;
+
+// Определяем правильный API_BASE_URL в зависимости от окружения
+let API_BASE_URL;
+if (process.env.NODE_ENV === 'production' || SERVER_NAME !== 'localhost') {
+    API_BASE_URL = `https://${SERVER_NAME}/api`;
+} else {
+    // Для разработки используем localhost с портом
+    API_BASE_URL = `http://localhost:${SERVER_PORT}/api`;
+}
 const POSTGRES_HOST = process.env.POSTGRES_HOST || 'postgres';
 const POSTGRES_DB = process.env.POSTGRES_DB || 'admin';
 const POSTGRES_USER = process.env.POSTGRES_USER || 'admin';
