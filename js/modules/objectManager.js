@@ -179,26 +179,53 @@ export function updateMaterialsEnvironmentMap() {
         return;
     }
     
-    console.log('Обновляем environment map для всех размещенных объектов');
+    console.log('🔄 Обновляем environment map для всех размещенных объектов');
     
-    placedObjects.forEach(container => {
+    placedObjects.forEach(container => {        
         container.traverse((child) => {
             if (child.isMesh && child.material) {
                 const materials = Array.isArray(child.material) ? child.material : [child.material];
                 
-                materials.forEach(material => {
+                materials.forEach((material) => {
+                    
                     // Устанавливаем environment map из сцены для отражений
                     material.envMap = scene.environment;
                     material.envMapIntensity = 1.0;
                     
-                    // Для стеклянных материалов (прозрачных)
-                    if (material.transparent && material.opacity < 1.0) {
-                        material.refractionRatio = 0.98;
-                        material.envMapIntensity = 1.5;
-                    }
+                    // Улучшенное определение стеклянных материалов
+                    const isGlass = (
+                        (material.transparent && material.opacity < 1.0) ||
+                        (material.transmission && material.transmission > 0) ||
+                        (material.ior && material.ior !== 1.5) ||
+                        (material.clearcoat && material.clearcoat > 0.5) ||
+                        (material.name && (
+                            material.name.toLowerCase().includes('glass') ||
+                            material.name.toLowerCase().includes('crystal') ||
+                            material.name.toLowerCase().includes('transparent')
+                        ))
+                    );
                     
+                    // Для стеклянных материалов
+                    if (isGlass) {                        
+                        if (!material.transmission || material.transmission === 0) {
+                            material.transmission = 0.95;
+                        }
+                        
+                        if (material.ior === 1.5) {
+                            material.ior = 1.52;
+                        }
+                        
+                        material.refractionRatio = 0.98;
+                        material.envMapIntensity = 1.8;
+                        material.reflectivity = material.reflectivity || 0.5;
+                        
+                        if (material.isMeshPhysicalMaterial) {
+                            material.transmission = Math.max(material.transmission, 0.9);
+                            material.thickness = material.thickness || 0.5;
+                        }
+                    }
                     // Для металлических материалов
-                    if (material.metalness > 0.5) {
+                    else if (material.metalness > 0.5) {
                         material.envMapIntensity = 2.0;
                     }
                     
@@ -208,7 +235,7 @@ export function updateMaterialsEnvironmentMap() {
         });
     });
     
-    console.log(`Environment map обновлен для ${placedObjects.length} объектов`);
+    console.log(`✅ Environment map обновлен для ${placedObjects.length} объектов`);
 }
 
 /**
@@ -391,24 +418,51 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                         // Если это массив материалов
                                         const materials = Array.isArray(child.material) ? child.material : [child.material];
                                         
-                                        materials.forEach(material => {
+                                        materials.forEach((material) => {
+                                            
                                             // Устанавливаем environment map из сцены для отражений
                                             if (scene.environment) {
                                                 material.envMap = scene.environment;
                                                 material.envMapIntensity = 1.0;
                                             }
                                             
-                                            // Для стеклянных материалов (прозрачных)
-                                            if (material.transparent && material.opacity < 1.0) {
-                                                // Не изменяем opacity для стекла - оставляем как в модели
-                                                material.refractionRatio = 0.98; // Индекс преломления для стекла
-                                                material.envMapIntensity = 1.5; // Усиливаем отражения для стекла
-                                            }
+                                            // Улучшенное определение стеклянных материалов
+                                            const isGlass = (
+                                                (material.transparent && material.opacity < 1.0) ||
+                                                (material.transmission && material.transmission > 0) ||
+                                                (material.ior && material.ior !== 1.5) ||
+                                                (material.clearcoat && material.clearcoat > 0.5) ||
+                                                (material.name && (
+                                                    material.name.toLowerCase().includes('glass') ||
+                                                    material.name.toLowerCase().includes('crystal') ||
+                                                    material.name.toLowerCase().includes('transparent')
+                                                ))
+                                            );
                                             
+                                            // Для стеклянных материалов
+                                            if (isGlass) {                                                
+                                                // Настройки для стекла
+                                                if (!material.transmission || material.transmission === 0) {
+                                                    material.transmission = 0.95; // Включаем transmission если его нет
+                                                }
+                                                
+                                                if (material.ior === 1.5) {
+                                                    material.ior = 1.52; // Стандартный индекс преломления стекла
+                                                }
+                                                
+                                                material.refractionRatio = 0.98;
+                                                material.envMapIntensity = 1.8; // Усиливаем отражения для стекла
+                                                material.reflectivity = material.reflectivity || 0.5;
+                                                
+                                                // Если это MeshPhysicalMaterial, используем transmission
+                                                if (material.isMeshPhysicalMaterial) {
+                                                    material.transmission = Math.max(material.transmission, 0.9);
+                                                    material.thickness = material.thickness || 0.5;
+                                                }
+                                            }
                                             // Для металлических материалов
-                                            if (material.metalness > 0.5) {
+                                            else if (material.metalness > 0.5) {
                                                 material.envMapIntensity = 2.0; // Усиливаем отражения для металла
-                                                // Не изменяем roughness - оставляем как в модели
                                             }
                                             
                                             // Обновляем материал
