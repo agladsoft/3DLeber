@@ -7,6 +7,7 @@ import {
 } from '../config.js';
 import * as THREE from 'three';
 import { PMREMGenerator } from 'three';
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 // CubeTextureLoader уже включен в импорт THREE
 
 // Экспортируем переменные для доступа из других модулей
@@ -38,8 +39,12 @@ export function initializeRenderer() {
     // Улучшение точности буфера глубины для предотвращения Z-fighting
     renderer.logarithmicDepthBuffer = true; // Использование логарифмического буфера глубины
     
-    // Улучшение точности буфера глубины для предотвращения Z-fighting
-    renderer.logarithmicDepthBuffer = true; // Использование логарифмического буфера глубины
+    // Современные настройки для улучшения качества отображения PBR материалов
+    renderer.outputColorSpace = THREE.SRGBColorSpace; // Новый API вместо outputEncoding
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; // Улучшенный tone mapping
+    renderer.toneMappingExposure = 0.4; // Снижена экспозиция для более темного фона
+    
+    console.log('Рендерер настроен для улучшенного отображения PBR материалов');
     
     return renderer;
 }
@@ -98,13 +103,29 @@ function createLighting() {
         directionalLight.shadow.camera.right = d;
         directionalLight.shadow.camera.top = d;
         directionalLight.shadow.camera.bottom = -d;
+        
+        // Улучшаем качество теней для стеклянных объектов
+        directionalLight.shadow.bias = -0.0001;
+        directionalLight.shadow.normalBias = 0.02;
     }
     
     scene.add(directionalLight);
+    
+    // Добавляем дополнительное заполняющее освещение для PBR материалов
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-30, 20, -30);
+    scene.add(fillLight);
+    
+    // Добавляем точечный источник света для дополнительных отражений
+    const pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
+    pointLight.position.set(20, 30, 20);
+    scene.add(pointLight);
+    
+    console.log('Освещение настроено для оптимального отображения PBR материалов');
 }
 
 /**
- * Создание фона для сцены (Skybox с использованием citybox текстур)
+ * Создание HDRI окружения для правильного отображения металла и стекла
  */
 function createEXRBackground() {
     if (!renderer) {
@@ -112,30 +133,66 @@ function createEXRBackground() {
         return;
     }
     
-    // Загружаем кубическую текстуру (Skybox) вместо HDRI
+    // Загружаем HDRI текстуру для PBR материалов
+    const exrLoader = new EXRLoader();
+    const pmremGenerator = new PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    exrLoader.load('textures/hdri/ballawley_park_4k.exr', (texture) => {
+        // Настраиваем texture для правильного отображения
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.colorSpace = THREE.LinearSRGBColorSpace;
+        
+        // Генерируем environment map для отражений
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        
+        // Устанавливаем окружение для всей сцены
+        scene.environment = envMap;
+        
+        // Опционально устанавливаем фон (можно отключить, если нужен только environment для отражений)
+        scene.background = envMap;
+        
+        // Освобождаем ресурсы
+        texture.dispose();
+        pmremGenerator.dispose();
+        
+        console.log('HDRI environment map загружен для корректного отображения PBR материалов');
+        
+        // Обновляем материалы всех уже размещенных объектов
+        setTimeout(() => {
+            import('../modules/objectManager.js').then(({ updateMaterialsEnvironmentMap }) => {
+                updateMaterialsEnvironmentMap();
+            }).catch(err => console.warn('Не удалось обновить материалы:', err));
+        }, 100); // Небольшая задержка для завершения инициализации
+        
+    }, undefined, (error) => {
+        console.error('Ошибка загрузки HDRI:', error);
+        // Fallback на citybox если HDRI не загрузился
+        createCityboxFallback();
+    });
+}
+
+/**
+ * Fallback функция для создания citybox окружения если HDRI не загрузился
+ */
+function createCityboxFallback() {
+    console.log('Используем citybox как fallback для environment map');
+    
     const loader = new THREE.CubeTextureLoader();
     loader.setPath('textures/citybox/');
     
     const textureCube = loader.load([
-        'citybox_px.jpg', // положительный X (право)
-        'citybox_nx.jpg', // отрицательный X (лево)
-        'citybox_py.jpg', // положительный Y (верх)
-        'citybox_ny.jpg', // отрицательный Y (низ)
-        'citybox_pz.jpg', // положительный Z (перед)
-        'citybox_nz.jpg'  // отрицательный Z (зад)
+        'citybox_px.jpg', 'citybox_nx.jpg',
+        'citybox_py.jpg', 'citybox_ny.jpg',
+        'citybox_pz.jpg', 'citybox_nz.jpg'
     ]);
     
-    // Устанавливаем фон и окружение для сцены
     scene.background = textureCube;
     
-    // Опционально сохраняем окружение для отражений
-    // Создаем PMREMGenerator для преобразования кубической текстуры
     const pmremGenerator = new PMREMGenerator(renderer);
     const envMap = pmremGenerator.fromCubemap(textureCube).texture;
     scene.environment = envMap;
     pmremGenerator.dispose();
-    
-    console.log('Skybox с использованием citybox текстур успешно загружен');
 }
 
 /**

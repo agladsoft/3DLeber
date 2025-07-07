@@ -171,6 +171,47 @@ function processLoadedModel(container, modelName, position) {
 }
 
 /**
+ * Обновляет environment map для всех материалов размещенных объектов
+ */
+export function updateMaterialsEnvironmentMap() {
+    if (!scene.environment) {
+        console.log('Environment map ещё не загружен, пропускаем обновление материалов');
+        return;
+    }
+    
+    console.log('Обновляем environment map для всех размещенных объектов');
+    
+    placedObjects.forEach(container => {
+        container.traverse((child) => {
+            if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                
+                materials.forEach(material => {
+                    // Устанавливаем environment map из сцены для отражений
+                    material.envMap = scene.environment;
+                    material.envMapIntensity = 1.0;
+                    
+                    // Для стеклянных материалов (прозрачных)
+                    if (material.transparent && material.opacity < 1.0) {
+                        material.refractionRatio = 0.98;
+                        material.envMapIntensity = 1.5;
+                    }
+                    
+                    // Для металлических материалов
+                    if (material.metalness > 0.5) {
+                        material.envMapIntensity = 2.0;
+                    }
+                    
+                    material.needsUpdate = true;
+                });
+            }
+        });
+    });
+    
+    console.log(`Environment map обновлен для ${placedObjects.length} объектов`);
+}
+
+/**
  * Функция для очистки кэша моделей
  */
 export function clearModelCache() {
@@ -345,9 +386,34 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                     child.castShadow = true;
                                     child.receiveShadow = true;
                                     
-                                    // Если у материала нет прозрачности, устанавливаем прозрачность в 1
-                                    if (child.material && child.material.transparent) {
-                                        child.material.opacity = 1.0;
+                                    // Настройка материалов для правильного отображения металла и стекла
+                                    if (child.material) {
+                                        // Если это массив материалов
+                                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                        
+                                        materials.forEach(material => {
+                                            // Устанавливаем environment map из сцены для отражений
+                                            if (scene.environment) {
+                                                material.envMap = scene.environment;
+                                                material.envMapIntensity = 1.0;
+                                            }
+                                            
+                                            // Для стеклянных материалов (прозрачных)
+                                            if (material.transparent && material.opacity < 1.0) {
+                                                // Не изменяем opacity для стекла - оставляем как в модели
+                                                material.refractionRatio = 0.98; // Индекс преломления для стекла
+                                                material.envMapIntensity = 1.5; // Усиливаем отражения для стекла
+                                            }
+                                            
+                                            // Для металлических материалов
+                                            if (material.metalness > 0.5) {
+                                                material.envMapIntensity = 2.0; // Усиливаем отражения для металла
+                                                // Не изменяем roughness - оставляем как в модели
+                                            }
+                                            
+                                            // Обновляем материал
+                                            material.needsUpdate = true;
+                                        });
                                     }
 
                                     // Если это зона безопасности, меняем цвет на белый
