@@ -42,7 +42,7 @@ export function initializeRenderer() {
     // Современные настройки для улучшения качества отображения PBR материалов
     renderer.outputColorSpace = THREE.SRGBColorSpace; // Новый API вместо outputEncoding
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // Улучшенный tone mapping
-    renderer.toneMappingExposure = 0.4; // Снижена экспозиция для более темного фона
+    renderer.toneMappingExposure = 0.3; // Снижена экспозиция для более темного фона
     
     console.log('Рендерер настроен для улучшенного отображения PBR материалов');
     
@@ -138,7 +138,7 @@ function createEXRBackground() {
     const pmremGenerator = new PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
     
-    exrLoader.load('textures/hdri/ballawley_park_4k.exr', (texture) => {
+    exrLoader.load('textures/hdri/buikslotermeerplein_4k.exr', (texture) => {
         // Настраиваем texture для правильного отображения
         texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.colorSpace = THREE.LinearSRGBColorSpace;
