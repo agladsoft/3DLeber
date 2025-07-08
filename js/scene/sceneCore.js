@@ -133,6 +133,9 @@ function createEXRBackground() {
         return;
     }
     
+    // Показываем сообщение о загрузке HDRI
+    console.log('🌅 Начинаем загрузку HDRI environment map...');
+    
     // Загружаем HDRI текстуру для PBR материалов
     const exrLoader = new EXRLoader();
     const pmremGenerator = new PMREMGenerator(renderer);
@@ -156,14 +159,25 @@ function createEXRBackground() {
         texture.dispose();
         pmremGenerator.dispose();
         
-        console.log('HDRI environment map загружен для корректного отображения PBR материалов');
+        console.log('✅ HDRI environment map успешно загружен для корректного отображения PBR материалов');
         
         // Обновляем материалы всех уже размещенных объектов
         setTimeout(() => {
             import('../modules/objectManager.js').then(({ updateMaterialsEnvironmentMap }) => {
                 updateMaterialsEnvironmentMap();
             }).catch(err => console.warn('Не удалось обновить материалы:', err));
-        }, 100); // Небольшая задержка для завершения инициализации
+        }, 100);
+        
+        // Скрываем loadingScreen только после полной загрузки HDRI
+        setTimeout(async () => {
+            try {
+                const { hideLoadingScreenSmooth } = await import('../utils/loadingScreen.js');
+                console.log('🌅 HDRI environment map полностью готов, скрываем loadingScreen');
+                await hideLoadingScreenSmooth();
+            } catch (err) {
+                console.warn('Не удалось скрыть loadingScreen:', err);
+            }
+        }, 200); // Небольшая задержка для завершения всех операций
         
     }, undefined, (error) => {
         console.error('Ошибка загрузки HDRI:', error);
@@ -176,7 +190,7 @@ function createEXRBackground() {
  * Fallback функция для создания citybox окружения если HDRI не загрузился
  */
 function createCityboxFallback() {
-    console.log('Используем citybox как fallback для environment map');
+    console.log('🔄 Используем citybox как fallback для environment map');
     
     const loader = new THREE.CubeTextureLoader();
     loader.setPath('textures/citybox/');
@@ -185,7 +199,22 @@ function createCityboxFallback() {
         'citybox_px.jpg', 'citybox_nx.jpg',
         'citybox_py.jpg', 'citybox_ny.jpg',
         'citybox_pz.jpg', 'citybox_nz.jpg'
-    ]);
+    ], 
+    // onLoad callback
+    () => {
+        console.log('✅ Citybox environment map загружен как fallback');
+        
+        // Скрываем loadingScreen после загрузки fallback
+        setTimeout(async () => {
+            try {
+                const { hideLoadingScreenSmooth } = await import('../utils/loadingScreen.js');
+                console.log('🌅 Citybox environment map готов, скрываем loadingScreen');
+                await hideLoadingScreenSmooth();
+            } catch (err) {
+                console.warn('Не удалось скрыть loadingScreen:', err);
+            }
+        }, 200);
+    });
     
     scene.background = textureCube;
     

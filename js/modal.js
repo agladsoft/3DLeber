@@ -18,34 +18,13 @@ let sidebarInitialized = false;
 // Флаг для предотвращения множественных вызовов showPlatformSelectModal
 let showPlatformSelectModalInProgress = false;
 
-/**
- * Показывает loadingScreen
- */
-function showLoadingScreen() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    if (loadingScreen) {
-        console.log('Showing loadingScreen');
-        loadingScreen.classList.remove('hidden', 'fade-out');
-    }
-}
-
-/**
- * Плавно скрывает loadingScreen
- */
-function hideLoadingScreenSmooth() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    if (loadingScreen && !loadingScreen.classList.contains('fade-out')) {
-        console.log('Starting smooth hide of loadingScreen');
-        // Начинаем плавное исчезновение
-        loadingScreen.classList.add('fade-out');
-        
-        // Полностью скрываем после завершения анимации
-        setTimeout(() => {
-            loadingScreen.classList.add('hidden');
-            console.log('LoadingScreen fully hidden');
-        }, 800); // Время анимации из CSS (0.8s)
-    }
-}
+// Импортируем централизованные функции управления loading screen
+import { 
+    showLoadingScreen, 
+    hideLoadingScreenSmooth, 
+    hideLoadingScreenInstant,
+    setLoadingText 
+} from './utils/loadingScreen.js';
 
 /**
  * Обеспечивает правильное отображение приложения после показа appModal
@@ -94,22 +73,15 @@ function ensureAppVisibility() {
         
         // Убеждаемся, что рендер loop запущен
         if (!window.app) {
-            // Приложение еще не инициализировано, скрываем loadingScreen через короткое время
-            setTimeout(() => {
-                hideLoadingScreenSmooth();
-            }, 1000);
+            // Приложение еще не инициализировано, ждем загрузки HDRI
+            console.log('App not initialized yet, waiting for HDRI to load');
         } else if (!window.app.renderLoopRunning) {
             console.log('Starting render loop after showing app');
             // Импортируем и запускаем рендер loop из appCore
             import('./core/appCore.js').then(appCore => {
                 if (appCore.startRenderLoop) {
                     appCore.startRenderLoop();
-                    console.log('Render loop started successfully');
-                    
-                    // Скрываем loadingScreen после запуска рендер loop
-                    setTimeout(() => {
-                        hideLoadingScreenSmooth();
-                    }, 300);
+                    console.log('Render loop started successfully - waiting for HDRI to load');
                 } else {
                     console.error('startRenderLoop function not found in appCore');
                 }
@@ -118,19 +90,12 @@ function ensureAppVisibility() {
                 // Попробуем запустить рендер loop напрямую, если он уже есть в window.app
                 if (window.app && typeof window.app.startRenderLoop === 'function') {
                     window.app.startRenderLoop();
-                    console.log('Render loop started from window.app fallback');
-                    
-                    // Скрываем loadingScreen после запуска рендер loop
-                    setTimeout(() => {
-                        hideLoadingScreenSmooth();
-                    }, 300);
+                    console.log('Render loop started from window.app fallback - waiting for HDRI to load');
                 }
             });
         } else {
-            // Рендер loop уже запущен, скрываем loadingScreen
-            setTimeout(() => {
-                hideLoadingScreenSmooth();
-            }, 100);
+            // Рендер loop уже запущен, но не скрываем loadingScreen - ждем загрузки HDRI
+            console.log('Render loop active, waiting for HDRI to load before hiding loadingScreen');
         }
         
     } catch (error) {
@@ -282,10 +247,12 @@ export async function showPlatformSelectModal() {
         // Если открыто основное приложение, скрываем его временно
         if (appModal && appModal.style.display === 'block') {
             // Сохраняем информацию о том, что нужно вернуться к приложению
+            console.log('🔄 Приложение уже открыто, устанавливаем returnToApp = true');
             window.returnToApp = true;
             // Скрываем основное приложение
             appModal.style.display = 'none';
         } else {
+            console.log('🆕 Новая сессия, устанавливаем returnToApp = false');
             window.returnToApp = false;
         }
         
@@ -447,12 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчик для кнопки "Запустить" в модальном окне выбора площадки
     if (startAppButton) {
         startAppButton.addEventListener('click', async () => {
-            // Объявляем переменную один раз в начале
-            const loadingScreen = document.getElementById('loadingScreen');
-            
             try {
                 // Показываем загрузочный экран
-                showLoadingScreen();
+                await showLoadingScreen();
                 
                 // Показываем индикатор загрузки на кнопке
                 startAppButton.innerHTML = 'Загрузка...';
@@ -533,7 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadingManager.updateProgress(70, 'Запуск приложения...');
                 
                 // Запускаем приложение
+                console.log('🔍 Отладка запуска приложения:');
+                console.log('window.returnToApp:', window.returnToApp);
+                console.log('window.initApp:', typeof window.initApp);
+                console.log('window.appInitialized:', window.appInitialized);
+                
                 if (window.returnToApp) {
+                    console.log('📁 Путь: Возвращение к существующему приложению');
                     try {
                         const playgroundModule = await import('./playground.js');
                         // Используем стандартную загрузку площадки
@@ -550,7 +520,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         await forceHideAllLoading();
                     }
                 } else {
+                    console.log('🚀 Путь: Инициализация нового приложения');
                     if (window.initApp && !window.appInitialized) {
+                        console.log('✅ Запускаем window.initApp() - инициализация Three.js и сцены');
                         window.appInitialized = true;
                         
                         // Обновляем прогресс - инициализация Three.js
@@ -566,7 +538,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             await loadingManager.finish();
                         }, 2000);
                     } else {
-                        console.log('App initialization skipped - already initialized or in progress');
+                        console.log('❌ App initialization skipped:', {
+                            'window.initApp exists': !!window.initApp,
+                            'window.appInitialized': window.appInitialized
+                        });
                         await loadingManager.finish();
                     }
                 }
@@ -586,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await forceHideAllLoading();
                 
                 // Скрываем загрузочный экран в случае ошибки
-                hideLoadingScreenSmooth();
+                await hideLoadingScreenSmooth();
                 
                 startAppButton.innerHTML = 'Запустить';
                 startAppButton.disabled = false;
@@ -601,12 +576,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const newSessionButton = document.getElementById('newSessionButton');
     if (newSessionButton) {
         newSessionButton.addEventListener('click', async () => {
-            // Объявляем переменную один раз в начале
-            const loadingScreen = document.getElementById('loadingScreen');
-            
             try {
                 // Показываем загрузочный экран
-                showLoadingScreen();
+                await showLoadingScreen();
                 
                 // Инициализируем стандартную загрузку новой сессии
                 const loadingManager = await standardNewSessionInit();
@@ -682,14 +654,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Platform selection modal not found');
                 }
                 
-                // Скрываем загрузочный экран после успешного показа модального окна
-                hideLoadingScreenSmooth();
+                // ИСПРАВЛЕНИЕ: Скрываем загрузочный экран после показа модального окна
+                console.log('🎯 ИСПРАВЛЕНИЕ: Модальное окно показано, скрываем loadingScreen чтобы пользователь мог видеть модальное окно');
+                await hideLoadingScreenSmooth();
+                
+                console.log('✅ Модальное окно выбора площадки готово к использованию');
+                console.log('window.initApp:', typeof window.initApp);
+                console.log('window.appInitialized:', window.appInitialized);
             } catch (error) {
                 console.error('Error clearing session:', error);
                 await forceHideAllLoading();
                 
                 // Скрываем загрузочный экран в случае ошибки
-                hideLoadingScreenSmooth();
+                await hideLoadingScreenSmooth();
                 
                 // Сбрасываем флаг в случае ошибки
                 showPlatformSelectModalInProgress = false;
@@ -701,12 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const continueSessionButton = document.getElementById('continueSessionButton');
     if (continueSessionButton) {
         continueSessionButton.addEventListener('click', async () => {
-            // Объявляем переменную один раз в начале
-            const loadingScreen = document.getElementById('loadingScreen');
-            
             try {
                 // Показываем загрузочный экран
-                showLoadingScreen();
+                await showLoadingScreen();
                 
                 // Инициализируем стандартное восстановление сессии
                 const loadingManager = await standardSessionRestore();
@@ -838,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await forceHideAllLoading();
                 
                 // Скрываем загрузочный экран в случае ошибки
-                hideLoadingScreenSmooth();
+                await hideLoadingScreenSmooth();
                 
                 // Сбрасываем флаг в случае ошибки
                 showPlatformSelectModalInProgress = false;
@@ -956,3 +930,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 100);
 });
+
+// Экспорт перенесен в централизованный модуль utils/loadingScreen.js

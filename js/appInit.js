@@ -10,27 +10,10 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+import { hideLoadingScreenSmooth } from './utils/loadingScreen.js';
 
 // Флаг для предотвращения повторной инициализации
 let appInitializationInProgress = false;
-
-/**
- * Плавно скрывает loadingScreen
- */
-function hideLoadingScreenSmooth() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    if (loadingScreen && !loadingScreen.classList.contains('fade-out')) {
-        console.log('Starting smooth hide of loadingScreen');
-        // Начинаем плавное исчезновение
-        loadingScreen.classList.add('fade-out');
-        
-        // Полностью скрываем после завершения анимации
-        setTimeout(() => {
-            loadingScreen.classList.add('hidden');
-            console.log('LoadingScreen fully hidden');
-        }, 800); // Время анимации из CSS (0.8s)
-    }
-}
 
 /**
  * Инициализирует все компоненты приложения
@@ -43,8 +26,6 @@ async function initializeApp() {
     
     appInitializationInProgress = true;
     console.log('Initializing application components...');
-    
-    const loadingScreen = document.getElementById('loadingScreen');
 
     // Инициализируем модальное окно помощи
     initHelpModal();
@@ -55,7 +36,7 @@ async function initializeApp() {
         
         if (!sessionId) {
             console.error('No sessionId found in URL - access denied');
-            hideLoadingScreenSmooth();
+            await hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
@@ -65,7 +46,7 @@ async function initializeApp() {
         
         if (!sessionResult.isValid) {
             console.error('Session validation failed or session expired');
-            hideLoadingScreenSmooth();
+            await hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
@@ -81,11 +62,11 @@ async function initializeApp() {
         modelsData.isNewSession = isNewSession;
         
         // Инициализируем приложение с данными
-        await initializeWithData(modelsData, loadingScreen);
+        await initializeWithData(modelsData);
         
     } catch (error) {
         console.error('Error initializing application:', error);
-        hideLoadingScreenSmooth();
+        await hideLoadingScreenSmooth();
         showTokenError();
     } finally {
         // Сбрасываем флаг инициализации
@@ -96,11 +77,10 @@ async function initializeApp() {
 /**
  * Инициализирует приложение с полученными данными
  * @param {object} modelsData - данные моделей и пользователя
- * @param {HTMLElement} loadingScreen - элемент загрузочного экрана
  */
-async function initializeWithData(modelsData, loadingScreen) {
+async function initializeWithData(modelsData) {
     // Скрываем загрузочный экран
-    hideLoadingScreenSmooth();
+    await hideLoadingScreenSmooth();
     
     // Скрываем кнопку запуска (если она есть)
     const launchContainer = document.getElementById('launchContainer');
