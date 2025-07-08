@@ -162,6 +162,72 @@ export function initDragAndDrop() {
     // Обработка события drop для загрузки модели
     canvas.addEventListener("drop", handleDrop);
     
+    // Добавляем обработчик drop на сайдбар для скрытия preloader
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.addEventListener('dragover', (event) => {
+            event.preventDefault(); // Разрешить drop
+        });
+        
+        sidebar.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const modelName = event.dataTransfer.getData("model");
+            if (modelName) {
+                // Немедленно скрыть preloader
+                import('../sidebar.js').then(({ hideModelPreloader }) => {
+                    hideModelPreloader(modelName);
+                    console.log(`Preloader скрыт для модели ${modelName} после drop на сайдбар`);
+                }).catch(error => {
+                    console.error('Ошибка при скрытии preloader после drop на сайдбар:', error);
+                });
+            }
+        });
+    }
+    
+    // Добавляем обработчик dragleave для canvas для скрытия preloader при выходе
+    canvas.addEventListener('dragleave', (event) => {
+        // Проверяем что мы действительно покинули область canvas
+        if (!canvas.contains(event.relatedTarget)) {
+            // Скрываем preloader с небольшой задержкой
+            setTimeout(() => {
+                // Получаем modelName из активного drag элемента
+                const draggedElement = document.querySelector('.model[draggable="true"]');
+                if (draggedElement) {
+                    const modelName = draggedElement.getAttribute('data-model');
+                    if (modelName) {
+                        import('../sidebar.js').then(({ hideModelPreloader }) => {
+                            hideModelPreloader(modelName);
+                            console.log(`Preloader скрыт для модели ${modelName} после dragleave с canvas`);
+                        }).catch(error => {
+                            console.error('Ошибка при скрытии preloader после dragleave:', error);
+                        });
+                    }
+                }
+            }, 100);
+        }
+    });
+    
+    // Добавляем глобальный обработчик dragend для дополнительной надежности
+    document.addEventListener('dragend', (event) => {
+        // Если это перетаскивание модели
+        if (event.target.closest('.model')) {
+            const modelElement = event.target.closest('.model');
+            const modelName = modelElement.getAttribute('data-model');
+            
+            if (modelName && !modelElement.dataset.dragProcessed) {
+                // Глобальная очистка preloader с минимальной задержкой
+                setTimeout(() => {
+                    import('../sidebar.js').then(({ hideModelPreloader }) => {
+                        hideModelPreloader(modelName);
+                        console.log(`Preloader скрыт для модели ${modelName} через глобальный dragend`);
+                    }).catch(error => {
+                        console.error('Ошибка при скрытии preloader через глобальный dragend:', error);
+                    });
+                }, 25); // Минимальная задержка для финальной очистки
+            }
+        }
+    });
+    
     // Добавляю обновление крестиков при инициализации
     updateSidebarDeleteButtons();
     

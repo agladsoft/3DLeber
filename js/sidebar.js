@@ -320,7 +320,7 @@ function createModelElement(model, sessionData, modelsData) {
     
     // Добавляем обработчик dragend для скрытия preloader если drag отменен
     modelElement.addEventListener('dragend', function(event) {
-        // Скрываем preloader через небольшую задержку, чтобы дать время на drop
+        // Уменьшаем задержку для более быстрой реакции
         setTimeout(() => {
             // Всегда скрываем preloader в dragend, если drag не был успешно обработан
             if (!event.currentTarget.dataset.dragProcessed) {
@@ -330,7 +330,7 @@ function createModelElement(model, sessionData, modelsData) {
             
             // Сбрасываем флаг
             delete event.currentTarget.dataset.dragProcessed;
-        }, 100);
+        }, 50); // Уменьшено с 100ms до 50ms для быстрой реакции
     });
     
     return modelElement;
