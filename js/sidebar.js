@@ -158,6 +158,9 @@ async function createNewSidebar() {
         sidebar.appendChild(categoriesList);
         sidebar.appendChild(verticalTitle);
         
+        // Добавляем обработчики drop на сайдбар для скрытия preloader
+        initSidebarDropHandlers();
+        
         // Добавляем обработчик для кнопки возврата (теперь это кнопка схлопывания)
         const backButton = sidebarHeader.querySelector('.back-button');
         backButton.addEventListener('click', function() {            
@@ -322,20 +325,30 @@ function createModelElement(model, sessionData, modelsData) {
     modelElement.addEventListener('dragend', function(event) {
         // Скрываем preloader через небольшую задержку, чтобы дать время на drop
         setTimeout(() => {
-            // Проверяем, не был ли уже обработан drop
-            if (event.currentTarget && event.currentTarget.dataset && !event.currentTarget.dataset.dragProcessed) {
-                console.log('dragend: calling hideModelPreloader for', model.name);
+            const element = event.currentTarget;
+            if (!element || !element.dataset) {
+                console.warn('dragend: element or dataset not available for', model.name);
+                // В любом случае скрываем preloader если элемент недоступен
                 hideModelPreloader(model.name);
-            } else if (event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.dragProcessed) {
-                console.log('dragend: skip hiding preloader, drag was processed for', model.name);
-            } else {
-                console.warn('dragend: could not access dataset for', model.name);
+                return;
             }
             
-            // Сбрасываем флаг только если элемент и dataset доступны
-            if (event.currentTarget && event.currentTarget.dataset) {
-                delete event.currentTarget.dataset.dragProcessed;
+            const dragProcessed = element.dataset.dragProcessed;
+            
+            if (!dragProcessed) {
+                // Drop не был обработан ни на canvas, ни на sidebar - скрываем preloader
+                console.log('dragend: no drop processed, hiding preloader for', model.name);
+                hideModelPreloader(model.name);
+            } else if (dragProcessed === 'sidebar') {
+                // Drop был на sidebar - preloader уже скрыт в drop обработчике
+                console.log('dragend: model returned to sidebar, preloader already hidden for', model.name);
+            } else if (dragProcessed === 'true') {
+                // Drop был на canvas - preloader скрывается в objectManager
+                console.log('dragend: drop was processed on canvas for', model.name);
             }
+            
+            // Сбрасываем флаг
+            delete element.dataset.dragProcessed;
         }, 100);
     });
     
@@ -733,6 +746,37 @@ export function hideModelPreloader(modelName) {
         
         console.log(`Total preloaders found and hidden: ${preloadersFound} for:`, modelName);
     }
+}
+
+/**
+ * Инициализирует обработчики drop на сайдбар для скрытия preloader
+ */
+function initSidebarDropHandlers() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
+    // Разрешаем drop на сайдбар
+    sidebar.addEventListener('dragover', function(event) {
+        event.preventDefault();
+    });
+    
+    // Обрабатываем drop на сайдбар
+    sidebar.addEventListener('drop', function(event) {
+        event.preventDefault();
+        
+        const modelName = event.dataTransfer.getData("model");
+        if (modelName) {
+            console.log('Model dropped back to sidebar:', modelName);
+            // Скрываем preloader так как модель вернулась в сайдбар
+            hideModelPreloader(modelName);
+            
+            // Устанавливаем флаг что drop был обработан (но не на canvas)
+            const modelElement = document.querySelector(`[data-model="${modelName}"]`);
+            if (modelElement && modelElement.dataset) {
+                modelElement.dataset.dragProcessed = 'sidebar';
+            }
+        }
+    });
 }
 
 // Экспортируем функции для использования в других модулях
