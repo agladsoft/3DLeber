@@ -15,6 +15,19 @@ import { initDimensionUpdates } from '../modules/dimensionDisplay/index.js';
 function ensureLoadingOverlayHidden(timeout = 5000) {    
     // Устанавливаем таймер для принудительного скрытия индикатора загрузки
     setTimeout(() => {
+        // Проверяем, что не показывается модальное окно
+        const platformSelectModal = document.getElementById('platformSelectModal');
+        const sessionModal = document.getElementById('sessionModal');
+        const appModal = document.getElementById('appModal');
+        
+        // Если показывается модальное окно выбора площадки или сессии, не скрываем loading overlay
+        if ((platformSelectModal && platformSelectModal.style.display === 'block') ||
+            (sessionModal && sessionModal.style.display === 'block')) {
+            console.log('Modal window is open, keeping loading overlay as is');
+            return;
+        }
+        
+        // Если показывается приложение, скрываем loading overlay
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
             console.log('Принудительное скрытие индикатора загрузки по таймауту');
@@ -54,7 +67,9 @@ export async function initializeApp() {
         window.app = {
             ...sceneComponents,
             // Добавляем дополнительные экспортируемые переменные из scene.js
-            isTopViewActive: sceneComponents.isTopViewActive
+            isTopViewActive: sceneComponents.isTopViewActive,
+            // Флаг для отслеживания состояния рендер loop
+            renderLoopRunning: false
         };
         
         // Получаем тип площадки из глобальных переменных, установленных в модальном окне
@@ -148,6 +163,7 @@ export async function initializeApp() {
         
         // Запускаем цикл рендеринга Three.js
         startRenderLoop();
+        
     } catch (error) {
         console.error('Критическая ошибка при инициализации приложения:', error);
         
@@ -167,6 +183,11 @@ export async function initializeApp() {
  */
 export function startRenderLoop() {
     console.log("Запуск цикла рендеринга");
+    
+    // Устанавливаем флаг что рендер loop запущен
+    if (window.app) {
+        window.app.renderLoopRunning = true;
+    }
     
     // Счетчик кадров для дебага
     let frameCount = 0;

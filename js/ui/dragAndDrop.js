@@ -380,22 +380,57 @@ async function handleDrop(event) {
         // Загружаем и размещаем модель
         console.log("Calling loadAndPlaceModel with:", modelName, position);
         
-        // Загружаем модель (UI уже обновлен мгновенно в objectManager)
+        // Отмечаем, что drop был обработан для предотвращения скрытия preloader в dragend
+        if (modelElement && modelElement.dataset) {
+            modelElement.dataset.dragProcessed = 'true';
+            console.log("Set dragProcessed flag for:", modelName);
+        } else {
+            console.warn("Could not set dragProcessed flag - modelElement not found for:", modelName);
+        }
+        
+        // Загружаем модель (preloader скрывается автоматически в processLoadedModel)
         try {
             console.log("Starting model loading for:", modelName);
             await loadAndPlaceModel(modelName, position);
-            console.log("Model loaded successfully with optimistic UI updates");
+            console.log("Model loaded successfully for:", modelName);
         } catch (loadError) {
             console.error("Failed to load model:", loadError);
             console.error("Stack trace:", loadError.stack);
-            // UI автоматически откатится в objectManager при ошибке
+            
+            // Скрываем preloader при ошибке загрузки
+            try {
+                console.log("Hiding preloader due to load error for:", modelName);
+                const { hideModelPreloader } = await import('../sidebar.js');
+                hideModelPreloader(modelName);
+                console.log("Preloader hidden after error for:", modelName);
+            } catch (importError) {
+                console.error("Failed to import or call hideModelPreloader after error:", importError);
+            }
         }
         
     } catch (error) {
         console.error("Error in handleDrop:", error);
+        // При общих ошибках принудительно скрываем preloader
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader forced hidden due to general error for:", modelName);
+        } catch (importError) {
+            console.error('Could not import hideModelPreloader for general error:', importError);
+        }
     } finally {
-        // Сбрасываем флаг обработки для конкретной модели
+        // ОБЯЗАТЕЛЬНО сбрасываем флаг обработки для конкретной модели
         processingModels.delete(modelName);
+        console.log("Processing flag cleared for model:", modelName);
+        
+        // ОБЯЗАТЕЛЬНО скрываем preloader в любом случае
+        try {
+            const { hideModelPreloader } = await import('../sidebar.js');
+            hideModelPreloader(modelName);
+            console.log("Preloader ensured hidden in finally block for:", modelName);
+        } catch (importError) {
+            console.error('Could not ensure preloader hiding in finally:', importError);
+        }
     }
 }
 

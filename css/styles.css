@@ -5,6 +5,96 @@
     box-sizing: border-box;
 }
 
+html, body { 
+    width: 100%; 
+    height: 100%; 
+    margin: 0; 
+    overflow: hidden; 
+}
+
+canvas { 
+    width: 100%; 
+    height: 100%; 
+    display: block; 
+}
+
+
+
+/* Загрузочный экран */
+#loadingScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Inter Tight', sans-serif;
+    opacity: 1;
+    transition: opacity 0.8s ease-out;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#loadingScreen.fade-out {
+    opacity: 0;
+}
+
+#loadingScreen.hidden {
+    display: none !important;
+}
+
+/* Обновленные стили для loading-spinner-svg */
+.loading-spinner-svg {
+    width: 200px;
+    height: 80px;
+    background: #FFFFFF;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-spinner-svg svg {
+    width: 140px;
+    height: 55px;
+    cursor: pointer;
+}
+
+.loading-spinner-svg .bounce-odd {
+    animation: logobounce-odd 2s ease-in-out infinite;
+}
+
+.loading-spinner-svg .bounce-even {
+    animation: logobounce-even 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes logobounce-odd {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-4px); }
+    75% { transform: translateY(2px); }
+}
+
+@keyframes logobounce-even {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(2px); }
+    75% { transform: translateY(-4px); }
+}
+
 /* Логотип в правом нижнем углу */
 .app-logo {
     position: fixed;
@@ -282,14 +372,16 @@ body, html {
 .input-suffix {
     position: absolute;
     top: 50%;
+    left: 35px; /* Начальная позиция, будет пересчитываться динамически */
     transform: translateY(-50%);
     font-family: 'Inter Tight', sans-serif;
     font-size: 18px;
     color: rgba(16, 15, 15, 0.6);
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    opacity: 0; /* Скрыт по умолчанию */
+    transition: opacity 0.15s ease-out; /* Только opacity, без left */
     z-index: 1;
+    white-space: nowrap; /* Предотвращаем перенос текста */
 }
 
 .input-suffix.visible {
@@ -1130,44 +1222,7 @@ body, html {
     color: #100F0F;
 }
 
-/* Индикатор загрузки */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(16, 15, 15, 0.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 4000;
-}
 
-.loading-overlay.hidden {
-    display: none;
-}
-
-.loading-spinner {
-    width: 60px;
-    height: 60px;
-    border: 5px solid #FFFFFF;
-    border-top-color: #F05323;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loading-text {
-    margin-top: 20px;
-    font-family: 'Inter Tight', sans-serif;
-    font-size: 18px;
-    color: #FFFFFF;
-}
 
 /* Статус площадки */
 #playgroundStatus {
@@ -2750,7 +2805,7 @@ color: #333 !important;
     color: #666;
 }
 
-.missing-models-loading .loading-spinner {
+.missing-models-loading {
     width: 32px;
     height: 32px;
     border: 3px solid #f3f3f3;
@@ -3011,4 +3066,47 @@ color: #333 !important;
 /* Скрытие кнопки проверки отсутствующих моделей */
 #checkMissingModelsButton {
     display: none !important;
+}
+
+/* Preloader для моделей в сайдбаре */
+.model-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(245, 245, 245, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.model-preloader.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.model-preloader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(240, 83, 35, 0.2);
+    border-top-color: #F05323;
+    border-radius: 50%;
+    animation: modelSpin 1s linear infinite;
+}
+
+@keyframes modelSpin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+/* Обеспечиваем относительное позиционирование для модели */
+.model {
+    position: relative;
 }

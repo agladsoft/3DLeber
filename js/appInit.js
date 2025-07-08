@@ -10,16 +10,24 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+import { hideLoadingScreenSmooth } from './utils/loadingScreen.js';
+
+// Флаг для предотвращения повторной инициализации
+let appInitializationInProgress = false;
 
 /**
  * Инициализирует все компоненты приложения
  */
 async function initializeApp() {
-    console.log('Initializing application components...');
+    if (appInitializationInProgress) {
+        console.log('App initialization already in progress, skipping');
+        return;
+    }
     
-    const loadingScreen = document.getElementById('loadingScreen');
+    appInitializationInProgress = true;
+    console.log('Initializing application components...');
 
-    // Инициализируем модальное окно помощиAdd commentMore actions
+    // Инициализируем модальное окно помощи
     initHelpModal();
     
     try {
@@ -28,41 +36,51 @@ async function initializeApp() {
         
         if (!sessionId) {
             console.error('No sessionId found in URL - access denied');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
+            await hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
-                
+        
         // Получаем данные сессии
         const sessionResult = await getSessionData(sessionId);
         
         if (!sessionResult.isValid) {
             console.error('Session validation failed or session expired');
-            if (loadingScreen) loadingScreen.classList.add('hidden');
+            await hideLoadingScreenSmooth();
             showTokenError();
             return;
         }
+        
+        // Определяем тип сессии (новая или продолжение)
+        const isNewSession = !sessionResult.userData.sessionData || 
+                           Object.keys(sessionResult.userData.sessionData).length === 0;
                 
         // Извлекаем данные моделей из сессии
         const modelsData = extractModelsDataFromSession(sessionResult.userData);        
+        
+        // Передаем информацию о типе сессии в данные
+        modelsData.isNewSession = isNewSession;
+        
         // Инициализируем приложение с данными
-        await initializeWithData(modelsData, loadingScreen);
+        await initializeWithData(modelsData);
         
     } catch (error) {
         console.error('Error initializing application:', error);
-        if (loadingScreen) loadingScreen.classList.add('hidden');
+        await hideLoadingScreenSmooth();
         showTokenError();
+    } finally {
+        // Сбрасываем флаг инициализации
+        appInitializationInProgress = false;
     }
 }
 
 /**
  * Инициализирует приложение с полученными данными
  * @param {object} modelsData - данные моделей и пользователя
- * @param {HTMLElement} loadingScreen - элемент загрузочного экрана
  */
-async function initializeWithData(modelsData, loadingScreen) {
+async function initializeWithData(modelsData) {
     // Скрываем загрузочный экран
-    if (loadingScreen) loadingScreen.classList.add('hidden');
+    await hideLoadingScreenSmooth();
     
     // Скрываем кнопку запуска (если она есть)
     const launchContainer = document.getElementById('launchContainer');

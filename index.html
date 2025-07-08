@@ -15,64 +15,30 @@
     <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <style>
-        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-        canvas { width: 100%; height: 100%; display: block; }
-        
-        /* Загрузочный экран */
-        #loadingScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #f5f5f5;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            font-family: 'Inter Tight', sans-serif;
-        }
-        
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #F05323;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .loading-subtext {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        #loadingScreen.hidden {
-            display: none !important;
-        }
-    </style>
+
 </head>
 <body>
     <!-- Загрузочный экран -->
     <div id="loadingScreen">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Загрузка приложения...</div>
-        <div class="loading-subtext">Проверка доступа</div>
+        <div class="loading-spinner-svg">
+            <svg class="logo-svg" fill="none" viewBox="0 0 140 55" xmlns="http://www.w3.org/2000/svg">
+                <path class="bounce-odd" d="M20 6H0V46H20V6Z" fill="#000000"></path>
+                <path class="bounce-even" d="M40 2H20V46H40V2Z" fill="#000000"></path>
+                <path d="M60 9H40V46H60V9Z" fill="#000000"></path>
+                <path class="bounce-odd" d="M80 6H60V46H80V6Z" fill="#000000"></path>
+                <path class="bounce-even" d="M100 2H80V46H100V2Z" fill="#000000"></path>
+                <path d="M120 9H100V46H120V9Z" fill="#000000"></path>
+                <path class="bounce-odd" d="M140 6H120V46H140V6Z" fill="#000000"></path>
+                <path d="M10.0557 39.5002V16.7403H16.0708V34.1353H27.3211V39.5002H10.0557Z" fill="#fcfcfc"></path>
+                <path d="M74.8305 26.6571C77.7349 26.7669 79.187 28.4687 79.187 31.7626V34.0715C79.187 35.9799 78.759 37.3614 77.9029 38.2161C77.0469 39.0708 75.6749 39.4988 73.7872 39.5002H57.4129V16.7403H71.5236C73.2357 16.7403 74.493 17.1093 75.2956 17.8474C76.0982 18.5855 76.4988 19.7015 76.4974 21.1956V22.6587C76.4974 24.6095 75.9452 25.8442 74.8408 26.3628L74.8305 26.6571ZM63.4177 21.6833V25.7475H68.9739C69.6008 25.7475 70.0289 25.6337 70.258 25.4059C70.4844 25.1775 70.5996 24.7515 70.5996 24.1218V23.5477C70.5996 22.9406 70.4555 22.3582 70.2395 22.1298C70.0807 21.9766 69.892 21.8578 69.6852 21.781C69.4784 21.7041 69.258 21.6709 69.0377 21.6833H63.4177ZM73.1719 31.5342C73.1719 30.9066 73.0567 30.4785 72.8303 30.2501C72.6039 30.0217 72.1739 29.9085 71.5462 29.9085H63.4177V34.1353H71.5524C72.1821 34.1353 72.7521 34.0057 72.9702 33.6476C73.2234 33.2361 73.176 32.6784 73.176 32.0507L73.1719 31.5342Z" fill="#fcfcfc"></path>
+                <path d="M103.154 34.1353V39.5002H85.0449V16.7403H102.829V21.6791H91.06V25.6776H99.3511V30.3983H91.06V34.1374L103.154 34.1353Z" fill="#fcfcfc"></path>
+                <path d="M129.853 38.3951L130.795 39.5002H123.623L123.16 38.9487L116.95 31.2091H115.616V39.5002H109.601V16.7403H124.591C126.476 16.7403 127.848 17.1683 128.706 18.0244C129.565 18.8805 129.994 20.2524 129.993 22.1401V26.1077C129.993 28.0146 129.564 29.3961 128.706 30.2522C127.849 31.1082 126.477 31.5363 124.591 31.5363H124.136V31.6021L129.853 38.3951ZM115.612 21.6833V27.0481H122.341C122.971 27.0481 123.4 26.9342 123.628 26.7065C123.854 26.4781 123.969 26.0521 123.969 25.4224V23.1793C123.969 22.5496 123.858 22.1689 123.63 21.9446C123.401 21.7203 123.012 21.6874 122.374 21.6874L115.612 21.6833Z" fill="#fcfcfc"></path>
+                <path d="M50.9586 34.1353V39.5002H32.8495V16.7403H50.6273V21.6791H38.8646V25.6776H47.1557V30.3983H38.8646V34.1374" fill="#fcfcfc"></path>
+            </svg>
+        </div>
     </div>
+
+
     
     <!-- Модальное окно выбора площадки -->
     <div id="platformSelectModal" class="modal">
@@ -82,11 +48,11 @@
             <div class="platform-settings">
                 <div class="control-group input-with-suffix">
                     <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="" placeholder="Ширина" class="modern-input">
-                    <span class="input-suffix">м</span>
+                    <span class="input-suffix" style="opacity: 0;">м</span>
                 </div>
                 <div class="control-group input-with-suffix">
                     <input type="number" id="modalPlaygroundLength" min="10" max="100" value="" placeholder="Длина" class="modern-input">
-                    <span class="input-suffix">м</span>
+                    <span class="input-suffix" style="opacity: 0;">м</span>
                 </div>
                 <div class="control-group">
                     <label>Цвет площадки:</label>
