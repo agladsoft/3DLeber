@@ -183,7 +183,6 @@ export async function showPlatformSelectModal() {
     
     try {
         const platformSelectModal = document.getElementById('platformSelectModal');
-        const sessionModal = document.getElementById('sessionModal');
         const appModal = document.getElementById('appModal');
         
         // Более надежная проверка видимости модальных окон
@@ -191,103 +190,303 @@ export async function showPlatformSelectModal() {
             (platformSelectModal.style.display === 'block' || 
              window.getComputedStyle(platformSelectModal).display === 'block');
         
-        const isSessionModalVisible = sessionModal && 
-            (sessionModal.style.display === 'block' || 
-             window.getComputedStyle(sessionModal).display === 'block');
-        
-        if (isPlatformModalVisible || isSessionModalVisible) {
+        if (isPlatformModalVisible) {
             console.log('Modal already visible, skipping showPlatformSelectModal');
             return;
         }
     
-    if (platformSelectModal) {
-        // Инициализируем sidebar только если он еще не инициализирован
-        const userId = sessionStorage.getItem('userId');
-        const models = JSON.parse(sessionStorage.getItem('models'));
-        
-        if (userId && models) {
-            try {
-                if (!sidebarInitialized) {
-                    console.log('Initializing sidebar for the first time...');
-                } else {
-                    console.log('Re-initializing sidebar to ensure special models are loaded...');
+        if (platformSelectModal) {
+            // Инициализируем sidebar только если он еще не инициализирован
+            const userId = sessionStorage.getItem('userId');
+            const models = JSON.parse(sessionStorage.getItem('models'));
+            
+            if (userId && models) {
+                try {
+                    if (!sidebarInitialized) {
+                        console.log('Initializing sidebar for the first time...');
+                    } else {
+                        console.log('Re-initializing sidebar to ensure special models are loaded...');
+                    }
+                    const { initSidebar } = await import('./sidebar.js');
+                    await initSidebar();
+                    sidebarInitialized = true;
+                } catch (error) {
+                    console.error('Error loading models in showPlatformSelectModal:', error);
                 }
-                const { initSidebar } = await import('./sidebar.js');
-                await initSidebar();
-                sidebarInitialized = true;
-            } catch (error) {
-                console.error('Error loading models in showPlatformSelectModal:', error);
             }
-        }
-        
-        // Проверяем наличие сессии и решаем что показать
-        if (userId) {
-            try {
-                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-                if (sessionResponse.ok) {
-                    const { session } = await sessionResponse.json();
-                    
-                    if (session) {
-                        // Если есть сессия, показываем модальное окно управления сессией
-                        if (sessionModal) {
-                            sessionModal.style.display = 'block';
-                            console.log('Session modal shown');
+            
+            // Автоматически принимаем решение о сессии вместо показа модального окна
+            if (userId) {
+                try {
+                    const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+                    if (sessionResponse.ok) {
+                        const { session } = await sessionResponse.json();
+                        
+                        if (session) {
+                            // Если есть сессия, автоматически восстанавливаем ее
+                            console.log('Existing session found, automatically restoring...');
+                            await autoRestoreSession(userId, session);
                             return;
                         }
                     }
+                } catch (error) {
+                    console.log('Error checking session, proceeding with new session creation:', error);
                 }
-            } catch (error) {
-                console.log('Error checking session, proceeding with platform selection:', error);
             }
-        }
-        
-        // Восстанавливаем значения из текущей площадки
-        updateModalValuesFromCurrent();
-        
-        // Если открыто основное приложение, скрываем его временно
-        if (appModal && appModal.style.display === 'block') {
-            // Сохраняем информацию о том, что нужно вернуться к приложению
-            console.log('🔄 Приложение уже открыто, устанавливаем returnToApp = true');
-            window.returnToApp = true;
-            // Скрываем основное приложение
-            appModal.style.display = 'none';
+            
+            // Если сессии нет, автоматически создаем новую
+            console.log('No session found, automatically creating new session...');
+            await autoCreateNewSession(userId, models);
+            
         } else {
-            console.log('🆕 Новая сессия, устанавливаем returnToApp = false');
-            window.returnToApp = false;
+            console.error('Не найдено модальное окно выбора площадки');
         }
         
-        // Сбрасываем значения в полях ввода для новых сессий
-        if (!window.returnToApp) {
-            const widthInput = document.getElementById('modalPlaygroundWidth');
-            const lengthInput = document.getElementById('modalPlaygroundLength');
-            if (widthInput) {
-                widthInput.value = '40';
-                // Уведомляем систему суффиксов об изменении значения
-                if (window.SuffixManager) {
-                    window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
-                }
-            }
-            if (lengthInput) {
-                lengthInput.value = '30';
-                // Уведомляем систему суффиксов об изменении значения
-                if (window.SuffixManager) {
-                    window.SuffixManager.notifyValueChange('modalPlaygroundLength');
-                }
-            }
-        }
-        
-        // Показываем модальное окно
-        platformSelectModal.style.display = 'block';
-        console.log('Platform select modal shown');
-        
-    } else {
-        console.error('Не найдено модальное окно выбора площадки');
-    }
-    
     } finally {
         // Сбрасываем флаг в любом случае
         showPlatformSelectModalInProgress = false;
     }
+}
+
+/**
+ * Автоматически создает новую сессию
+ */
+async function autoCreateNewSession(userId, models) {
+    try {
+        // Показываем загрузочный экран
+        await showLoadingScreen();
+        
+        // Инициализируем стандартную загрузку новой сессии
+        const loadingManager = await standardNewSessionInit();
+        
+        if (userId) {
+            // Обновляем прогресс - очистка сессии
+            await loadingManager.updateProgress(30, 'Очистка предыдущей сессии...');
+            
+            // Очищаем сессию в базе данных
+            const clearResponse = await fetch(`${API_BASE_URL}/session/${userId}`, {
+                method: 'DELETE'
+            });
+
+            if (!clearResponse.ok) {
+                console.warn('Failed to clear session, but continuing...');
+            }
+
+            // Обновляем прогресс - создание новой сессии
+            await loadingManager.updateProgress(50, 'Создание новой сессии...');
+
+            // Инициализируем новую сессию данными из JSON
+            if (models && Array.isArray(models)) {
+                await initializeNewSession(userId, models);
+            } else {
+                console.error('No models found in request');
+                throw new Error('No models found in request');
+            }
+        }
+        
+        // Обновляем прогресс - подготовка к выбору площадки
+        await loadingManager.updateProgress(70, 'Подготовка к выбору площадки...');
+        
+        // Завершаем загрузку перед показом модального окна
+        await loadingManager.finish(200);
+
+        // Показываем модальное окно выбора площадки
+        await showPlatformSelectModalForNewSession();
+        
+    } catch (error) {
+        console.error('Error in autoCreateNewSession:', error);
+        await forceHideAllLoading();
+        
+        // Скрываем загрузочный экран в случае ошибки
+        await hideLoadingScreenSmooth();
+        
+        // Сбрасываем флаг в случае ошибки
+        showPlatformSelectModalInProgress = false;
+    }
+}
+
+/**
+ * Автоматически восстанавливает существующую сессию
+ */
+async function autoRestoreSession(userId, session) {
+    try {
+        // Показываем загрузочный экран
+        await showLoadingScreen();
+        
+        // Инициализируем стандартное восстановление сессии
+        const loadingManager = await standardSessionRestore();
+        
+        // Обновляем прогресс - получение данных
+        await loadingManager.updateProgress(40, 'Получение данных сессии...');
+
+        // Обновляем прогресс - восстановление параметров
+        await loadingManager.updateProgress(50, 'Восстановление параметров площадки...');
+        
+        // Сбрасываем флаг для возможности повторного вызова showPlatformSelectModal
+        showPlatformSelectModalInProgress = false;
+        
+        // Sidebar уже инициализирован в showPlatformSelectModal, не нужно дублировать
+        console.log('Sidebar already initialized, skipping re-initialization for session restore');
+        
+        // Показываем приложение
+        const appModal = document.getElementById('appModal');
+        if (appModal) {
+            appModal.style.display = 'block';
+        }
+        
+        // Убеждаемся, что canvas правильно отображается
+        ensureAppVisibility();
+        
+        // Восстанавливаем параметры площадки из сессии
+        if (session.playground) {
+            window.selectedPlaygroundType = session.playground.type;
+            window.selectedPlaygroundWidth = session.playground.width;
+            window.selectedPlaygroundLength = session.playground.length;
+            window.selectedPlaygroundColor = session.playground.color;
+        } else {
+            // Если параметры не найдены, используем дефолтные значения
+            window.selectedPlaygroundType = 'basketball_court.glb';
+            window.selectedPlaygroundWidth = 40;
+            window.selectedPlaygroundLength = 30;
+            window.selectedPlaygroundColor = 'серый';
+        }
+        
+        // Обновляем прогресс - запуск приложения
+        await loadingManager.updateProgress(60, 'Запуск приложения...');
+        
+        // Запускаем приложение только если оно еще не запущено
+        if (window.returnToApp) {
+            try {
+                const playgroundModule = await import('./playground.js');
+                // Используем стандартную загрузку площадки
+                await standardPlaygroundLoading(
+                    playgroundModule.loadPlayground,
+                    window.selectedPlaygroundType,
+                    window.selectedPlaygroundWidth,
+                    window.selectedPlaygroundLength,
+                    window.selectedPlaygroundColor
+                );
+                console.log('Площадка успешно восстановлена');
+            } catch (error) {
+                console.error('Ошибка при загрузке площадки:', error);
+                await forceHideAllLoading();
+            }
+        } else if (!window.app || !window.app.scene || !window.appInitialized) {
+            // Приложение еще не запущено, запускаем инициализацию
+            console.log('App not initialized yet, starting initialization...');
+            if (window.initApp && !window.appInitialized) {
+                window.appInitialized = true;
+                
+                // Обновляем прогресс - инициализация Three.js
+                await loadingManager.updateProgress(70, 'Инициализация Three.js...');
+                
+                window.initApp();
+                setTimeout(() => {
+                    console.log("Запуск проверки сцены после открытия модального окна");
+                    startSceneChecks();
+                }, 3000);
+                
+                // Завершаем загрузку через стандартный механизм
+                setTimeout(async () => {
+                    await loadingManager.finish();
+                }, 2000);
+            } else {
+                console.log('App initialization skipped - already initialized or in progress');
+                await loadingManager.finish();
+            }
+        } else {
+            // Приложение уже запущено, просто восстанавливаем площадку
+            console.log('App already initialized, restoring playground...');
+            try {
+                const playgroundModule = await import('./playground.js');
+                // Используем стандартную загрузку площадки
+                await standardPlaygroundLoading(
+                    playgroundModule.loadPlayground,
+                    window.selectedPlaygroundType,
+                    window.selectedPlaygroundWidth,
+                    window.selectedPlaygroundLength,
+                    window.selectedPlaygroundColor
+                );
+                console.log('Площадка успешно восстановлена для существующего приложения');
+            } catch (error) {
+                console.error('Ошибка при загрузке площадки для существующего приложения:', error);
+                await forceHideAllLoading();
+            }
+        }
+        
+        // Проверяем отсутствующие модели после восстановления сессии (один раз)
+        setTimeout(() => {
+            checkMissingModelsAfterStart('autoRestoreSession');
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Error in autoRestoreSession:', error);
+        await forceHideAllLoading();
+        
+        // Скрываем загрузочный экран в случае ошибки
+        await hideLoadingScreenSmooth();
+        
+        // Сбрасываем флаг в случае ошибки
+        showPlatformSelectModalInProgress = false;
+        
+        // Если произошла ошибка, показываем модальное окно выбора площадки
+        await showPlatformSelectModalForNewSession();
+    }
+}
+
+/**
+ * Показывает модальное окно выбора площадки для новой сессии
+ */
+async function showPlatformSelectModalForNewSession() {
+    const platformSelectModal = document.getElementById('platformSelectModal');
+    const appModal = document.getElementById('appModal');
+    
+    // Восстанавливаем значения из текущей площадки
+    updateModalValuesFromCurrent();
+    
+    // Если открыто основное приложение, скрываем его временно
+    if (appModal && appModal.style.display === 'block') {
+        // Сохраняем информацию о том, что нужно вернуться к приложению
+        console.log('🔄 Приложение уже открыто, устанавливаем returnToApp = true');
+        window.returnToApp = true;
+        // Скрываем основное приложение
+        appModal.style.display = 'none';
+    } else {
+        console.log('🆕 Новая сессия, устанавливаем returnToApp = false');
+        window.returnToApp = false;
+    }
+    
+    // Сбрасываем значения в полях ввода для новых сессий
+    if (!window.returnToApp) {
+        const widthInput = document.getElementById('modalPlaygroundWidth');
+        const lengthInput = document.getElementById('modalPlaygroundLength');
+        if (widthInput) {
+            widthInput.value = '40';
+            // Уведомляем систему суффиксов об изменении значения
+            if (window.SuffixManager) {
+                window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
+            }
+        }
+        if (lengthInput) {
+            lengthInput.value = '30';
+            // Уведомляем систему суффиксов об изменении значения
+            if (window.SuffixManager) {
+                window.SuffixManager.notifyValueChange('modalPlaygroundLength');
+            }
+        }
+    }
+    
+    // Показываем модальное окно
+    if (platformSelectModal) {
+        platformSelectModal.style.display = 'block';
+        console.log('Platform select modal shown');
+    }
+    
+    // Скрываем загрузочный экран после показа модального окна
+    console.log('🎯 Модальное окно показано, скрываем loadingScreen чтобы пользователь мог видеть модальное окно');
+    await hideLoadingScreenSmooth();
+    
+    console.log('✅ Модальное окно выбора площадки готово к использованию');
 }
 
 // Функция для обновления значений в модальном окне из текущей площадки
@@ -568,260 +767,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Сбрасываем флаг в случае ошибки
                 showPlatformSelectModalInProgress = false;
-            }
-        });
-    }
-    
-    // Обработчик для кнопки "Начать новую сессию"
-    const newSessionButton = document.getElementById('newSessionButton');
-    if (newSessionButton) {
-        newSessionButton.addEventListener('click', async () => {
-            try {
-                // Показываем загрузочный экран
-                await showLoadingScreen();
-                
-                // Инициализируем стандартную загрузку новой сессии
-                const loadingManager = await standardNewSessionInit();
-                
-                // Получаем project_id из sessionStorage
-                const userId = sessionStorage.getItem('userId');
-                const models = JSON.parse(sessionStorage.getItem('models'))
-
-                if (userId) {
-                    // Обновляем прогресс - очистка сессии
-                    await loadingManager.updateProgress(30, 'Очистка предыдущей сессии...');
-                    
-                    // Очищаем сессию в базе данных
-                    const clearResponse = await fetch(`${API_BASE_URL}/session/${userId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (!clearResponse.ok) {
-                        throw new Error('Failed to clear session');
-                    }
-
-                    // Обновляем прогресс - создание новой сессии
-                    await loadingManager.updateProgress(50, 'Создание новой сессии...');
-
-                    // Инициализируем новую сессию данными из JSON
-                    if (models && Array.isArray(models)) {
-                        await initializeNewSession(userId, models);
-                    } else {
-                        console.error('No models found in request');
-                        throw new Error('No models found in request');
-                    }
-                }
-                
-                // Обновляем прогресс - подготовка к выбору площадки
-                await loadingManager.updateProgress(70, 'Подготовка к выбору площадки...');
-                
-                // Скрываем модальное окно управления сессией
-                const sessionModal = document.getElementById('sessionModal');
-                if (sessionModal) {
-                    sessionModal.style.display = 'none';
-                }
-                
-                // Сбрасываем флаг для возможности повторного вызова showPlatformSelectModal
-                showPlatformSelectModalInProgress = false;
-                
-                // Завершаем загрузку перед показом модального окна
-                await loadingManager.finish(200);
-
-                // Показываем модальное окно выбора площадки
-                const platformSelectModal = document.getElementById('platformSelectModal');
-                if (platformSelectModal) {
-                    // Сбрасываем значения в полях ввода
-                    const widthInput = document.getElementById('modalPlaygroundWidth');
-                    const lengthInput = document.getElementById('modalPlaygroundLength');
-                    if (widthInput) {
-                        widthInput.value = '40';
-                        // Уведомляем систему суффиксов об изменении значения
-                        if (window.SuffixManager) {
-                            window.SuffixManager.notifyValueChange('modalPlaygroundWidth');
-                        }
-                    }
-                    if (lengthInput) {
-                        lengthInput.value = '30';
-                        // Уведомляем систему суффиксов об изменении значения
-                        if (window.SuffixManager) {
-                            window.SuffixManager.notifyValueChange('modalPlaygroundLength');
-                        }
-                    }
-                    
-                    // Показываем модальное окно
-                    platformSelectModal.style.display = 'block';
-                } else {
-                    console.error('Platform selection modal not found');
-                }
-                
-                // ИСПРАВЛЕНИЕ: Скрываем загрузочный экран после показа модального окна
-                console.log('🎯 ИСПРАВЛЕНИЕ: Модальное окно показано, скрываем loadingScreen чтобы пользователь мог видеть модальное окно');
-                await hideLoadingScreenSmooth();
-                
-                console.log('✅ Модальное окно выбора площадки готово к использованию');
-                console.log('window.initApp:', typeof window.initApp);
-                console.log('window.appInitialized:', window.appInitialized);
-            } catch (error) {
-                console.error('Error clearing session:', error);
-                await forceHideAllLoading();
-                
-                // Скрываем загрузочный экран в случае ошибки
-                await hideLoadingScreenSmooth();
-                
-                // Сбрасываем флаг в случае ошибки
-                showPlatformSelectModalInProgress = false;
-            }
-        });
-    }
-    
-    // Обработчик для кнопки "Продолжить сессию"
-    const continueSessionButton = document.getElementById('continueSessionButton');
-    if (continueSessionButton) {
-        continueSessionButton.addEventListener('click', async () => {
-            try {
-                // Показываем загрузочный экран
-                await showLoadingScreen();
-                
-                // Инициализируем стандартное восстановление сессии
-                const loadingManager = await standardSessionRestore();
-                
-                // Получаем project_id из sessionStorage
-                const userId = sessionStorage.getItem('userId');
-
-                if (!userId) {
-                    throw new Error('No user ID found');
-                }
-
-                // Обновляем прогресс - получение данных
-                await loadingManager.updateProgress(40, 'Получение данных сессии...');
-
-                // Получаем данные сессии из БД
-                const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
-                if (!sessionResponse.ok) {
-                    throw new Error('Failed to get session');
-                }
-
-                const { session } = await sessionResponse.json();
-                if (!session) {
-                    throw new Error('No session found');
-                }
-
-                // Обновляем прогресс - восстановление параметров
-                await loadingManager.updateProgress(50, 'Восстановление параметров площадки...');
-
-                const sessionModal = document.getElementById('sessionModal');
-                if (sessionModal) {
-                    sessionModal.style.display = 'none';
-                }
-                
-                // Сбрасываем флаг для возможности повторного вызова showPlatformSelectModal
-                showPlatformSelectModalInProgress = false;
-                
-                // Sidebar уже инициализирован в showPlatformSelectModal, не нужно дублировать
-                console.log('Sidebar already initialized, skipping re-initialization for session restore');
-                
-                // Показываем приложение
-                appModal.style.display = 'block';
-                
-                // Убеждаемся, что canvas правильно отображается
-                ensureAppVisibility();
-                
-                // Восстанавливаем параметры площадки из сессии
-                if (session.playground) {
-                    window.selectedPlaygroundType = session.playground.type;
-                    window.selectedPlaygroundWidth = session.playground.width;
-                    window.selectedPlaygroundLength = session.playground.length;
-                    window.selectedPlaygroundColor = session.playground.color;
-                } else {
-                    // Если параметры не найдены, используем дефолтные значения
-                    window.selectedPlaygroundType = 'basketball_court.glb';
-                    window.selectedPlaygroundWidth = 40;
-                    window.selectedPlaygroundLength = 30;
-                    window.selectedPlaygroundColor = 'серый';
-                }
-                
-                // Обновляем прогресс - запуск приложения
-                await loadingManager.updateProgress(60, 'Запуск приложения...');
-                
-                // Запускаем приложение только если оно еще не запущено
-                if (window.returnToApp) {
-                    try {
-                        const playgroundModule = await import('./playground.js');
-                        // Используем стандартную загрузку площадки
-                        await standardPlaygroundLoading(
-                            playgroundModule.loadPlayground,
-                            window.selectedPlaygroundType,
-                            window.selectedPlaygroundWidth,
-                            window.selectedPlaygroundLength,
-                            window.selectedPlaygroundColor
-                        );
-                        console.log('Площадка успешно восстановлена');
-                    } catch (error) {
-                        console.error('Ошибка при загрузке площадки:', error);
-                        await forceHideAllLoading();
-                    }
-                } else if (!window.app || !window.app.scene || !window.appInitialized) {
-                    // Приложение еще не запущено, запускаем инициализацию
-                    console.log('App not initialized yet, starting initialization...');
-                    if (window.initApp && !window.appInitialized) {
-                        window.appInitialized = true;
-                        
-                        // Обновляем прогресс - инициализация Three.js
-                        await loadingManager.updateProgress(70, 'Инициализация Three.js...');
-                        
-                        window.initApp();
-                        setTimeout(() => {
-                            console.log("Запуск проверки сцены после открытия модального окна");
-                            startSceneChecks();
-                        }, 3000);
-                        
-                        // Завершаем загрузку через стандартный механизм
-                        setTimeout(async () => {
-                            await loadingManager.finish();
-                        }, 2000);
-                    } else {
-                        console.log('App initialization skipped - already initialized or in progress');
-                        await loadingManager.finish();
-                    }
-                } else {
-                    // Приложение уже запущено, просто восстанавливаем площадку
-                    console.log('App already initialized, restoring playground...');
-                    try {
-                        const playgroundModule = await import('./playground.js');
-                        // Используем стандартную загрузку площадки
-                        await standardPlaygroundLoading(
-                            playgroundModule.loadPlayground,
-                            window.selectedPlaygroundType,
-                            window.selectedPlaygroundWidth,
-                            window.selectedPlaygroundLength,
-                            window.selectedPlaygroundColor
-                        );
-                        console.log('Площадка успешно восстановлена для существующего приложения');
-                    } catch (error) {
-                        console.error('Ошибка при загрузке площадки для существующего приложения:', error);
-                        await forceHideAllLoading();
-                    }
-                }
-                
-                // Проверяем отсутствующие модели после восстановления сессии (один раз)
-                setTimeout(() => {
-                    checkMissingModelsAfterStart('continueSessionButton');
-                }, 3000);
-            } catch (error) {
-                console.error('Error continuing session:', error);
-                await forceHideAllLoading();
-                
-                // Скрываем загрузочный экран в случае ошибки
-                await hideLoadingScreenSmooth();
-                
-                // Сбрасываем флаг в случае ошибки
-                showPlatformSelectModalInProgress = false;
-                
-                // Если произошла ошибка, показываем модальное окно выбора площадки
-                const platformSelectModal = document.getElementById('platformSelectModal');
-                if (platformSelectModal) {
-                    platformSelectModal.style.display = 'block';
-                }
             }
         });
     }
