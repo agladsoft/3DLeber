@@ -679,7 +679,7 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
     try {
         console.log('1. Создание транспорта...');
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
             host: 'smtp.mail.ru',
             port: 465,
             secure: true, // true для порта 465, false для других портов
