@@ -694,6 +694,14 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         console.log('✅ SMTP подключение успешно');
 
         console.log('3. Отправка отчета об отсутствующих моделях...');
+        
+        // Собираем артикулы отсутствующих моделей
+        const missingArticles = jsonData.missingModels.map(model => model.article).filter(Boolean);
+        
+        // Собираем артикулы найденных моделей (все модели минус отсутствующие)
+        const allArticles = jsonData.reportInfo.allRequestedArticles || [];
+        const foundArticles = allArticles.filter(article => !missingArticles.includes(article));
+        
         const mailOptions = {
             from: 'grafana_test_ruscon@mail.ru',
             to: 'it@leber.ru',
@@ -710,6 +718,26 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
                     <li>Найдено: <strong style="color: green;">${stats?.found || 0}</strong></li>
                     <li>Отсутствует: <strong style="color: red;">${stats?.missing || 0}</strong></li>
                 </ul>
+                
+                ${foundArticles.length > 0 ? `
+                <h4>✅ Найденные модели (${foundArticles.length} шт.):</h4>
+                <div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; font-size: 12px; max-height: 200px; overflow-y: auto;">
+                    ${foundArticles.length <= 100 
+                        ? foundArticles.map(article => `<strong>${article}</strong>`).join(', ')
+                        : foundArticles.slice(0, 20).map(article => `<strong>${article}</strong>`).join(', ') + `<br><br><strong>... и еще ${foundArticles.length - 20} артикулов (см. JSON файл)</strong>`
+                    }
+                </div>
+                ` : ''}
+                
+                ${missingArticles.length > 0 ? `
+                <h4>❌ Отсутствующие модели:</h4>
+                <div style="background-color: #ffe8e8; padding: 10px; border-radius: 5px; font-size: 12px; max-height: 200px; overflow-y: auto;">
+                    ${missingArticles.length <= 100 
+                        ? missingArticles.map(article => `<strong>${article}</strong>`).join(', ')
+                        : missingArticles.slice(0, 20).map(article => `<strong>${article}</strong>`).join(', ') + `<br><br><strong>... и еще ${missingArticles.length - 20} артикулов (см. JSON файл)</strong>`
+                    }
+                </div>
+                ` : ''}
                 
                 <p>Подробная информация об отсутствующих моделях во вложенном JSON файле.</p>
                 
