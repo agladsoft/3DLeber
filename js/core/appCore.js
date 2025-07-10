@@ -7,6 +7,7 @@ import { loadPlayground } from '../playground.js';
 import { initUI } from '../ui.js';
 import { checkAllObjectsPositions } from '../objects.js';
 import { initDimensionUpdates } from '../modules/dimensionDisplay/index.js';
+import * as THREE from 'three';
 
 /**
  * Функция для безопасного скрытия индикатора загрузки с проверками
@@ -17,12 +18,10 @@ function ensureLoadingOverlayHidden(timeout = 5000) {
     setTimeout(() => {
         // Проверяем, что не показывается модальное окно
         const platformSelectModal = document.getElementById('platformSelectModal');
-        const sessionModal = document.getElementById('sessionModal');
         const appModal = document.getElementById('appModal');
         
-        // Если показывается модальное окно выбора площадки или сессии, не скрываем loading overlay
-        if ((platformSelectModal && platformSelectModal.style.display === 'block') ||
-            (sessionModal && sessionModal.style.display === 'block')) {
+        // Если показывается модальное окно выбора площадки, не скрываем loading overlay
+        if (platformSelectModal && platformSelectModal.style.display === 'block') {
             console.log('Modal window is open, keeping loading overlay as is');
             return;
         }
@@ -207,6 +206,9 @@ export function startRenderLoop() {
                     window.app.controls.update();
                 }
                 
+                // Обновляем позицию крестика удаления при движении камеры
+                updateDeleteButtonPositionInRenderLoop();
+                
                 // Код проверки сетки удален - вид сверху работает без сетки
                 
                 // Фиксируем элементы сцены в режиме вида сверху
@@ -304,4 +306,35 @@ export function updateRendererSize() {
             // Код проверки сетки удален - вид сверху работает без сетки
         }
     }
+}
+
+/**
+ * Обновляет позицию крестика удаления в цикле рендеринга
+ */
+function updateDeleteButtonPositionInRenderLoop() {
+    const deleteButton = document.getElementById('modelDeleteButton');
+    if (!deleteButton || !deleteButton._targetObject) return;
+    
+    const object = deleteButton._targetObject;
+    
+    // Проверяем, что объект еще существует в сцене
+    if (!object.parent) {
+        // Если объект был удален из сцены, удаляем крестик
+        deleteButton.remove();
+        return;
+    }
+    
+    // Получаем новую 2D позицию объекта
+    const vector = new THREE.Vector3();
+    object.updateMatrixWorld();
+    vector.setFromMatrixPosition(object.matrixWorld);
+    vector.project(window.app.camera);
+    
+    // Преобразуем в экранные координаты
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (1 - (vector.y * 0.5 + 0.5)) * window.innerHeight;
+    
+    // Обновляем позицию крестика со смещением
+    deleteButton.style.left = `${x + 20}px`;
+    deleteButton.style.top = `${y - 45}px`;
 }

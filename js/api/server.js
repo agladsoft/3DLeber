@@ -609,23 +609,29 @@ app.get('/api/missing-models/:userId', async (req, res) => {
 // Endpoint для отправки отчета об отсутствующих моделях по email
 app.post('/api/send-missing-models-report', async (req, res) => {
     try {
+        console.log('📧 Получен запрос на отправку отчета');
         const { userId, missingModels, stats, userEmail, projectInfo } = req.body;
+        console.log('Данные запроса:', { userId, missingModelsCount: missingModels?.length, stats, userEmail });
         
         if (!missingModels || !Array.isArray(missingModels)) {
+            console.log('❌ Ошибка: отсутствуют данные о моделях');
             return res.status(400).json({ error: 'Missing models data is required' });
         }
         
+        console.log('🔄 Создание JSON отчета...');
         const jsonData = createMissingModelsJson(missingModels, stats, userId, projectInfo, userEmail);
+        
+        console.log('📨 Отправка email...');
         const emailResult = await sendEmailWithJson(jsonData, userId, stats, userEmail);
         
+        console.log('✅ Email отправлен успешно:', emailResult);
         res.json({ 
             success: true, 
-            message: 'Отчет успешно отправлен администрации',
-            development: emailResult.development || false
+            message: 'Отчет успешно отправлен администрации'
         });
         
     } catch (error) {
-        console.error('Error sending missing models report:', error);
+        console.error('❌ Error sending missing models report:', error);
         res.status(500).json({ 
             error: 'Ошибка при отправке отчета',
             details: error.message
@@ -671,16 +677,9 @@ function createMissingModelsJson(missingModels, stats, userId, projectInfo, user
  * Отправляет email с JSON отчетом (используя рабочую конфигурацию из test-email-sending.js)
  */
 async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
-                         process.env.NODE_ENV !== 'production';
-    
-    if (isDevelopment) {
-        return { messageId: 'dev-mode-' + Date.now(), development: true };
-    }
-
     try {
         console.log('1. Создание транспорта...');
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
             host: 'smtp.mail.ru',
             port: 465,
             secure: true, // true для порта 465, false для других портов
@@ -697,7 +696,7 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         console.log('3. Отправка отчета об отсутствующих моделях...');
         const mailOptions = {
             from: 'grafana_test_ruscon@mail.ru',
-            to: 'uventus_work@mail.ru',
+            to: 'it@leber.ru',
             subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
             html: `
                 <h2>📊 Отчет об отсутствующих моделях</h2>
