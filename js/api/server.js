@@ -696,7 +696,7 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         console.log('3. Отправка отчета об отсутствующих моделях...');
         const mailOptions = {
             from: 'grafana_test_ruscon@mail.ru',
-            to: 'uventus_work@mail.ru',
+            to: 'it@leber.ru',
             subject: `Отчет об отсутствующих моделях - Проект ${userId}`,
             html: `
                 <h2>📊 Отчет об отсутствующих моделях</h2>
