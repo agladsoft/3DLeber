@@ -1,6 +1,6 @@
-/**Add commentMore actions
+/**
  * Модуль управления модальным окном помощи
- * Простая версия для локальных видео файлов
+ * Расширенная версия с навигацией по разделам и множественными видео
  */
 
 /**
@@ -10,9 +10,8 @@ export function initHelpModal() {
     const helpButton = document.getElementById('helpButton');
     const helpModal = document.getElementById('helpModal');
     const helpCloseButton = document.getElementById('helpCloseButton');
-    const helpVideo = document.getElementById('helpVideo');
 
-    if (!helpButton || !helpModal || !helpCloseButton || !helpVideo) {
+    if (!helpButton || !helpModal || !helpCloseButton) {
         console.error('Help modal elements not found');
         return;
     }
@@ -47,6 +46,50 @@ export function initHelpModal() {
         }
     });
 
+    // Инициализация навигации по разделам
+    initHelpNavigation();
+}
+
+/**
+ * Инициализация навигации по разделам помощи
+ */
+function initHelpNavigation() {
+    const navButtons = document.querySelectorAll('.help-nav-btn');
+    const sections = document.querySelectorAll('.help-section');
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const targetSection = this.getAttribute('data-section');
+            
+            // Останавливаем все видео перед переключением
+            pauseAllVideos();
+            
+            // Убираем активный класс со всех кнопок и разделов
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // Добавляем активный класс к текущей кнопке и разделу
+            this.classList.add('active');
+            const targetSectionElement = document.querySelector(`.help-section[data-section="${targetSection}"]`);
+            if (targetSectionElement) {
+                targetSectionElement.classList.add('active');
+            }
+        });
+    });
+}
+
+/**
+ * Останавливает все видео в модальном окне помощи
+ */
+function pauseAllVideos() {
+    const videos = document.querySelectorAll('#helpModal video');
+    videos.forEach(video => {
+        video.pause();
+        video.currentTime = 0;
+    });
 }
 
 /**
@@ -54,16 +97,29 @@ export function initHelpModal() {
  */
 export function showHelpModal() {
     const helpModal = document.getElementById('helpModal');
-    const helpVideo = document.getElementById('helpVideo');
     
     if (helpModal) {
         helpModal.style.display = 'block';
         
-        // Сбрасываем видео к началу при открытии
-        if (helpVideo) {
-            helpVideo.currentTime = 0;
-        }
+        // Сбрасываем все видео к началу при открытии
+        const videos = document.querySelectorAll('#helpModal video');
+        videos.forEach(video => {
+            video.currentTime = 0;
+        });
         
+        // Убеждаемся, что первый раздел активен
+        const firstNavButton = document.querySelector('.help-nav-btn[data-section="models"]');
+        const firstSection = document.querySelector('.help-section[data-section="models"]');
+        
+        if (firstNavButton && firstSection) {
+            // Убираем активные классы со всех элементов
+            document.querySelectorAll('.help-nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.help-section').forEach(section => section.classList.remove('active'));
+            
+            // Активируем первый раздел
+            firstNavButton.classList.add('active');
+            firstSection.classList.add('active');
+        }
     }
 }
 
@@ -72,15 +128,11 @@ export function showHelpModal() {
  */
 export function hideHelpModal() {
     const helpModal = document.getElementById('helpModal');
-    const helpVideo = document.getElementById('helpVideo');
     
     if (helpModal) {
         helpModal.style.display = 'none';
         
-        // Останавливаем видео при закрытии
-        if (helpVideo) {
-            helpVideo.pause();
-        }
-        
+        // Останавливаем все видео при закрытии
+        pauseAllVideos();
     }
 }
