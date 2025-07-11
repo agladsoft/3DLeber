@@ -10,6 +10,7 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+import { setupGlobalErrorHandlers } from './core/errorHandler.js';
 
 // Флаг для предотвращения повторной инициализации
 let appInitializationInProgress = false;
@@ -25,6 +26,9 @@ async function initializeApp() {
     
     appInitializationInProgress = true;
     console.log('Initializing application components...');
+
+    // Настраиваем глобальные обработчики ошибок
+    setupGlobalErrorHandlers();
 
     // Инициализируем модальное окно помощи
     initHelpModal();

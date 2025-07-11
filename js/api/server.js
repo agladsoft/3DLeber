@@ -9,6 +9,14 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
+import { 
+    logError, 
+    logWarning, 
+    logInfo, 
+    accessLogMiddleware, 
+    errorHandlerMiddleware, 
+    setupGlobalErrorHandlers 
+} from '../utils/logger.js';
 
 const { Pool } = pg;
 
@@ -30,6 +38,12 @@ const pool = new Pool({
 app.use(compression()); // Сжатие ответов
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для JSON
+
+// Добавляем middleware для логирования
+app.use(accessLogMiddleware);
+
+// Настраиваем глобальные обработчики ошибок
+setupGlobalErrorHandlers();
 
 // Кэш для сессий на уровне сервера
 const sessionCache = new Map();
@@ -88,12 +102,49 @@ app.get('/health', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Health check failed:', error);
+        logError(error, {
+            endpoint: '/health',
+            url: req.originalUrl,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(503).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
             error: error.message
         });
+    }
+});
+
+// Endpoint для логирования ошибок с клиентской части
+app.post('/api/log-error', (req, res) => {
+    try {
+        const { error, metadata = {} } = req.body;
+        
+        if (!error) {
+            return res.status(400).json({ error: 'Error data is required' });
+        }
+        
+        // Создаем объект ошибки для логирования
+        const errorObj = typeof error === 'string' ? new Error(error) : error;
+        
+        // Логируем ошибку с клиентской части
+        logError(errorObj, {
+            ...metadata,
+            source: 'client',
+            userAgent: req.get('User-Agent'),
+            ip: req.ip || req.connection.remoteAddress,
+            url: metadata.url || 'unknown',
+            timestamp: new Date().toISOString()
+        });
+        
+        res.json({ success: true, message: 'Error logged successfully' });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/log-error',
+            originalError: req.body
+        });
+        res.status(500).json({ error: 'Failed to log error' });
     }
 });
 
@@ -145,7 +196,11 @@ app.get('/api/models/special-categories', async (req, res) => {
         
         res.json({ models: specialModels });
     } catch (err) {
-        console.error('Error fetching special category models:', err);
+        logError(err, {
+            endpoint: '/api/models/special-categories',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error fetching special category models' });
     }
 });
@@ -184,7 +239,12 @@ app.post('/api/models/match', async (req, res) => {
 
         res.json({ models: matchedModels });
     } catch (err) {
-        console.error('Error matching models:', err);
+        logError(err, {
+            endpoint: '/api/models/match',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress,
+            modelsCount: req.body?.models?.length
+        });
         res.status(500).json({ error: 'Error matching models with database' });
     }
 });
@@ -241,20 +301,33 @@ app.get('/api/validate-token', async (req, res) => {
                         }
                     }
                 } else {
-                    console.error('Token validation failed:', httpsRes.statusCode, data);
+                    logError(new Error(`Token validation failed: ${httpsRes.statusCode}`), {
+                        endpoint: '/api/validate-token',
+                        statusCode: httpsRes.statusCode,
+                        response: data,
+                        ip: req.ip || req.connection.remoteAddress
+                    });
                     res.status(httpsRes.statusCode).json({ error: 'Token validation failed' });
                 }
             });
         });
 
         httpsReq.on('error', (error) => {
-            console.error('HTTPS request error:', error);
+            logError(error, {
+                endpoint: '/api/validate-token',
+                type: 'HTTPS request error',
+                ip: req.ip || req.connection.remoteAddress
+            });
             res.status(500).json({ error: 'Internal server error during token validation' });
         });
 
         httpsReq.end();
     } catch (error) {
-        console.error('Error validating token:', error);
+        logError(error, {
+            endpoint: '/api/validate-token',
+            type: 'validation error',
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error during token validation' });
     }
 });
@@ -320,7 +393,11 @@ app.post('/api/launch', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error in launch endpoint:', error);
+        logError(error, {
+            endpoint: '/api/launch',
+            project_id: req.body?.project_id,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -361,12 +438,18 @@ async function validateTokenInternal(token) {
         });
 
         httpsReq.on('error', (error) => {
-            console.error('❌ Token validation error:', error);
+            logError(error, {
+                function: 'validateTokenInternal',
+                type: 'token validation error'
+            });
             resolve(false);
         });
 
         httpsReq.setTimeout(10000, () => {
-            console.error('⏰ Token validation timeout');
+            logError(new Error('Token validation timeout'), {
+                function: 'validateTokenInternal',
+                type: 'timeout'
+            });
             httpsReq.destroy();
             resolve(false);
         });
@@ -461,7 +544,11 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         
         res.json(responseData);
     } catch (error) {
-        console.error('Error getting session data:', error);
+        logError(error, {
+            endpoint: '/api/session-data/:sessionId',
+            sessionId: req.params.sessionId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -490,7 +577,11 @@ app.get('/api/session/:userId', async (req, res) => {
         
         res.json({ session: sessionData });
     } catch (err) {
-        console.error('Error fetching session:', err);
+        logError(err, {
+            endpoint: '/api/session/:userId',
+            userId: req.params.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error fetching session' });
     }
 });
@@ -510,7 +601,11 @@ app.post('/api/session', async (req, res) => {
         
         res.json({ success: true });
     } catch (err) {
-        console.error('Error saving session:', err);
+        logError(err, {
+            endpoint: '/api/session',
+            userId: req.body?.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error saving session to database' });
     }
 });
@@ -534,7 +629,12 @@ app.delete('/api/session/:userId', async (req, res) => {
         
         res.json({ success: true });
     } catch (err) {
-        console.error('Error deleting session:', err);
+        logError(err, {
+            endpoint: '/api/session/:userId',
+            userId: req.params.userId,
+            method: 'DELETE',
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error deleting session from database' });
     }
 });
@@ -601,7 +701,11 @@ app.get('/api/missing-models/:userId', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Error getting missing models:', err);
+        logError(err, {
+            endpoint: '/api/missing-models/:userId',
+            userId: req.params.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error getting missing models' });
     }
 });
@@ -631,7 +735,11 @@ app.post('/api/send-missing-models-report', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Error sending missing models report:', error);
+        logError(error, {
+            endpoint: '/api/send-missing-models-report',
+            userId: req.body?.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ 
             error: 'Ошибка при отправке отчета',
             details: error.message
@@ -763,15 +871,22 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         return info;
 
     } catch (error) {
-        console.error('❌ ОШИБКА ПРИ ОТПРАВКЕ ОТЧЕТА:');
-        console.error('Тип ошибки:', error.code || error.name);
-        console.error('Сообщение:', error.message);
+        logError(error, {
+            function: 'sendEmailWithJson',
+            userId: userId,
+            errorType: error.code || error.name,
+            type: 'email sending error'
+        });
         throw error;
     }
 }
 
 app.use('/models', express.static(modelsDir));
 
+// Middleware для обработки ошибок должен быть последним
+app.use(errorHandlerMiddleware);
+
 app.listen(PORT, () => {
+    logInfo(`API сервер запущен на ${API_BASE_URL}`);
     console.log(`API сервер запущен на ${API_BASE_URL}`);
 });
