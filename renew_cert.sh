@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Run in server in crontab
+# * * * * * /root/3DLeber/renew_cert.sh >> /root/3DLeber/renew_cert.log 2>&1
+
 set -e  # Exit on error
 
 # shellcheck disable=SC2046
