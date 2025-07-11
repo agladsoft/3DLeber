@@ -221,6 +221,81 @@ function getRegularMeshes(object) {
 }
 
 
+function containsBoxWithTolerance(containerBox, containedBox, tolerance = 0.01) {
+    return (
+        containerBox.min.x <= containedBox.min.x + tolerance &&
+        containerBox.min.y <= containedBox.min.y + tolerance &&
+        containerBox.min.z <= containedBox.min.z + tolerance &&
+        containerBox.max.x >= containedBox.max.x - tolerance &&
+        containerBox.max.y >= containedBox.max.y - tolerance &&
+        containerBox.max.z >= containedBox.max.z - tolerance
+    );
+}
+
+
+/**
+ * Проверяет значительное перекрытие между двумя боксами
+ * @param {THREE.Box3} box1 - Первый бокс
+ * @param {THREE.Box3} box2 - Второй бокс
+ * @param {number} overlapThreshold - Пороговое значение перекрытия (0.99 - 99%)
+ * @returns {Boolean} true, если перекрытие превышает пороговое значение
+ */
+function hasSignificantOverlap(box1, box2, overlapThreshold = 0.99) {
+    const intersection = box1.clone().intersect(box2);
+    
+    if (intersection.isEmpty()) {
+        return false;
+    }
+    
+    const box1Volume = box1.getSize(new THREE.Vector3()).length();
+    const box2Volume = box2.getSize(new THREE.Vector3()).length();
+    const intersectionVolume = intersection.getSize(new THREE.Vector3()).length();
+    
+    const smallerVolume = Math.min(box1Volume, box2Volume);
+    const overlapRatio = intersectionVolume / smallerVolume;
+    
+    return overlapRatio >= overlapThreshold;
+}
+
+/**
+ * Проверяет полное вложение или значительное перекрытие между двумя боксами
+ * @param {THREE.Box3} box1 - Первый бокс
+ * @param {THREE.Box3} box2 - Второй бокс
+ * @returns {Boolean} true, если один бокс полностью содержит другой или перекрывает его
+ */
+function checkBoxContainment(box1, box2) {
+    // Проверяем валидность боксов
+    if (box1.isEmpty() || box2.isEmpty()) {
+        return false;
+    }
+    
+    // 1. Стандартная проверка containsBox
+    if (box1.containsBox(box2) || box2.containsBox(box1)) {
+        return true;
+    }
+    
+    // 2. Проверка с толерантностью
+    if (containsBoxWithTolerance(box1, box2) || containsBoxWithTolerance(box2, box1)) {
+        return true;
+    }
+    
+    // 3. Проверка значительного перекрытия
+    if (hasSignificantOverlap(box1, box2)) {
+        return true;
+    }
+    
+    // 4. Проверка центров
+    const center1 = box1.getCenter(new THREE.Vector3());
+    const center2 = box2.getCenter(new THREE.Vector3());
+    
+    if (box1.containsPoint(center2) || box2.containsPoint(center1)) {
+        return true;
+    }
+    
+    return false;
+}
+
+
 /**
  * ОПТИМИЗИРОВАННАЯ: Проверяет пересечение (коллизию) между двумя объектами
  * Оптимизированная логика проверки:
@@ -286,7 +361,7 @@ export function checkObjectsIntersection(object1, object2) {
                     const box2 = new THREE.Box3().setFromObject(zone2);
                     
                     // Если одна зона полностью содержится в другой - это тоже коллизия
-                    if (box1.containsBox(box2) || box2.containsBox(box1)) {
+                    if (checkBoxContainment(box1, box2)) {
                         return true;
                     }
                 }
@@ -298,18 +373,14 @@ export function checkObjectsIntersection(object1, object2) {
         if (safetyZones1.length > 0) {
             const meshes2 = getRegularMeshes(object2);
             for (const zone1 of safetyZones1) {
-                // Проверяем пересечение safety zone с мешами
+                const zoneBox = new THREE.Box3().setFromObject(zone1);
+                
+                // Проверяем пересечение safety zone с каждым мешом объекта
                 for (const mesh2 of meshes2) {
-                    if (checkMeshIntersection(zone1, mesh2)) {
+                    const meshBox = new THREE.Box3().setFromObject(mesh2);
+                    if (zoneBox.intersectsBox(meshBox)) {
                         return true;
                     }
-                }
-                
-                // Проверяем полное вложение: содержит ли safety zone весь второй объект
-                const zoneBox = new THREE.Box3().setFromObject(zone1);
-                const objectBox = new THREE.Box3().setFromObject(object2);
-                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
-                    return true;
                 }
             }
             return false;
@@ -318,18 +389,14 @@ export function checkObjectsIntersection(object1, object2) {
         if (safetyZones2.length > 0) {
             const meshes1 = getRegularMeshes(object1);
             for (const zone2 of safetyZones2) {
-                // Проверяем пересечение safety zone с мешами
+                const zoneBox = new THREE.Box3().setFromObject(zone2);
+                
+                // Проверяем пересечение safety zone с каждым мешом объекта
                 for (const mesh1 of meshes1) {
-                    if (checkMeshIntersection(zone2, mesh1)) {
+                    const meshBox = new THREE.Box3().setFromObject(mesh1);
+                    if (zoneBox.intersectsBox(meshBox)) {
                         return true;
                     }
-                }
-                
-                // Проверяем полное вложение: содержит ли safety zone весь первый объект
-                const zoneBox = new THREE.Box3().setFromObject(zone2);
-                const objectBox = new THREE.Box3().setFromObject(object1);
-                if (zoneBox.containsBox(objectBox) || objectBox.containsBox(zoneBox)) {
-                    return true;
                 }
             }
             return false;
