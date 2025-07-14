@@ -13,6 +13,11 @@ if (!fs.existsSync(logsDir)) {
 
 const errorLogPath = path.join(logsDir, 'error.log');
 const accessLogPath = path.join(logsDir, 'access.log');
+const auditLogPath = path.join(logsDir, 'audit.log');
+const apiLogPath = path.join(logsDir, 'api.log');
+const databaseLogPath = path.join(logsDir, 'database.log');
+const securityLogPath = path.join(logsDir, 'security.log');
+const systemLogPath = path.join(logsDir, 'system.log');
 
 /**
  * Форматирует сообщение для логирования
@@ -177,6 +182,199 @@ export function errorHandlerMiddleware(err, req, res, next) {
 }
 
 /**
+ * Активные пользователи для мониторинга
+ */
+const activeUsers = new Map();
+const USER_TIMEOUT = 5 * 60 * 1000; // 5 минут
+
+/**
+ * Логирует пользовательские действия (аудит)
+ */
+export function logUserAction(userId, action, details = {}) {
+    // Обновляем активность пользователя
+    updateUserActivity(userId, details.ip, details.userAgent);
+    
+    const logContent = formatLogMessage('AUDIT', action, {
+        userId,
+        ip: details.ip,
+        userAgent: details.userAgent,
+        sessionId: details.sessionId,
+        ...details
+    });
+    
+    rotateLogFile(auditLogPath);
+    writeToFile(auditLogPath, logContent);
+    
+    console.log('USER ACTION:', action, { userId, ...details });
+}
+
+/**
+ * Детальное логирование API запросов
+ */
+export function logApiRequest(req, res, responseTime, requestBody, responseBody) {
+    const logContent = formatLogMessage('API', `${req.method} ${req.originalUrl}`, {
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        statusCode: res.statusCode,
+        responseTime: responseTime + 'ms',
+        requestHeaders: req.headers,
+        requestBody: sanitizeRequestBody(requestBody),
+        responseBody: sanitizeResponseBody(responseBody),
+        contentLength: res.get('Content-Length'),
+        referer: req.get('Referer')
+    });
+    
+    rotateLogFile(apiLogPath);
+    writeToFile(apiLogPath, logContent);
+}
+
+/**
+ * Логирование операций с базой данных
+ */
+export function logDatabaseOperation(operation, query, params, result, executionTime, error = null) {
+    const logContent = formatLogMessage('DATABASE', operation, {
+        query: query.substring(0, 500), // Ограничиваем длину запроса
+        params: params ? JSON.stringify(params).substring(0, 200) : null,
+        executionTime: executionTime + 'ms',
+        rowsAffected: result ? result.rowCount : null,
+        error: error ? error.message : null,
+        timestamp: new Date().toISOString()
+    });
+    
+    rotateLogFile(databaseLogPath);
+    writeToFile(databaseLogPath, logContent);
+    
+    if (error) {
+        console.error('DATABASE ERROR:', operation, error.message);
+    }
+}
+
+/**
+ * Логирование событий безопасности
+ */
+export function logSecurityEvent(eventType, details = {}) {
+    const logContent = formatLogMessage('SECURITY', eventType, {
+        ip: details.ip,
+        userAgent: details.userAgent,
+        url: details.url,
+        method: details.method,
+        payload: details.payload ? JSON.stringify(details.payload).substring(0, 200) : null,
+        severity: details.severity || 'medium',
+        blocked: details.blocked || false,
+        ...details
+    });
+    
+    rotateLogFile(securityLogPath);
+    writeToFile(securityLogPath, logContent);
+    
+    console.warn('SECURITY EVENT:', eventType, details);
+}
+
+/**
+ * Логирование системных метрик
+ */
+export function logSystemMetrics(metrics) {
+    const logContent = formatLogMessage('SYSTEM', 'metrics', {
+        memoryUsage: process.memoryUsage(),
+        cpuUsage: process.cpuUsage(),
+        activeUsers: activeUsers.size,
+        uptime: process.uptime(),
+        ...metrics
+    });
+    
+    rotateLogFile(systemLogPath);
+    writeToFile(systemLogPath, logContent);
+}
+
+/**
+ * Обновляет активность пользователя
+ */
+function updateUserActivity(userId, ip, userAgent) {
+    if (!userId) return;
+    
+    activeUsers.set(userId, {
+        lastActivity: Date.now(),
+        ip: ip,
+        userAgent: userAgent,
+        sessionStart: activeUsers.has(userId) ? activeUsers.get(userId).sessionStart : Date.now()
+    });
+    
+    // Очищаем неактивных пользователей
+    cleanupInactiveUsers();
+}
+
+/**
+ * Очистка неактивных пользователей
+ */
+function cleanupInactiveUsers() {
+    const now = Date.now();
+    for (const [userId, data] of activeUsers.entries()) {
+        if (now - data.lastActivity > USER_TIMEOUT) {
+            logUserAction(userId, 'session_timeout', {
+                sessionDuration: now - data.sessionStart,
+                ip: data.ip
+            });
+            activeUsers.delete(userId);
+        }
+    }
+}
+
+/**
+ * Получить статистику активных пользователей
+ */
+export function getActiveUsersStats() {
+    cleanupInactiveUsers();
+    
+    const stats = {
+        totalActive: activeUsers.size,
+        users: Array.from(activeUsers.entries()).map(([userId, data]) => ({
+            userId,
+            lastActivity: new Date(data.lastActivity).toISOString(),
+            sessionDuration: Date.now() - data.sessionStart,
+            ip: data.ip
+        }))
+    };
+    
+    return stats;
+}
+
+/**
+ * Санитизация тела запроса для логирования
+ */
+function sanitizeRequestBody(body) {
+    if (!body) return null;
+    
+    // Создаем копию объекта
+    const sanitized = JSON.parse(JSON.stringify(body));
+    
+    // Удаляем чувствительные данные
+    const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
+    
+    function removeSensitiveData(obj) {
+        if (typeof obj !== 'object' || obj === null) return;
+        
+        for (const key in obj) {
+            if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
+                obj[key] = '[REDACTED]';
+            } else if (typeof obj[key] === 'object') {
+                removeSensitiveData(obj[key]);
+            }
+        }
+    }
+    
+    removeSensitiveData(sanitized);
+    return JSON.stringify(sanitized).substring(0, 1000); // Ограничиваем размер
+}
+
+/**
+ * Санитизация ответа для логирования
+ */
+function sanitizeResponseBody(body) {
+    if (!body) return null;
+    return JSON.stringify(body).substring(0, 1000); // Ограничиваем размер
+}
+
+/**
  * Обработчик необработанных исключений
  */
 export function setupGlobalErrorHandlers() {
@@ -200,4 +398,11 @@ export function setupGlobalErrorHandlers() {
         
         console.error('Необработанный отказ промиса:', reason);
     });
+    
+    // Периодическое логирование системных метрик
+    setInterval(() => {
+        logSystemMetrics({
+            timestamp: new Date().toISOString()
+        });
+    }, 60000); // Каждую минуту
 } 

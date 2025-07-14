@@ -13,6 +13,11 @@ import {
     logError, 
     logWarning, 
     logInfo, 
+    logUserAction,
+    logApiRequest,
+    logSecurityEvent,
+    logSystemMetrics,
+    getActiveUsersStats,
     accessLogMiddleware, 
     errorHandlerMiddleware, 
     setupGlobalErrorHandlers 
@@ -39,7 +44,47 @@ app.use(compression()); // Сжатие ответов
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для JSON
 
-// Добавляем middleware для логирования
+// Расширенное middleware для детального логирования API
+app.use((req, res, next) => {
+    const start = Date.now();
+    let requestBody = {};
+    let responseBody = {};
+    
+    // Сохраняем тело запроса
+    if (req.body) {
+        requestBody = req.body;
+    }
+    
+    // Перехватываем ответ
+    const originalSend = res.send;
+    res.send = function(data) {
+        responseBody = data;
+        return originalSend.call(this, data);
+    };
+    
+    // Логируем при завершении ответа
+    res.on('finish', () => {
+        const responseTime = Date.now() - start;
+        logApiRequest(req, res, responseTime, requestBody, responseBody);
+        
+        // Логируем подозрительную активность
+        if (res.statusCode >= 400) {
+            logSecurityEvent('api_error', {
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.get('User-Agent'),
+                url: req.originalUrl,
+                method: req.method,
+                statusCode: res.statusCode,
+                payload: requestBody,
+                severity: res.statusCode >= 500 ? 'high' : 'medium'
+            });
+        }
+    });
+    
+    next();
+});
+
+// Добавляем стандартное middleware для логирования
 app.use(accessLogMiddleware);
 
 // Настраиваем глобальные обработчики ошибок
@@ -116,6 +161,145 @@ app.get('/health', async (req, res) => {
     }
 });
 
+// Endpoint для мониторинга активных пользователей
+app.get('/api/monitoring/users', (req, res) => {
+    try {
+        const stats = getActiveUsersStats();
+        
+        logUserAction('system', 'monitoring_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            endpoint: '/api/monitoring/users'
+        });
+        
+        res.json({
+            ...stats,
+            timestamp: new Date().toISOString(),
+            server: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                sessionCacheSize: sessionCache.size
+            }
+        });
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/users',
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to get user statistics' });
+    }
+});
+
+// Endpoint для детальной статистики сервера
+app.get('/api/monitoring/server', (req, res) => {
+    try {
+        const memUsage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
+        
+        logUserAction('system', 'server_monitoring_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent')
+        });
+        
+        res.json({
+            timestamp: new Date().toISOString(),
+            uptime: {
+                seconds: process.uptime(),
+                formatted: formatUptime(process.uptime())
+            },
+            memory: {
+                rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+                heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+                external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
+            },
+            cpu: {
+                user: cpuUsage.user,
+                system: cpuUsage.system
+            },
+            platform: {
+                node: process.version,
+                platform: process.platform,
+                arch: process.arch
+            },
+            cache: {
+                sessionCacheSize: sessionCache.size,
+                globalSessionStore: global.sessionStore ? global.sessionStore.size : 0
+            }
+        });
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/server',
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to get server statistics' });
+    }
+});
+
+// Endpoint для анализа логов (только для администраторов)
+app.get('/api/monitoring/logs/:type', (req, res) => {
+    try {
+        const { type } = req.params;
+        const allowedTypes = ['users', 'errors', 'api', 'database', 'all'];
+        
+        if (!allowedTypes.includes(type)) {
+            return res.status(400).json({ error: 'Invalid log type' });
+        }
+        
+        // Проверка на права администратора (можно добавить токен проверку)
+        const isAdmin = req.query.admin === 'true'; // Упрощенная проверка для демо
+        
+        if (!isAdmin) {
+            logSecurityEvent('unauthorized_log_access', {
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.get('User-Agent'),
+                requestedType: type,
+                severity: 'high'
+            });
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        
+        logUserAction('admin', 'log_analysis_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            logType: type
+        });
+        
+        // Здесь можно интегрировать функции из logAnalyzer.js
+        res.json({
+            message: `Log analysis for ${type} - implement integration with logAnalyzer.js`,
+            timestamp: new Date().toISOString(),
+            type: type
+        });
+        
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/logs/:type',
+            logType: req.params.type,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to analyze logs' });
+    }
+});
+
+// Вспомогательная функция для форматирования времени работы
+function formatUptime(uptimeSeconds) {
+    const days = Math.floor(uptimeSeconds / (24 * 60 * 60));
+    const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
+    const seconds = Math.floor(uptimeSeconds % 60);
+    
+    if (days > 0) {
+        return `${days}д ${hours}ч ${minutes}м ${seconds}с`;
+    } else if (hours > 0) {
+        return `${hours}ч ${minutes}м ${seconds}с`;
+    } else if (minutes > 0) {
+        return `${minutes}м ${seconds}с`;
+    } else {
+        return `${seconds}с`;
+    }
+}
+
 // Endpoint для логирования ошибок с клиентской части
 app.post('/api/log-error', (req, res) => {
     try {
@@ -170,8 +354,21 @@ function collectGlbModels(dir, baseDir = dir) {
 app.get('/api/models', (req, res) => {
     try {
         const models = collectGlbModels(modelsDir).sort();
+        
+        // Логируем запрос моделей
+        logUserAction(req.query.userId || 'anonymous', 'fetch_models', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            modelsCount: models.length
+        });
+        
         res.json({ models });
     } catch (err) {
+        logError(err, {
+            endpoint: '/api/models',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error reading model files' });
     }
 });
@@ -558,6 +755,12 @@ app.get('/api/session/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         
+        // Логируем запрос сессии
+        logUserAction(userId, 'get_session', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent')
+        });
+        
         // Проверяем кэш
         const cachedSession = getCachedSession(userId);
         if (cachedSession) {
@@ -593,6 +796,15 @@ app.post('/api/session', async (req, res) => {
         if (!userId || !sessionData) {
             return res.status(400).json({ error: 'userId and sessionData are required' });
         }
+        
+        // Логируем сохранение сессии с деталями
+        logUserAction(userId, 'save_session', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            sessionDataSize: JSON.stringify(sessionData).length,
+            modelsCount: sessionData.models?.length || 0,
+            playgroundData: sessionData.playground ? 'present' : 'absent'
+        });
         
         await saveSession(userId, sessionData);
         
