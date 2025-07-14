@@ -50,6 +50,11 @@ function writeToFile(filePath, content) {
  */
 function rotateLogFile(filePath) {
     try {
+        // Проверяем существует ли файл
+        if (!fs.existsSync(filePath)) {
+            return; // Файл не существует, ротация не нужна
+        }
+        
         const stats = fs.statSync(filePath);
         const maxSize = 10 * 1024 * 1024; // 10MB
         
@@ -72,7 +77,8 @@ function rotateLogFile(filePath) {
             }
         }
     } catch (error) {
-        console.error('Ошибка ротации лог файла:', error);
+        // Игнорируем ошибки ротации, не критично
+        // console.error('Ошибка ротации лог файла:', error);
     }
 }
 
