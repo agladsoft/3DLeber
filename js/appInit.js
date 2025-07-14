@@ -55,6 +55,9 @@ async function initializeApp() {
         // Определяем тип сессии (новая или продолжение)
         const isNewSession = !sessionResult.userData.sessionData || 
                            Object.keys(sessionResult.userData.sessionData).length === 0;
+        
+        // Инициализируем флаг показа справки для новых пользователей
+        window.shouldShowHelpForNewUser = isNewSession;
                 
         // Извлекаем данные моделей из сессии
         const modelsData = extractModelsDataFromSession(sessionResult.userData);        

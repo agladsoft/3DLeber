@@ -136,3 +136,23 @@ export function hideHelpModal() {
         pauseAllVideos();
     }
 }
+
+/**
+ * Автоматически показывает модальное окно помощи для новых пользователей
+ * @param {number} delay - Задержка перед показом в миллисекундах (по умолчанию 1000)
+ */
+export function showHelpModalForNewUser(delay = 1000) {
+    console.log(`Запланировано автоматическое открытие справки через ${delay}ms для нового пользователя`);
+    
+    setTimeout(() => {
+        // Проверяем, что приложение полностью загружено
+        if (window.app && window.app.scene && !window.isLoading) {
+            console.log('Автоматическое открытие справки для нового пользователя');
+            showHelpModal();
+        } else {
+            console.log('Приложение еще не готово, повторная попытка через 2 секунды');
+            // Если приложение еще не готово, пробуем еще раз через 2 секунды
+            showHelpModalForNewUser(1000);
+        }
+    }, delay);
+}
