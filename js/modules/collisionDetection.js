@@ -221,18 +221,6 @@ function getRegularMeshes(object) {
 }
 
 
-function containsBoxWithTolerance(containerBox, containedBox, tolerance = 0.01) {
-    return (
-        containerBox.min.x <= containedBox.min.x + tolerance &&
-        containerBox.min.y <= containedBox.min.y + tolerance &&
-        containerBox.min.z <= containedBox.min.z + tolerance &&
-        containerBox.max.x >= containedBox.max.x - tolerance &&
-        containerBox.max.y >= containedBox.max.y - tolerance &&
-        containerBox.max.z >= containedBox.max.z - tolerance
-    );
-}
-
-
 /**
  * Проверяет значительное перекрытие между двумя боксами
  * @param {THREE.Box3} box1 - Первый бокс
@@ -293,6 +281,83 @@ function checkBoxContainment(box1, box2) {
     }
     
     return false;
+}
+
+/**
+ * Проверяет, находится ли центр меша внутри safety zone в плоскости XZ (2D проверка)
+ * @param {THREE.Mesh} mesh Проверяемый меш
+ * @param {THREE.Mesh} safetyZone Меш зоны безопасности
+ * @returns {boolean} true если центр меша внутри зоны в плоскости XZ
+ */
+function isMeshCenterInsideSafetyZone(mesh, safetyZone) {
+    mesh.updateMatrixWorld(true);
+    safetyZone.updateMatrixWorld(true);
+
+    // Получаем центр меша (только X и Z координаты)
+    const meshBox = new THREE.Box3().setFromObject(mesh);
+    if (meshBox.isEmpty()) {
+        return false;
+    }
+    
+    const meshCenter = meshBox.getCenter(new THREE.Vector3());
+    const testPoint = { x: meshCenter.x, z: meshCenter.z };
+
+    // Получаем вершины зоны безопасности
+    const geometry = safetyZone.geometry;
+    if (!geometry || !geometry.attributes.position) {
+        return false;
+    }
+
+    // Извлекаем все вершины и проецируем их на XZ плоскость
+    const positionAttribute = geometry.attributes.position;
+    const vertices2D = [];
+    const vertex = new THREE.Vector3();
+    
+    for (let i = 0; i < positionAttribute.count; i++) {
+        vertex.fromBufferAttribute(positionAttribute, i);
+        vertex.applyMatrix4(safetyZone.matrixWorld); // Трансформируем в мировые координаты
+        vertices2D.push({ x: vertex.x, z: vertex.z });
+    }
+    
+    
+    // Используем простой алгоритм point-in-polygon (ray casting в 2D)
+    const isInside = pointInPolygon2D(testPoint, vertices2D);
+    
+    return isInside;
+}
+
+/**
+ * Проверяет, находится ли точка внутри 2D полигона (алгоритм ray casting)
+ * @param {Object} point Точка {x, z}
+ * @param {Array} polygon Массив вершин полигона [{x, z}, ...]
+ * @returns {boolean} true если точка внутри полигона
+ */
+function pointInPolygon2D(point, polygon) {
+    let inside = false;
+    const n = polygon.length;
+    
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+        const pi = polygon[i];
+        const pj = polygon[j];
+        
+        if (((pi.z > point.z) !== (pj.z > point.z)) &&
+            (point.x < (pj.x - pi.x) * (point.z - pi.z) / (pj.z - pi.z) + pi.x)) {
+            inside = !inside;
+        }
+    }
+    
+    return inside;
+}
+
+function containsBoxWithTolerance(containerBox, containedBox, tolerance = 0.01) {
+    return (
+        containerBox.min.x <= containedBox.min.x + tolerance &&
+        containerBox.min.y <= containedBox.min.y + tolerance &&
+        containerBox.min.z <= containedBox.min.z + tolerance &&
+        containerBox.max.x >= containedBox.max.x - tolerance &&
+        containerBox.max.y >= containedBox.max.y - tolerance &&
+        containerBox.max.z >= containedBox.max.z - tolerance
+    );
 }
 
 
@@ -372,29 +437,45 @@ export function checkObjectsIntersection(object1, object2) {
         // СЛУЧАЙ 2: Один объект имеет safety zone, другой - нет
         if (safetyZones1.length > 0) {
             const meshes2 = getRegularMeshes(object2);
+            if (meshes2.length === 0) {
+                return false; // Нет мешей для проверки
+            }
+
             for (const zone1 of safetyZones1) {
-                const zoneBox = new THREE.Box3().setFromObject(zone1);
-                
-                // Проверяем пересечение safety zone с каждым мешом объекта
-                for (const mesh2 of meshes2) {
-                    const meshBox = new THREE.Box3().setFromObject(mesh2);
-                    if (zoneBox.intersectsBox(meshBox)) {
+                for (const mesh2 of meshes2) {                    
+                    // 1. Сначала проверяем пересечение поверхностей
+                    const intersection = checkMeshIntersection(zone1, mesh2);
+                    if (intersection) {
+                        return true;
+                    }
+                    
+                    // 2. Затем проверяем, находится ли центр меша внутри зоны
+                    const centerInside = isMeshCenterInsideSafetyZone(mesh2, zone1);
+                    if (centerInside) {
                         return true;
                     }
                 }
             }
             return false;
         }
-        
+
         if (safetyZones2.length > 0) {
             const meshes1 = getRegularMeshes(object1);
+            if (meshes1.length === 0) {
+                return false; // Нет мешей для проверки
+            }
+
             for (const zone2 of safetyZones2) {
-                const zoneBox = new THREE.Box3().setFromObject(zone2);
-                
-                // Проверяем пересечение safety zone с каждым мешом объекта
-                for (const mesh1 of meshes1) {
-                    const meshBox = new THREE.Box3().setFromObject(mesh1);
-                    if (zoneBox.intersectsBox(meshBox)) {
+                for (const mesh1 of meshes1) {                    
+                    // 1. Сначала проверяем пересечение поверхностей
+                    const intersection = checkMeshIntersection(zone2, mesh1);
+                    if (intersection) {
+                        return true;
+                    }
+                    
+                    // 2. Затем проверяем, находится ли центр меша внутри зоны
+                    const centerInside = isMeshCenterInsideSafetyZone(mesh1, zone2);
+                    if (centerInside) {
                         return true;
                     }
                 }
