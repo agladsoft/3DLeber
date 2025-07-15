@@ -572,10 +572,15 @@ export function checkObjectsIntersection(object1, object2) {
                         return true;
                     }
                 } else {
-                    // Для обычных объектов проверяем как раньше
-                    for (const mesh2 of meshes2) {                    
-                        const centerInside = isMeshCenterInsideSafetyZone(mesh2, zone1);
-                        if (centerInside) {
+                    // Для обычных объектов проверяем точное пересечение мешей с safety zone
+                    for (const mesh2 of meshes2) {
+                        // Проверяем пересечение поверхностей
+                        if (checkMeshIntersection(mesh2, zone1)) {
+                            return true;
+                        }
+                        
+                        // Дополнительно проверяем, находится ли объект полностью внутри safety zone
+                        if (isMeshCenterInsideSafetyZone(mesh2, zone1)) {
                             return true;
                         }
                     }
@@ -601,10 +606,15 @@ export function checkObjectsIntersection(object1, object2) {
                         return true;
                     }
                 } else {
-                    // Для обычных объектов проверяем как раньше
-                    for (const mesh1 of meshes1) {                    
-                        const centerInside = isMeshCenterInsideSafetyZone(mesh1, zone2);
-                        if (centerInside) {
+                    // Для обычных объектов проверяем точное пересечение мешей с safety zone
+                    for (const mesh1 of meshes1) {
+                        // Проверяем пересечение поверхностей
+                        if (checkMeshIntersection(mesh1, zone2)) {
+                            return true;
+                        }
+                        
+                        // Дополнительно проверяем, находится ли объект полностью внутри safety zone
+                        if (isMeshCenterInsideSafetyZone(mesh1, zone2)) {
                             return true;
                         }
                     }
