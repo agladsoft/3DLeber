@@ -360,22 +360,143 @@
                 <button class="help-close-button" id="helpCloseButton">&times;</button>
             </div>
             <div class="help-modal-body">
-                <div class="video-container">
-                    <video id="helpVideo" controls preload="metadata" poster="videos/help-tutorial.jpg">
-                        <source src="videos/help-tutorial.mp4" type="video/mp4">
-                        Ваш браузер не поддерживает видео.
-                    </video>
+                <!-- Навигация по разделам -->
+                <div class="help-navigation">
+                    <button class="help-nav-btn active" data-section="models">Работа с моделями</button>
+                    <button class="help-nav-btn" data-section="playground">Площадка</button>
+                    <button class="help-nav-btn" data-section="camera">Камера</button>
                 </div>
-                <div class="help-content">
-                    <h4>Основные возможности:</h4>
-                    <ul>
-                        <li>Перетаскивайте элементы из каталога на площадку</li>
-                        <li>Изменяйте размеры и цвет площадки</li>
-                        <li>Поворачивайте и перемещайте объекты</li>
-                        <li>Включайте отображение безопасных зон</li>
-                        <li>Делайте скриншоты готового проекта</li>
-                        <li>Сохраняйте и загружайте конфигурации</li>
-                    </ul>
+                
+                <!-- Контент разделов -->
+                <div class="help-sections">
+                    <!-- Раздел: Работа с моделями -->
+                    <div class="help-section active" data-section="models">
+                        <div class="help-subsection">
+                            <h4>Как добавить модель на площадку:</h4>
+                            <p>Найдите необходимую вам модель, а затем зажмите левой кнопкой мыши и перетяните изделие на площадку в нужное место, затем отпустите кнопку.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Добавление.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как перемещать модель по площадке:</h4>
+                            <p>Наведите курсор на изделие, зажмите левую кнопку мыши и удерживая и перемещайте в нужное вам место.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Перемещение.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как вращать модель:</h4>
+                            <p>Наведите на изделие указатель, затем правой кнопкой мыши вращайте в разные стороны.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Вращение.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как удалить модель с площадки:</h4>
+                            <p>Наведите на изделие указатель и нажмите на появившийся красный крестик.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Удаление.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как удалить всё с площадки:</h4>
+                            <p>Перейдите в левое меню и найдите пиктограмму корзины - при нажатии на неё все изделия и декорации будут удалены с площадки.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Удалить всё.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как работать с декорациями:</h4>
+                            <p>Вы можете также как и с моделями изделий добавлять, перемещать, вращать и удалять изделия с площадки. Нет ограничений на количество размещаемых декораций.</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Объекты.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Раздел: Площадка -->
+                    <div class="help-section" data-section="playground">
+                        <div class="help-subsection">
+                            <h4>Как изменить размеры площадки и цвет площадки:</h4>
+                            <p>Перейдите в правом меню в пункт "Настройки площадки", во всплывающем окне введите необходимые размеры. Также здесь вы можете выбрать цвет покрытия в слайдере ниже.</p>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Что такое зоны безопасности и как с ними работать:</h4>
+                            <p>Изделия имеют размеченные зоны безопасности для изделий, которые помогают понимать, какая существует разрешенная область для размещения изделий близ друг-друга. При пересечении изделия с нарушением этих зон - подсвечиваются красным.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Раздел: Камера -->
+                    <div class="help-section" data-section="camera">
+                        <div class="help-subsection">
+                            <h4>Как управлять камерой:</h4>
+                            <p>Наведите курсор на свободную область, зажмите левую кнопку мыши и перемещайте мышь для управления камерой (влево, вправо, вверх, вниз).</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Управление.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как перемещать камеру по площадке:</h4>
+                            <p>Наведите курсор на свободную область, зажмите правую кнопку мыши и перемещайте мышь для управления камерой (влево, вправо, вверх, вниз).</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Перемещение камеры.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как делать снимки:</h4>
+                            <p>Для этого необходимо нажать в правом меню на пункт "Сохранить скриншот", с пиктограммой фотоаппарата</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Сделать снимок.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <div class="help-subsection">
+                            <h4>Как сбросить камеру:</h4>
+                            <p>Для этого необходимо нажать в правом меню на пункт "Сбросить вид"</p>
+                            <div class="video-container">
+                                <video controls preload="metadata">
+                                    <source src="videos/Сбросить вид.mp4" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
