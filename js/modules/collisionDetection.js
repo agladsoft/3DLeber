@@ -284,23 +284,18 @@ function checkBoxContainment(box1, box2) {
 }
 
 /**
- * Проверяет, находится ли центр меша внутри safety zone в плоскости XZ (2D проверка)
- * @param {THREE.Mesh} mesh Проверяемый меш
+ * Проверяет, находится ли ствол дерева (центральная точка) внутри safety zone
+ * @param {Object} tree Объект дерева
  * @param {THREE.Mesh} safetyZone Меш зоны безопасности
- * @returns {boolean} true если центр меша внутри зоны в плоскости XZ
+ * @returns {boolean} true если ствол дерева внутри зоны
  */
-function isMeshCenterInsideSafetyZone(mesh, safetyZone) {
-    mesh.updateMatrixWorld(true);
+function isTreeTrunkInsideSafetyZone(tree, safetyZone) {
+    tree.updateMatrixWorld(true);
     safetyZone.updateMatrixWorld(true);
 
-    // Получаем центр меша (только X и Z координаты)
-    const meshBox = new THREE.Box3().setFromObject(mesh);
-    if (meshBox.isEmpty()) {
-        return false;
-    }
-    
-    const meshCenter = meshBox.getCenter(new THREE.Vector3());
-    const testPoint = { x: meshCenter.x, z: meshCenter.z };
+    // Получаем центр дерева (позицию ствола)
+    const treeCenter = new THREE.Vector3();
+    tree.getWorldPosition(treeCenter);
 
     // Получаем вершины зоны безопасности
     const geometry = safetyZone.geometry;
@@ -308,22 +303,147 @@ function isMeshCenterInsideSafetyZone(mesh, safetyZone) {
         return false;
     }
 
-    // Извлекаем все вершины и проецируем их на XZ плоскость
+    // Извлекаем контур зоны безопасности
+    const vertices2D = getSafetyZoneContour(geometry, safetyZone.matrixWorld);
+    if (vertices2D.length < 3) {
+        return false;
+    }
+    
+    // Проверяем только центр дерева (ствол) в плоскости XZ
+    const testPoint = { x: treeCenter.x, z: treeCenter.z };
+    
+    return pointInPolygon2D(testPoint, vertices2D);
+}
+
+/**
+ * Проверяет, находится ли меш внутри safety zone в плоскости XZ (улучшенная версия)
+ * @param {THREE.Mesh} mesh Проверяемый меш
+ * @param {THREE.Mesh} safetyZone Меш зоны безопасности
+ * @returns {boolean} true если меш частично или полностью внутри зоны в плоскости XZ
+ */
+function isMeshCenterInsideSafetyZone(mesh, safetyZone) {
+    mesh.updateMatrixWorld(true);
+    safetyZone.updateMatrixWorld(true);
+
+    // Получаем bounding box меша только для плоскости XZ (игнорируем Y)
+    const meshBox = new THREE.Box3().setFromObject(mesh);
+    if (meshBox.isEmpty()) {
+        return false;
+    }
+    
+    // Приводим bounding box к плоскости XZ (Y координаты не учитываем)
+    meshBox.min.y = -Infinity;
+    meshBox.max.y = Infinity;
+
+    // Получаем вершины зоны безопасности
+    const geometry = safetyZone.geometry;
+    if (!geometry || !geometry.attributes.position) {
+        return false;
+    }
+
+    // Извлекаем уникальные вершины контура в правильном порядке
+    const vertices2D = getSafetyZoneContour(geometry, safetyZone.matrixWorld);
+    if (vertices2D.length < 3) {
+        return false; // Недостаточно вершин для полигона
+    }
+    
+    // Проверяем несколько ключевых точек объекта:
+    const testPoints = [];
+    
+    // 1. Центр объекта
+    const meshCenter = meshBox.getCenter(new THREE.Vector3());
+    testPoints.push({ x: meshCenter.x, z: meshCenter.z });
+    
+    // 2. Углы bounding box в плоскости XZ
+    testPoints.push(
+        { x: meshBox.min.x, z: meshBox.min.z }, // левый передний угол
+        { x: meshBox.max.x, z: meshBox.min.z }, // правый передний угол
+        { x: meshBox.min.x, z: meshBox.max.z }, // левый задний угол
+        { x: meshBox.max.x, z: meshBox.max.z }  // правый задний угол
+    );
+    
+    // 3. Середины сторон для лучшего покрытия
+    testPoints.push(
+        { x: (meshBox.min.x + meshBox.max.x) / 2, z: meshBox.min.z }, // передняя середина
+        { x: (meshBox.min.x + meshBox.max.x) / 2, z: meshBox.max.z }, // задняя середина
+        { x: meshBox.min.x, z: (meshBox.min.z + meshBox.max.z) / 2 }, // левая середина
+        { x: meshBox.max.x, z: (meshBox.min.z + meshBox.max.z) / 2 }  // правая середина
+    );
+    
+    // Если любая из точек внутри safety zone - считаем коллизию
+    for (const testPoint of testPoints) {
+        if (pointInPolygon2D(testPoint, vertices2D)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Извлекает уникальные вершины контура safety zone в правильном порядке
+ * @param {THREE.BufferGeometry} geometry Геометрия safety zone
+ * @param {THREE.Matrix4} matrixWorld Матрица трансформации
+ * @returns {Array} Массив уникальных вершин контура [{x, z}, ...]
+ */
+function getSafetyZoneContour(geometry, matrixWorld) {
     const positionAttribute = geometry.attributes.position;
     const vertices2D = [];
     const vertex = new THREE.Vector3();
+    const tolerance = 0.001; // Толерантность для определения уникальных вершин
     
-    for (let i = 0; i < positionAttribute.count; i++) {
-        vertex.fromBufferAttribute(positionAttribute, i);
-        vertex.applyMatrix4(safetyZone.matrixWorld); // Трансформируем в мировые координаты
-        vertices2D.push({ x: vertex.x, z: vertex.z });
+    // Если есть индексы, используем их для правильного порядка вершин
+    if (geometry.index) {
+        const indices = geometry.index.array;
+        const uniqueVertices = new Map();
+        
+        // Собираем уникальные вершины с их индексами
+        for (let i = 0; i < indices.length; i++) {
+            const vertexIndex = indices[i];
+            
+            if (!uniqueVertices.has(vertexIndex)) {
+                vertex.fromBufferAttribute(positionAttribute, vertexIndex);
+                vertex.applyMatrix4(matrixWorld);
+                
+                const key = `${Math.round(vertex.x / tolerance) * tolerance}_${Math.round(vertex.z / tolerance) * tolerance}`;
+                if (!uniqueVertices.has(key)) {
+                    uniqueVertices.set(key, { x: vertex.x, z: vertex.z });
+                }
+            }
+        }
+        
+        vertices2D.push(...uniqueVertices.values());
+    } else {
+        // Если нет индексов, извлекаем все вершины и удаляем дубликаты
+        const uniqueVertices = new Map();
+        
+        for (let i = 0; i < positionAttribute.count; i++) {
+            vertex.fromBufferAttribute(positionAttribute, i);
+            vertex.applyMatrix4(matrixWorld);
+            
+            const key = `${Math.round(vertex.x / tolerance) * tolerance}_${Math.round(vertex.z / tolerance) * tolerance}`;
+            if (!uniqueVertices.has(key)) {
+                uniqueVertices.set(key, { x: vertex.x, z: vertex.z });
+            }
+        }
+        
+        vertices2D.push(...uniqueVertices.values());
     }
     
+    // Упорядочиваем вершины по часовой стрелке для корректной работы point-in-polygon
+    if (vertices2D.length > 2) {
+        const center = vertices2D.reduce((sum, v) => ({ x: sum.x + v.x, z: sum.z + v.z }), { x: 0, z: 0 });
+        center.x /= vertices2D.length;
+        center.z /= vertices2D.length;
+        
+        vertices2D.sort((a, b) => {
+            const angleA = Math.atan2(a.z - center.z, a.x - center.x);
+            const angleB = Math.atan2(b.z - center.z, b.x - center.x);
+            return angleA - angleB;
+        });
+    }
     
-    // Используем простой алгоритм point-in-polygon (ray casting в 2D)
-    const isInside = pointInPolygon2D(testPoint, vertices2D);
-    
-    return isInside;
+    return vertices2D;
 }
 
 /**
@@ -441,18 +561,23 @@ export function checkObjectsIntersection(object1, object2) {
                 return false; // Нет мешей для проверки
             }
 
+            // Проверяем, является ли второй объект деревом
+            const obj2Name = object2.userData?.modelName || object2.name || 'unknown';
+            const isObj2Tree = PLAYGROUND_ELEMENTS.some(keyword => obj2Name.includes(keyword));
+
             for (const zone1 of safetyZones1) {
-                for (const mesh2 of meshes2) {                    
-                    // 1. Сначала проверяем пересечение поверхностей
-                    const intersection = checkMeshIntersection(zone1, mesh2);
-                    if (intersection) {
+                if (isObj2Tree) {
+                    // Для деревьев проверяем только пересечение центра (ствола) с safety zone
+                    if (isTreeTrunkInsideSafetyZone(object2, zone1)) {
                         return true;
                     }
-                    
-                    // 2. Затем проверяем, находится ли центр меша внутри зоны
-                    const centerInside = isMeshCenterInsideSafetyZone(mesh2, zone1);
-                    if (centerInside) {
-                        return true;
+                } else {
+                    // Для обычных объектов проверяем как раньше
+                    for (const mesh2 of meshes2) {                    
+                        const centerInside = isMeshCenterInsideSafetyZone(mesh2, zone1);
+                        if (centerInside) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -465,18 +590,23 @@ export function checkObjectsIntersection(object1, object2) {
                 return false; // Нет мешей для проверки
             }
 
+            // Проверяем, является ли первый объект деревом
+            const obj1Name = object1.userData?.modelName || object1.name || 'unknown';
+            const isObj1Tree = PLAYGROUND_ELEMENTS.some(keyword => obj1Name.includes(keyword));
+
             for (const zone2 of safetyZones2) {
-                for (const mesh1 of meshes1) {                    
-                    // 1. Сначала проверяем пересечение поверхностей
-                    const intersection = checkMeshIntersection(zone2, mesh1);
-                    if (intersection) {
+                if (isObj1Tree) {
+                    // Для деревьев проверяем только пересечение центра (ствола) с safety zone
+                    if (isTreeTrunkInsideSafetyZone(object1, zone2)) {
                         return true;
                     }
-                    
-                    // 2. Затем проверяем, находится ли центр меша внутри зоны
-                    const centerInside = isMeshCenterInsideSafetyZone(mesh1, zone2);
-                    if (centerInside) {
-                        return true;
+                } else {
+                    // Для обычных объектов проверяем как раньше
+                    for (const mesh1 of meshes1) {                    
+                        const centerInside = isMeshCenterInsideSafetyZone(mesh1, zone2);
+                        if (centerInside) {
+                            return true;
+                        }
                     }
                 }
             }
