@@ -624,37 +624,80 @@ export function checkObjectsIntersection(object1, object2) {
         }
         
         // СЛУЧАЙ 3: Ни у одного объекта нет safety zones
-        // Используем улучшенную bounding box проверку (которая уже была выполнена выше)
-        // Точная проверка мешей нужна только если простая bounding box проверка неточна
-        const simpleIntersection = box1.intersectsBox(box2);
-        if (simpleIntersection && hasBasicIntersection) {
-            // Если есть простое пересечение И улучшенная проверка тоже показала пересечение,
-            // то скорее всего объекты действительно пересекаются
-            return true;
+        // Сначала проверяем bounding box для оптимизации
+        if (!hasBasicIntersection) {
+            return false; // Если bounding box не пересекаются, объекты точно не пересекаются
         }
         
-        // Если улучшенная проверка показала пересечение, но простая нет,
-        // значит возможно полное вложение - делаем точную проверку
-        if (hasBasicIntersection && !simpleIntersection) {
-            const meshes1 = getRegularMeshes(object1);
-            const meshes2 = getRegularMeshes(object2);
-            
-            // Ограничиваем количество точных проверок для производительности
-            const maxChecks = 4; // Проверяем максимум 4 пары мешей
-            let checksPerformed = 0;
-            
-            for (const mesh1 of meshes1) {
+        // Проверяем, являются ли объекты деревьями
+        const isObj1Tree = PLAYGROUND_ELEMENTS.some(keyword => obj1Name.includes(keyword));
+        const isObj2Tree = PLAYGROUND_ELEMENTS.some(keyword => obj2Name.includes(keyword));
+        
+        // Если один из объектов - дерево, используем специальную логику
+        if (isObj1Tree || isObj2Tree) {
+            if (isObj1Tree) {
+                // Первый объект - дерево, второй - обычный объект
+                const meshes2 = getRegularMeshes(object2);
+                const pos1 = new THREE.Vector3();
+                object1.getWorldPosition(pos1);
+                
                 for (const mesh2 of meshes2) {
-                    if (checksPerformed >= maxChecks) break;
-                    if (checkMeshIntersection(mesh1, mesh2)) {
+                    const box2 = new THREE.Box3().setFromObject(mesh2);
+                    const testPoint = { x: pos1.x, z: pos1.z };
+                    
+                    // Проверяем, находится ли ствол дерева внутри bounding box другого объекта
+                    if (testPoint.x >= box2.min.x && testPoint.x <= box2.max.x &&
+                        testPoint.z >= box2.min.z && testPoint.z <= box2.max.z) {
                         return true;
                     }
-                    checksPerformed++;
                 }
-                if (checksPerformed >= maxChecks) break;
+                return false;
+            } else if (isObj2Tree) {
+                // Второй объект - дерево, первый - обычный объект
+                const meshes1 = getRegularMeshes(object1);
+                const pos2 = new THREE.Vector3();
+                object2.getWorldPosition(pos2);
+                
+                for (const mesh1 of meshes1) {
+                    const box1 = new THREE.Box3().setFromObject(mesh1);
+                    const testPoint = { x: pos2.x, z: pos2.z };
+                    
+                    // Проверяем, находится ли ствол дерева внутри bounding box другого объекта
+                    if (testPoint.x >= box1.min.x && testPoint.x <= box1.max.x &&
+                        testPoint.z >= box1.min.z && testPoint.z <= box1.max.z) {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
         
+        // Для обычных объектов используем точную проверку пересечения мешей
+        const meshes1 = getRegularMeshes(object1);
+        const meshes2 = getRegularMeshes(object2);
+        
+        if (meshes1.length === 0 || meshes2.length === 0) {
+            // Если нет мешей, используем bounding box результат
+            return hasBasicIntersection;
+        }
+        
+        // Ограничиваем количество точных проверок для производительности
+        const maxChecks = 6; // Проверяем максимум 6 пар мешей
+        let checksPerformed = 0;
+        
+        for (const mesh1 of meshes1) {
+            for (const mesh2 of meshes2) {
+                if (checksPerformed >= maxChecks) break;
+                if (checkMeshIntersection(mesh1, mesh2)) {
+                    return true;
+                }
+                checksPerformed++;
+            }
+            if (checksPerformed >= maxChecks) break;
+        }
+        
+        // Если точная проверка не нашла пересечений, но bounding box пересекаются,
+        // возможно это случай вложения - используем bounding box результат
         return hasBasicIntersection;
         
     } catch (error) {
