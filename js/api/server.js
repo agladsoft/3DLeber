@@ -9,6 +9,19 @@ import pg from 'pg';
 import { SERVER_NAME, SERVER_PORT, DB_CONFIG, API_BASE_URL } from './serverConfig.js';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
+import { 
+    logError, 
+    logWarning, 
+    logInfo, 
+    logUserAction,
+    logApiRequest,
+    logSecurityEvent,
+    logSystemMetrics,
+    getActiveUsersStats,
+    accessLogMiddleware, 
+    errorHandlerMiddleware, 
+    setupGlobalErrorHandlers 
+} from '../utils/logger.js';
 
 const { Pool } = pg;
 
@@ -30,6 +43,52 @@ const pool = new Pool({
 app.use(compression()); // Сжатие ответов
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для JSON
+
+// Расширенное middleware для детального логирования API
+app.use((req, res, next) => {
+    const start = Date.now();
+    let requestBody = {};
+    let responseBody = {};
+    
+    // Сохраняем тело запроса
+    if (req.body) {
+        requestBody = req.body;
+    }
+    
+    // Перехватываем ответ
+    const originalSend = res.send;
+    res.send = function(data) {
+        responseBody = data;
+        return originalSend.call(this, data);
+    };
+    
+    // Логируем при завершении ответа
+    res.on('finish', () => {
+        const responseTime = Date.now() - start;
+        logApiRequest(req, res, responseTime, requestBody, responseBody);
+        
+        // Логируем подозрительную активность
+        if (res.statusCode >= 400) {
+            logSecurityEvent('api_error', {
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.get('User-Agent'),
+                url: req.originalUrl,
+                method: req.method,
+                statusCode: res.statusCode,
+                payload: requestBody,
+                severity: res.statusCode >= 500 ? 'high' : 'medium'
+            });
+        }
+    });
+    
+    next();
+});
+
+// Добавляем стандартное middleware для логирования
+app.use(accessLogMiddleware);
+
+// Настраиваем глобальные обработчики ошибок
+setupGlobalErrorHandlers();
 
 // Кэш для сессий на уровне сервера
 const sessionCache = new Map();
@@ -88,12 +147,188 @@ app.get('/health', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Health check failed:', error);
+        logError(error, {
+            endpoint: '/health',
+            url: req.originalUrl,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(503).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
             error: error.message
         });
+    }
+});
+
+// Endpoint для мониторинга активных пользователей
+app.get('/api/monitoring/users', (req, res) => {
+    try {
+        const stats = getActiveUsersStats();
+        
+        logUserAction('system', 'monitoring_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            endpoint: '/api/monitoring/users'
+        });
+        
+        res.json({
+            ...stats,
+            timestamp: new Date().toISOString(),
+            server: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                sessionCacheSize: sessionCache.size
+            }
+        });
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/users',
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to get user statistics' });
+    }
+});
+
+// Endpoint для детальной статистики сервера
+app.get('/api/monitoring/server', (req, res) => {
+    try {
+        const memUsage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
+        
+        logUserAction('system', 'server_monitoring_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent')
+        });
+        
+        res.json({
+            timestamp: new Date().toISOString(),
+            uptime: {
+                seconds: process.uptime(),
+                formatted: formatUptime(process.uptime())
+            },
+            memory: {
+                rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+                heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+                external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
+            },
+            cpu: {
+                user: cpuUsage.user,
+                system: cpuUsage.system
+            },
+            platform: {
+                node: process.version,
+                platform: process.platform,
+                arch: process.arch
+            },
+            cache: {
+                sessionCacheSize: sessionCache.size,
+                globalSessionStore: global.sessionStore ? global.sessionStore.size : 0
+            }
+        });
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/server',
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to get server statistics' });
+    }
+});
+
+// Endpoint для анализа логов (только для администраторов)
+app.get('/api/monitoring/logs/:type', (req, res) => {
+    try {
+        const { type } = req.params;
+        const allowedTypes = ['users', 'errors', 'api', 'database', 'all'];
+        
+        if (!allowedTypes.includes(type)) {
+            return res.status(400).json({ error: 'Invalid log type' });
+        }
+        
+        // Проверка на права администратора (можно добавить токен проверку)
+        const isAdmin = req.query.admin === 'true'; // Упрощенная проверка для демо
+        
+        if (!isAdmin) {
+            logSecurityEvent('unauthorized_log_access', {
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.get('User-Agent'),
+                requestedType: type,
+                severity: 'high'
+            });
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        
+        logUserAction('admin', 'log_analysis_access', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            logType: type
+        });
+        
+        // Здесь можно интегрировать функции из logAnalyzer.js
+        res.json({
+            message: `Log analysis for ${type} - implement integration with logAnalyzer.js`,
+            timestamp: new Date().toISOString(),
+            type: type
+        });
+        
+    } catch (error) {
+        logError(error, {
+            endpoint: '/api/monitoring/logs/:type',
+            logType: req.params.type,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Failed to analyze logs' });
+    }
+});
+
+// Вспомогательная функция для форматирования времени работы
+function formatUptime(uptimeSeconds) {
+    const days = Math.floor(uptimeSeconds / (24 * 60 * 60));
+    const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
+    const seconds = Math.floor(uptimeSeconds % 60);
+    
+    if (days > 0) {
+        return `${days}д ${hours}ч ${minutes}м ${seconds}с`;
+    } else if (hours > 0) {
+        return `${hours}ч ${minutes}м ${seconds}с`;
+    } else if (minutes > 0) {
+        return `${minutes}м ${seconds}с`;
+    } else {
+        return `${seconds}с`;
+    }
+}
+
+// Endpoint для логирования ошибок с клиентской части
+app.post('/api/log-error', (req, res) => {
+    try {
+        const { error, metadata = {} } = req.body;
+        
+        if (!error) {
+            return res.status(400).json({ error: 'Error data is required' });
+        }
+        
+        // Создаем объект ошибки для логирования
+        const errorObj = typeof error === 'string' ? new Error(error) : error;
+        
+        // Логируем ошибку с клиентской части
+        logError(errorObj, {
+            ...metadata,
+            source: 'client',
+            userAgent: req.get('User-Agent'),
+            ip: req.ip || req.connection.remoteAddress,
+            url: metadata.url || 'unknown',
+            timestamp: new Date().toISOString()
+        });
+        
+        res.json({ success: true, message: 'Error logged successfully' });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/log-error',
+            originalError: req.body
+        });
+        res.status(500).json({ error: 'Failed to log error' });
     }
 });
 
@@ -119,8 +354,21 @@ function collectGlbModels(dir, baseDir = dir) {
 app.get('/api/models', (req, res) => {
     try {
         const models = collectGlbModels(modelsDir).sort();
+        
+        // Логируем запрос моделей
+        logUserAction(req.query.userId || 'anonymous', 'fetch_models', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            modelsCount: models.length
+        });
+        
         res.json({ models });
     } catch (err) {
+        logError(err, {
+            endpoint: '/api/models',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error reading model files' });
     }
 });
@@ -145,7 +393,11 @@ app.get('/api/models/special-categories', async (req, res) => {
         
         res.json({ models: specialModels });
     } catch (err) {
-        console.error('Error fetching special category models:', err);
+        logError(err, {
+            endpoint: '/api/models/special-categories',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error fetching special category models' });
     }
 });
@@ -184,7 +436,12 @@ app.post('/api/models/match', async (req, res) => {
 
         res.json({ models: matchedModels });
     } catch (err) {
-        console.error('Error matching models:', err);
+        logError(err, {
+            endpoint: '/api/models/match',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress,
+            modelsCount: req.body?.models?.length
+        });
         res.status(500).json({ error: 'Error matching models with database' });
     }
 });
@@ -241,20 +498,33 @@ app.get('/api/validate-token', async (req, res) => {
                         }
                     }
                 } else {
-                    console.error('Token validation failed:', httpsRes.statusCode, data);
+                    logError(new Error(`Token validation failed: ${httpsRes.statusCode}`), {
+                        endpoint: '/api/validate-token',
+                        statusCode: httpsRes.statusCode,
+                        response: data,
+                        ip: req.ip || req.connection.remoteAddress
+                    });
                     res.status(httpsRes.statusCode).json({ error: 'Token validation failed' });
                 }
             });
         });
 
         httpsReq.on('error', (error) => {
-            console.error('HTTPS request error:', error);
+            logError(error, {
+                endpoint: '/api/validate-token',
+                type: 'HTTPS request error',
+                ip: req.ip || req.connection.remoteAddress
+            });
             res.status(500).json({ error: 'Internal server error during token validation' });
         });
 
         httpsReq.end();
     } catch (error) {
-        console.error('Error validating token:', error);
+        logError(error, {
+            endpoint: '/api/validate-token',
+            type: 'validation error',
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error during token validation' });
     }
 });
@@ -320,7 +590,11 @@ app.post('/api/launch', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error in launch endpoint:', error);
+        logError(error, {
+            endpoint: '/api/launch',
+            project_id: req.body?.project_id,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -361,12 +635,18 @@ async function validateTokenInternal(token) {
         });
 
         httpsReq.on('error', (error) => {
-            console.error('❌ Token validation error:', error);
+            logError(error, {
+                function: 'validateTokenInternal',
+                type: 'token validation error'
+            });
             resolve(false);
         });
 
         httpsReq.setTimeout(10000, () => {
-            console.error('⏰ Token validation timeout');
+            logError(new Error('Token validation timeout'), {
+                function: 'validateTokenInternal',
+                type: 'timeout'
+            });
             httpsReq.destroy();
             resolve(false);
         });
@@ -461,7 +741,11 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         
         res.json(responseData);
     } catch (error) {
-        console.error('Error getting session data:', error);
+        logError(error, {
+            endpoint: '/api/session-data/:sessionId',
+            sessionId: req.params.sessionId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -470,6 +754,12 @@ app.get('/api/session-data/:sessionId', (req, res) => {
 app.get('/api/session/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
+        
+        // Логируем запрос сессии
+        logUserAction(userId, 'get_session', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent')
+        });
         
         // Проверяем кэш
         const cachedSession = getCachedSession(userId);
@@ -490,7 +780,11 @@ app.get('/api/session/:userId', async (req, res) => {
         
         res.json({ session: sessionData });
     } catch (err) {
-        console.error('Error fetching session:', err);
+        logError(err, {
+            endpoint: '/api/session/:userId',
+            userId: req.params.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error fetching session' });
     }
 });
@@ -503,6 +797,15 @@ app.post('/api/session', async (req, res) => {
             return res.status(400).json({ error: 'userId and sessionData are required' });
         }
         
+        // Логируем сохранение сессии с деталями
+        logUserAction(userId, 'save_session', {
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            sessionDataSize: JSON.stringify(sessionData).length,
+            modelsCount: sessionData.models?.length || 0,
+            playgroundData: sessionData.playground ? 'present' : 'absent'
+        });
+        
         await saveSession(userId, sessionData);
         
         // Инвалидируем кэш после сохранения
@@ -510,7 +813,11 @@ app.post('/api/session', async (req, res) => {
         
         res.json({ success: true });
     } catch (err) {
-        console.error('Error saving session:', err);
+        logError(err, {
+            endpoint: '/api/session',
+            userId: req.body?.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error saving session to database' });
     }
 });
@@ -534,7 +841,12 @@ app.delete('/api/session/:userId', async (req, res) => {
         
         res.json({ success: true });
     } catch (err) {
-        console.error('Error deleting session:', err);
+        logError(err, {
+            endpoint: '/api/session/:userId',
+            userId: req.params.userId,
+            method: 'DELETE',
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error deleting session from database' });
     }
 });
@@ -601,7 +913,11 @@ app.get('/api/missing-models/:userId', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Error getting missing models:', err);
+        logError(err, {
+            endpoint: '/api/missing-models/:userId',
+            userId: req.params.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ error: 'Error getting missing models' });
     }
 });
@@ -631,7 +947,11 @@ app.post('/api/send-missing-models-report', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Error sending missing models report:', error);
+        logError(error, {
+            endpoint: '/api/send-missing-models-report',
+            userId: req.body?.userId,
+            ip: req.ip || req.connection.remoteAddress
+        });
         res.status(500).json({ 
             error: 'Ошибка при отправке отчета',
             details: error.message
@@ -763,15 +1083,22 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
         return info;
 
     } catch (error) {
-        console.error('❌ ОШИБКА ПРИ ОТПРАВКЕ ОТЧЕТА:');
-        console.error('Тип ошибки:', error.code || error.name);
-        console.error('Сообщение:', error.message);
+        logError(error, {
+            function: 'sendEmailWithJson',
+            userId: userId,
+            errorType: error.code || error.name,
+            type: 'email sending error'
+        });
         throw error;
     }
 }
 
 app.use('/models', express.static(modelsDir));
 
+// Middleware для обработки ошибок должен быть последним
+app.use(errorHandlerMiddleware);
+
 app.listen(PORT, () => {
+    logInfo(`API сервер запущен на ${API_BASE_URL}`);
     console.log(`API сервер запущен на ${API_BASE_URL}`);
 });

@@ -293,6 +293,9 @@ async function autoCreateNewSession(userId, models) {
         // Показываем модальное окно выбора площадки
         await showPlatformSelectModalForNewSession();
         
+        // Устанавливаем флаг для автоматического показа справки после запуска приложения
+        window.shouldShowHelpForNewUser = true;
+        
     } catch (error) {
         console.error('Error in autoCreateNewSession:', error);
         await forceHideAllLoading();
@@ -324,6 +327,9 @@ async function autoRestoreSession(userId, session) {
         
         // Сбрасываем флаг для возможности повторного вызова showPlatformSelectModal
         showPlatformSelectModalInProgress = false;
+        
+        // Для восстановления сессии НЕ показываем справку автоматически
+        window.shouldShowHelpForNewUser = false;
         
         // Sidebar уже инициализирован в showPlatformSelectModal, не нужно дублировать
         console.log('Sidebar already initialized, skipping re-initialization for session restore');
@@ -474,6 +480,10 @@ async function showPlatformSelectModalForNewSession() {
                 window.SuffixManager.notifyValueChange('modalPlaygroundLength');
             }
         }
+        
+        // Для полностью новых сессий устанавливаем флаг показа справки
+        window.shouldShowHelpForNewUser = true;
+        console.log('Установлен флаг для автоматического показа справки новому пользователю');
     }
     
     // Показываем модальное окно
@@ -594,6 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Сбрасываем флаг для возможности повторного вызова showPlatformSelectModal
             showPlatformSelectModalInProgress = false;
+            
+            // Сбрасываем флаг показа справки при отмене
+            window.shouldShowHelpForNewUser = false;
             
             // Проверяем, нужно ли вернуться к приложению
             if (window.returnToApp) {
@@ -749,6 +762,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     checkMissingModelsAfterStart('startAppButton');
                 }, 3000);
+                
+                // Автоматически показываем справку для новых пользователей
+                if (window.shouldShowHelpForNewUser) {
+                    setTimeout(async () => {
+                        const { showHelpModalForNewUser } = await import('./helpModal.js');
+                        showHelpModalForNewUser(1000); // Показываем через 1 секунду после запуска
+                        window.shouldShowHelpForNewUser = false; // Сбрасываем флаг
+                    }, 1000);
+                }
                 
                 // Восстанавливаем состояние кнопки после задержки
                 setTimeout(() => {

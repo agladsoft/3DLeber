@@ -2595,6 +2595,86 @@ color: #333 !important;
     display: block;
 }
 
+/* Стили для навигации между разделами помощи */
+.help-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(16, 15, 15, 0.1);
+    padding-bottom: 20px;
+}
+
+.help-nav-btn {
+    background: rgba(16, 15, 15, 0.05);
+    border: 1px solid rgba(16, 15, 15, 0.1);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'TT Lakes Neue', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #100F0F;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.help-nav-btn:hover {
+    background: rgba(16, 15, 15, 0.1);
+    border-color: rgba(16, 15, 15, 0.2);
+}
+
+.help-nav-btn.active {
+    background: #F05323;
+    border-color: #F05323;
+    color: white;
+}
+
+.help-nav-btn.active:hover {
+    background: #E0471F;
+    border-color: #E0471F;
+}
+
+/* Стили для разделов помощи */
+.help-sections {
+    position: relative;
+}
+
+.help-section {
+    display: none;
+}
+
+.help-section.active {
+    display: block;
+}
+
+.help-subsection {
+    margin-bottom: 40px;
+}
+
+.help-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.help-subsection h4 {
+    font-family: 'TT Lakes Neue', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: #100F0F;
+    margin: 0 0 15px 0;
+}
+
+.help-subsection p {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    color: #100F0F;
+    line-height: 1.5;
+    margin: 0 0 15px 0;
+}
+
+.help-subsection .video-container {
+    margin-bottom: 0;
+}
+
 .help-content h4 {
     font-family: 'TT Lakes Neue', sans-serif;
     font-weight: 600;

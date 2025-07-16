@@ -1,8 +1,28 @@
 import pg from 'pg';
 import { DB_CONFIG } from './serverConfig.js';
+import { logDatabaseOperation } from '../utils/logger.js';
+
 const { Pool } = pg;
 
 const pool = new Pool(DB_CONFIG);
+
+// Wrapper для логирования всех SQL операций
+async function executeQuery(query, params = [], operation = 'UNKNOWN') {
+    const start = Date.now();
+    let result = null;
+    let error = null;
+    
+    try {
+        result = await pool.query(query, params);
+        return result;
+    } catch (err) {
+        error = err;
+        throw err;
+    } finally {
+        const executionTime = Date.now() - start;
+        logDatabaseOperation(operation, query, params, result, executionTime, error);
+    }
+}
 
 export async function getModelsByArticles(articles) {
     const query = `
@@ -10,7 +30,7 @@ export async function getModelsByArticles(articles) {
         FROM models m
         WHERE m.article = ANY($1)
     `;
-    const result = await pool.query(query, [articles]);
+    const result = await executeQuery(query, [articles], 'SELECT_MODELS_BY_ARTICLES');
     return result.rows;
 }
 
@@ -31,7 +51,7 @@ export async function getOrCreateUser(userId) {
         SELECT id FROM projects WHERE project_id = $1 AND NOT EXISTS (SELECT 1 FROM inserted)
         LIMIT 1
     `;
-    const result = await pool.query(query, [userId]);
+    const result = await executeQuery(query, [userId], 'GET_OR_CREATE_USER');
     return result.rows[0];
 }
 
@@ -53,7 +73,7 @@ export async function saveSession(userId, sessionData) {
             DO UPDATE SET session_data = $2
             RETURNING project_id
         `;
-        const result = await pool.query(query, [user.id, sessionData]);
+        const result = await executeQuery(query, [user.id, sessionData], 'SAVE_SESSION');
         return result.rows[0];
     } catch (error) {
         console.error('Error in saveSession:', error);
@@ -75,7 +95,7 @@ export async function getSession(userId) {
             FROM sessions
             WHERE project_id = $1
         `;
-        const result = await pool.query(query, [user.id]);
+        const result = await executeQuery(query, [user.id], 'GET_SESSION');
         return result.rows[0]?.session_data;
     } catch (error) {
         console.error('Error in getSession:', error);

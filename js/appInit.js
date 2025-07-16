@@ -10,6 +10,7 @@ import {
 } from './tokenHandler.js';
 import { showPlatformSelectModal } from './modal.js';
 import { initHelpModal } from './helpModal.js';
+import { setupGlobalErrorHandlers } from './core/errorHandler.js';
 
 // Флаг для предотвращения повторной инициализации
 let appInitializationInProgress = false;
@@ -25,6 +26,9 @@ async function initializeApp() {
     
     appInitializationInProgress = true;
     console.log('Initializing application components...');
+
+    // Настраиваем глобальные обработчики ошибок
+    setupGlobalErrorHandlers();
 
     // Инициализируем модальное окно помощи
     initHelpModal();
@@ -55,6 +59,9 @@ async function initializeApp() {
         // Определяем тип сессии (новая или продолжение)
         const isNewSession = !sessionResult.userData.sessionData || 
                            Object.keys(sessionResult.userData.sessionData).length === 0;
+        
+        // Инициализируем флаг показа справки для новых пользователей
+        window.shouldShowHelpForNewUser = isNewSession;
                 
         // Извлекаем данные моделей из сессии
         const modelsData = extractModelsDataFromSession(sessionResult.userData);        

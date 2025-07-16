@@ -11,6 +11,7 @@ services:
       - ./js:/app/js
       - ./models:/app/js/models
       - ./certbot/conf:/etc/letsencrypt:ro
+      - ./logs:/app/logs
     environment:
       - SERVER_NAME=${SERVER_NAME}
       - SERVER_PORT=${SERVER_PORT}
@@ -82,6 +83,7 @@ services:
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./logs:/var/lib/postgresql/data/pg_log
     ports:
       - "5432:5432"
     healthcheck:
@@ -123,6 +125,7 @@ services:
       - ./css:/usr/share/nginx/html/css
       - ./textures:/usr/share/nginx/html/textures
       - ./models.json:/usr/share/nginx/html/models.json
+      - ./logs:/var/log/nginx
     environment:
       - SERVER_NAME=${SERVER_NAME}
     depends_on:
