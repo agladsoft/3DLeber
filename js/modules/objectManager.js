@@ -192,6 +192,31 @@ export function updateMaterialsEnvironmentMap() {
                     material.envMap = scene.environment;
                     material.envMapIntensity = 1.0;
                     
+                    // Проверяем, является ли материал деревянным
+                    const isWood = material.name.includes('Лиственница') || material.name.includes('(CL_W) Timber 2020');
+                    if (isWood) {
+                        // Настройки для дерева - делаем значительно ярче
+                        material.envMapIntensity = 2.5;
+                        material.emissive = new THREE.Color(0x4a2a0a);
+                        material.emissiveIntensity = 0.35;
+                        material.roughness = Math.max(0.2, material.roughness - 0.3);
+                        material.metalness = Math.min(0.15, material.metalness + 0.1);
+                        
+                        // Значительно осветляем деревянные материалы
+                        if (material.color && material.color.getHSL) {
+                            const hsl = {};
+                            material.color.getHSL(hsl);
+                            if (hsl.l < 0.7) {
+                                material.color.setHSL(hsl.h, Math.max(0.3, hsl.s), Math.min(0.8, hsl.l + 0.4));
+                            }
+                        }
+                        
+                        // Дополнительно увеличиваем общую яркость
+                        if (material.color) {
+                            material.color.multiplyScalar(1.3);
+                        }
+                    }
+                    
                     // Улучшенное определение стеклянных материалов
                     const isGlass = (
                         (material.transparent && material.opacity < 1.0) ||
@@ -424,6 +449,31 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                             if (scene.environment) {
                                                 material.envMap = scene.environment;
                                                 material.envMapIntensity = 1.0;
+                                            }
+
+                                            const isWood = material.name.includes('Лиственница') || material.name.includes('(CL_W) Timber 2020');
+                                            if (isWood) {
+                                                // Делаем дерево значительно ярче
+                                                material.envMapIntensity = 2.5; // Сильно увеличиваем отражения
+                                                material.emissive = new THREE.Color(0x4a2a0a); // Более яркий теплый коричневый
+                                                material.emissiveIntensity = 0.35; // Заметное свечение
+                                                material.roughness = Math.max(0.2, material.roughness - 0.3); // Менее шероховатый
+                                                material.metalness = Math.min(0.15, material.metalness + 0.1); // Больше металлического блеска
+                                                
+                                                // Значительно осветляем материал
+                                                if (material.color && material.color.getHSL) {
+                                                    const hsl = {};
+                                                    material.color.getHSL(hsl);
+                                                    // Увеличиваем яркость более агрессивно
+                                                    if (hsl.l < 0.7) {
+                                                        material.color.setHSL(hsl.h, Math.max(0.3, hsl.s), Math.min(0.8, hsl.l + 0.4));
+                                                    }
+                                                }
+                                                
+                                                // Дополнительно увеличиваем общую яркость через множитель
+                                                if (material.color) {
+                                                    material.color.multiplyScalar(1.3);
+                                                }
                                             }
                                             
                                             // Улучшенное определение стеклянных материалов
