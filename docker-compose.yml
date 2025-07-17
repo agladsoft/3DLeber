@@ -28,6 +28,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "25m"
+        max-file: "3"
+        compress: "true"
     networks:
       - app-network
 
@@ -97,6 +103,12 @@ services:
         limits:
           cpus: '1'
           memory: 4G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "25m"
+        max-file: "3"
+        compress: "true"
     networks:
       - app-network
 
@@ -133,6 +145,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "25m"
+        max-file: "3"
+        compress: "true"
     networks:
       - app-network
 
@@ -155,6 +173,12 @@ services:
       - ./certbot/www:/var/www/certbot:rw
     depends_on:
       - nginx
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
     networks:
       - app-network
 

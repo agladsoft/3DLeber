@@ -83,7 +83,7 @@ function createGreenBackground(width, length) {
 
     // Создаем материал для травы
     const textureLoader = new THREE.TextureLoader();
-    const grassTexture = textureLoader.load('textures/grass/grass_texture.jpg');
+    const grassTexture = textureLoader.load('textures/grass/grass_texture.png');
     grassTexture.wrapS = THREE.RepeatWrapping;
     grassTexture.wrapT = THREE.RepeatWrapping;
 

@@ -42,7 +42,7 @@ export function initializeRenderer() {
     // Современные настройки для улучшения качества отображения PBR материалов
     renderer.outputColorSpace = THREE.SRGBColorSpace; // Новый API вместо outputEncoding
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // Улучшенный tone mapping
-    renderer.toneMappingExposure = 0.3; // Снижена экспозиция для более темного фона
+    renderer.toneMappingExposure = 0.5; // Увеличена экспозиция для более светлых деревянных материалов
     
     console.log('Рендерер настроен для улучшенного отображения PBR материалов');
     
@@ -121,7 +121,17 @@ function createLighting() {
     pointLight.position.set(20, 30, 20);
     scene.add(pointLight);
     
-    console.log('Освещение настроено для оптимального отображения PBR материалов');
+    // Добавляем теплое направленное освещение для деревянных материалов
+    const warmLight = new THREE.DirectionalLight(0xffd4a3, 0.6); // Теплый желтоватый свет
+    warmLight.position.set(-40, 25, 30);
+    scene.add(warmLight);
+    
+    // Добавляем дополнительное мягкое освещение снизу для осветления теней
+    const bottomLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    bottomLight.position.set(0, -20, 0); // Свет снизу
+    scene.add(bottomLight);
+    
+    console.log('Освещение настроено для оптимального отображения PBR материалов, включая деревянные поверхности');
 }
 
 /**
@@ -163,8 +173,12 @@ function createEXRBackground() {
         
         // Обновляем материалы всех уже размещенных объектов
         setTimeout(() => {
-            import('../modules/objectManager.js').then(({ updateMaterialsEnvironmentMap }) => {
+            import('../modules/objectManager.js').then(({ updateMaterialsEnvironmentMap, updateWoodenMaterials }) => {
                 updateMaterialsEnvironmentMap();
+                // Дополнительно обновляем деревянные материалы для более светлого отображения
+                if (updateWoodenMaterials) {
+                    updateWoodenMaterials();
+                }
             }).catch(err => console.warn('Не удалось обновить материалы:', err));
         }, 100);
         
