@@ -193,7 +193,7 @@ export function updateMaterialsEnvironmentMap() {
                     material.envMapIntensity = 1.0;
                     
                     // Проверяем, является ли материал деревянным
-                    const isWood = material.name.includes('Лиственница') || material.name.includes('(CL_W) Timber 2020');
+                    const isWood = material.name.includes('Лиственница');
                     if (isWood) {
                         // Настройки для дерева - делаем значительно ярче
                         material.envMapIntensity = 2.5;
@@ -451,7 +451,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                                                 material.envMapIntensity = 1.0;
                                             }
 
-                                            const isWood = material.name.includes('Лиственница') || material.name.includes('(CL_W) Timber 2020');
+                                            const isWood = material.name.includes('Лиственница');
                                             if (isWood) {
                                                 // Делаем дерево значительно ярче
                                                 material.envMapIntensity = 2.5; // Сильно увеличиваем отражения
