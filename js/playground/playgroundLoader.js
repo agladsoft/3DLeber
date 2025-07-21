@@ -10,13 +10,13 @@ import { hideLoadingOverlay } from '../loadingManager.js';
 
 /**
  * Загрузка модели площадки
- * @param {String} modelName - Имя файла модели площадки (по умолчанию 'playground.glb')
+ * @param {String} modelName - Имя файла модели площадки (по умолчанию 'rubber')
  * @param {Number} width - Ширина площадки (опционально)
  * @param {Number} length - Длина площадки (опционально)
  * @param {String} color - Цвет площадки (серый, черный, зеленый, коричневый)
  * @returns {Promise} Промис, который разрешается, когда площадка загружена
  */
-export function loadPlayground(modelName = 'playground.glb', width = null, length = null, color = null) {
+export function loadPlayground(modelName = 'rubber', width = null, length = null, color = null) {
     let userWidth = PLAYGROUND.defaultWidth;
     let userLength = PLAYGROUND.defaultLength;
     let userColor = 'серый'; // Добавляем переменную с цветом по умолчанию
@@ -79,7 +79,7 @@ function removeExistingPlaygrounds() {
         scene.traverse((object) => {
             // Ищем объекты, которые могут быть площадками
             if (object && object.userData && 
-                (object.userData.modelName === 'playground.glb' || 
+                (object.userData.modelName === 'rubber' || 
                  object.userData.modelName === 'simple_playground' ||
                  (object.userData.modelName && object.userData.modelName.includes('playground')) ||
                  (object.name && object.name.includes('ground')) ||

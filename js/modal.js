@@ -351,7 +351,7 @@ async function autoRestoreSession(userId, session) {
             window.selectedPlaygroundColor = session.playground.color;
         } else {
             // Если параметры не найдены, используем дефолтные значения
-            window.selectedPlaygroundType = 'basketball_court.glb';
+            window.selectedPlaygroundType = 'rubber';
             window.selectedPlaygroundWidth = 40;
             window.selectedPlaygroundLength = 30;
             window.selectedPlaygroundColor = 'серый';
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedColor = document.getElementById('modalPlaygroundColor').value;
                 
                 // Сохраняем выбранные значения в глобальных переменных для использования в приложении
-                window.selectedPlaygroundType = 'basketball_court.glb';
+                window.selectedPlaygroundType = 'rubber';
                 window.selectedPlaygroundWidth = parseFloat(selectedWidth);
                 window.selectedPlaygroundLength = parseFloat(selectedLength);
                 window.selectedPlaygroundColor = selectedColor;
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
                 // Выводим информацию в консоль для отладки
                 console.log('Настройки площадки из модального окна:', {
-                    тип: 'basketball_court.glb',
+                    тип: 'rubber',
                     ширина: selectedWidth,
                     длина: selectedLength,
                     цвет: selectedColor
@@ -819,7 +819,7 @@ function initializePlaygroundPreview() {
     const playgroundPreview = document.getElementById('playgroundPreview');
     if (playgroundPreview) {
         // Устанавливаем начальную модель
-        updatePlaygroundPreview('playground.glb');
+        updatePlaygroundPreview('rubber');
     }
 }
 

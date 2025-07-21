@@ -711,7 +711,7 @@ function setupPlaygroundButton() {
             const playgroundModule = await import('../playground.js');
             
             // Загружаем новую площадку с новыми размерами
-            await playgroundModule.loadPlayground('basketball_court.glb', newWidth, newLength, currentColor);
+            await playgroundModule.loadPlayground('rubber', newWidth, newLength, currentColor);
             
             console.log(`Размеры площадки изменены: ширина=${newWidth}м, длина=${newLength}м`);
 
@@ -874,7 +874,7 @@ function setupPlaygroundButton() {
                 const length = window.selectedPlaygroundLength || 30;
                 
                 // Загружаем новую площадку с теми же размерами, но с новым цветом
-                await playgroundModule.loadPlayground('basketball_court.glb', width, length, selectedColor);
+                await playgroundModule.loadPlayground('rubber', width, length, selectedColor);
                 
                 console.log('Цвет площадки изменен на:', selectedColor);
 

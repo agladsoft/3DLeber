@@ -357,6 +357,15 @@ const PlaygroundModal = {
                 console.error('Ошибка при проверке позиций объектов:', error);
             }
             
+            // Сохраняем изменения площадки в базу данных session
+            try {
+                const { savePlaygroundParameters } = await import('./playground.js');
+                await savePlaygroundParameters('rubber', width, length, color);
+                console.log('Параметры площадки сохранены в базу данных:', { width, length, color });
+            } catch (error) {
+                console.error('Ошибка при сохранении параметров площадки в базу данных:', error);
+            }
+            
             // Обновляем метки размеров и статус
             const widthLabel = document.getElementById('widthLabel');
             const lengthLabel = document.getElementById('lengthLabel');
