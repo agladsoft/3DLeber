@@ -123,7 +123,7 @@ export function showTokenError() {
                 Недействительная или истекшая сессия доступа. 
                 Пожалуйста, перейдите по правильной ссылке или обратитесь к администратору.
             </p>
-            <button onclick="window.location.reload()" style="
+            <button onclick="window.location.href='https://leber.ru/ru/partner#projects'" style="
                 background-color: #007bff;
                 color: white;
                 border: none;
@@ -133,7 +133,7 @@ export function showTokenError() {
                 cursor: pointer;
                 font-family: inherit;
             ">
-                Обновить страницу
+                Перейти в кабинет партнера
             </button>
         </div>
     `;
