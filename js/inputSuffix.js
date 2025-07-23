@@ -61,8 +61,6 @@ function positionSuffix(input, suffix) {
     suffix.style.right = 'auto';
     suffix.style.left = `${paddingLeft + textWidth + spacing}px`;
     suffix.style.opacity = '1';
-    
-    console.log(`Positioned suffix for ${input.id}: "${value}" -> left: ${paddingLeft + textWidth + spacing}px`);
 }
 
 // Debounced версия функции обновления

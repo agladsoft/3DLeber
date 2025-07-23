@@ -169,13 +169,16 @@ const PlaygroundModal = {
         let currentLength = 30;
         let currentColor = 'серый'; // По умолчанию серый, как в остальном приложении
         
-        // Пробуем получить размеры из разных источников
-        if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
-            currentWidth = window.selectedPlaygroundWidth;
-            currentLength = window.selectedPlaygroundLength;
+        // Пробуем получить размеры из window.app переменных
+        if (window.app && window.app.playgroundWidth && window.app.playgroundLength) {
+            currentWidth = window.app.playgroundWidth;
+            currentLength = window.app.playgroundLength;
+            if (window.app.playgroundColor) {
+                currentColor = window.app.playgroundColor;
+            }
         }
         
-        // Пробуем получить из playgroundCore модуля
+        // Пробуем получить из playgroundCore модуля (сначала базовые значения)
         try {
             const module = await import('./playground/playgroundCore.js');
             if (module.playgroundWidth && module.playgroundWidth !== 40) {
@@ -188,11 +191,18 @@ const PlaygroundModal = {
             console.log('Не удалось импортировать playgroundCore:', error);
         }
         
-        // Пробуем получить цвет из разных источников
+        // Пробуем получить размеры из window.selected переменных (они имеют ПРИОРИТЕТ)
+        if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
+            currentWidth = window.selectedPlaygroundWidth;
+            currentLength = window.selectedPlaygroundLength;
+        }
+        
         if (window.selectedPlaygroundColor) {
             currentColor = window.selectedPlaygroundColor;
-        } else {
-            // Пробуем получить из ground объекта
+        }
+        
+        // Пробуем получить цвет из ground объекта (если еще не установлен)
+        if (currentColor === 'серый' || !currentColor) {
             const ground = 
                 (window.app && window.app.ground) || 
                 (window.ground) || 
@@ -460,6 +470,7 @@ const PlaygroundModal = {
             // Обновляем глобальные переменные для проверки границ площадки
             window.selectedPlaygroundWidth = width;
             window.selectedPlaygroundLength = length;
+            window.selectedPlaygroundColor = color;
             
             // Проверяем все объекты на соответствие новым границам площадки
             try {
@@ -487,17 +498,17 @@ const PlaygroundModal = {
             if (lengthLabel) lengthLabel.textContent = `${length}м`;
             if (playgroundStatus) playgroundStatus.textContent = `Площадка: ${width}м × ${length}м`;
             
-            // Показываем уведомление
-            this.showNotification(`Настройки площадки применены: ${width}м × ${length}м, цвет: ${color}`);
-            
-            // Закрываем модальное окно
-            this.close();
-            
             // Вызываем событие изменения размеров площадки для обновления других модулей
             const event = new CustomEvent('playgroundChanged', {
                 detail: { width, length, color, colorHex }
             });
             document.dispatchEvent(event);
+            
+            // Показываем уведомление
+            this.showNotification(`Настройки площадки применены: ${width}м × ${length}м, цвет: ${color}`);
+            
+            // Закрываем модальное окно
+            this.close();
             
         } catch (error) {
             console.error('Ошибка при применении настроек площадки:', error);
@@ -576,16 +587,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Обновляем выбранный цвет, если передан
-            if (e.detail.color) {
-                const colorSquares = document.querySelectorAll('.pg-color-square');
-                colorSquares.forEach(square => {
-                    if (square.getAttribute('data-color') === e.detail.color) {
-                        // Сначала снимаем выделение со всех квадратов
-                        colorSquares.forEach(s => s.classList.remove('selected'));
-                        // Выделяем нужный квадрат
-                        square.classList.add('selected');
-                    }
-                });
+            if (e.detail.color && PlaygroundModal && PlaygroundModal.selectColor) {
+                PlaygroundModal.selectColor(e.detail.color);
             }
         });
         
