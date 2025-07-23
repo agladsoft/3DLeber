@@ -19,6 +19,9 @@ export let placedObjects = [];
 const modelCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
+// Массив для хранения 3D preloader'ов
+const scenePreloaders = new Map();
+
 /**
  * Обновляет UI с батчингом для лучшей производительности при множественных операциях
  * @param {string} modelName - Имя модели  
@@ -67,7 +70,7 @@ function getModelPath(fileName) {
     return `${MODEL_PATHS.glb}/${fileName}`;
 }
 
-function processLoadedModel(container, modelName, position) {
+function processLoadedModel(container, modelName, position, isRestoring = false) {
     // Устанавливаем позицию модели
     if (position) {
         container.position.copy(position);
@@ -159,13 +162,15 @@ function processLoadedModel(container, modelName, position) {
     // После успешной загрузки модели обновляем видимость безопасных зон
     updateSafetyZonesVisibility();
     
-    // Скрываем preloader сразу после того, как модель стала интерактивной
-    import('../sidebar.js').then(({ hideModelPreloader }) => {
-        hideModelPreloader(modelName);
-        console.log(`Preloader скрыт для модели ${modelName} после завершения processLoadedModel`);
-    }).catch(error => {
-        console.error('Ошибка при скрытии preloader:', error);
-    });
+    // Скрываем preloader только если это не восстановление сессии (при восстановлении управляем централизованно)
+    if (!isRestoring) {
+        import('../sidebar.js').then(({ hideModelPreloader }) => {
+            hideModelPreloader(modelName);
+            console.log(`Preloader скрыт для модели ${modelName} после завершения processLoadedModel`);
+        }).catch(error => {
+            console.error('Ошибка при скрытии preloader:', error);
+        });
+    }
     
     console.log(`Модель ${modelName} обработана и настроена с ID: ${container.userData.id}`);
 }
@@ -330,6 +335,115 @@ export function generateObjectId() {
 }
 
 /**
+ * Создает 3D preloader на сцене в указанной позиции
+ * @param {string} objectId - Уникальный ID объекта
+ * @param {THREE.Vector3} position - Позиция для размещения preloader'а
+ * @param {string} modelName - Имя модели (для отладки)
+ * @returns {THREE.Group} Группа с preloader'ом
+ */
+export function createScenePreloader(objectId, position, modelName = '') {
+    // Создаем группу для preloader'а
+    const preloaderGroup = new THREE.Group();
+    preloaderGroup.name = `preloader_${objectId}`;
+    
+    // Устанавливаем позицию и поднимаем на высоту половины куба, чтобы он стоял на поверхности
+    const cubeHeight = 1.5;
+    preloaderGroup.position.set(
+        position.x, 
+        position.y + cubeHeight / 2, // Поднимаем на половину высоты
+        position.z
+    );
+    
+    // Создаем wireframe куб (уменьшенный размер)
+    const geometry = new THREE.BoxGeometry(1.5, cubeHeight, 1.5);
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+        color: 0xF05323, // Оранжевый цвет как в CSS
+        wireframe: true,
+        transparent: true,
+        opacity: 0.8
+    });
+    
+    const wireframeCube = new THREE.Mesh(geometry, wireframeMaterial);
+    preloaderGroup.add(wireframeCube);
+    
+    // Создаем внутренний solid куб для дополнительного эффекта
+    const solidGeometry = new THREE.BoxGeometry(1.2, cubeHeight * 0.8, 1.2);
+    const solidMaterial = new THREE.MeshBasicMaterial({
+        color: 0xF05323,
+        transparent: true,
+        opacity: 0.2
+    });
+    
+    const solidCube = new THREE.Mesh(solidGeometry, solidMaterial);
+    preloaderGroup.add(solidCube);
+    
+    // Добавляем метаданные
+    preloaderGroup.userData.isPreloader = true;
+    preloaderGroup.userData.objectId = objectId;
+    preloaderGroup.userData.modelName = modelName;
+    preloaderGroup.userData.created = Date.now();
+    preloaderGroup.userData.animationActive = true;
+    
+    // Добавляем на сцену
+    scene.add(preloaderGroup);
+    
+    // Сохраняем в коллекции
+    scenePreloaders.set(objectId, preloaderGroup);
+    
+    console.log(`3D Preloader создан для объекта ${objectId} (${modelName}) в позиции:`, preloaderGroup.position);
+    
+    return preloaderGroup;
+}
+
+/**
+ * Удаляет 3D preloader с сцены
+ * @param {string} objectId - ID объекта
+ */
+export function removeScenePreloader(objectId) {
+    const preloader = scenePreloaders.get(objectId);
+    if (preloader) {
+        // Останавливаем анимацию
+        preloader.userData.animationActive = false;
+        
+        // Удаляем с сцены
+        scene.remove(preloader);
+        
+        // Освобождаем ресурсы
+        preloader.traverse((child) => {
+            if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => mat.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            }
+        });
+        
+        // Удаляем из коллекции
+        scenePreloaders.delete(objectId);
+        
+        console.log(`3D Preloader удален для объекта ${objectId}`);
+    }
+}
+
+/**
+ * Удаляет все 3D preloader'ы с сцены
+ */
+export function removeAllScenePreloaders() {
+    console.log(`Удаляем все 3D preloader'ы (${scenePreloaders.size} штук)`);
+    
+    scenePreloaders.forEach((preloader, objectId) => {
+        removeScenePreloader(objectId);
+    });
+    
+    scenePreloaders.clear();
+    console.log('Все 3D preloader\'ы удалены');
+}
+
+/**
  * Загружает и размещает модель на сцене
  * @param {string} modelName - Имя файла модели
  * @param {THREE.Vector3} position - Позиция для размещения
@@ -374,7 +488,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                 console.log("Используем модель из кэша:", modelName);
                 const cachedModel = modelCache.get(modelName);
                 container.add(cachedModel.clone());
-                processLoadedModel(container, modelName, position);
+                processLoadedModel(container, modelName, position, isRestoring);
                 
                 // Обновляем сессию в базе данных только если это не восстановление
                 if (!isRestoring) {
@@ -556,7 +670,7 @@ export async function loadAndPlaceModel(modelName, position, isRestoring = false
                         }
                         
                         // Обрабатываем загруженную модель (включает добавление в сцену)
-                        processLoadedModel(container, modelName, position);
+                        processLoadedModel(container, modelName, position, isRestoring);
 
                         // Обновляем сессию в базе данных только если это не восстановление
                         if (!isRestoring) {

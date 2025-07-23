@@ -26,6 +26,16 @@ export function updatePlaygroundDimensions(width, length) {
     playgroundWidth = parseFloat(width);
     playgroundLength = parseFloat(length);
     
+    // Синхронизируем с глобальными переменными
+    if (window.selectedPlaygroundWidth !== undefined && window.selectedPlaygroundLength !== undefined) {
+        window.selectedPlaygroundWidth = playgroundWidth;
+        window.selectedPlaygroundLength = playgroundLength;
+        console.log('Синхронизированы размеры с глобальными переменными:', {
+            width: window.selectedPlaygroundWidth,
+            length: window.selectedPlaygroundLength
+        });
+    }
+    
     // Обновляем метки с правильными значениями
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
 }
@@ -40,6 +50,16 @@ export function createPlayground(width, length) {
     // Обновляем размеры площадки
     playgroundWidth = width;
     playgroundLength = length;
+    
+    // Синхронизируем с глобальными переменными
+    if (window.selectedPlaygroundWidth !== undefined && window.selectedPlaygroundLength !== undefined) {
+        window.selectedPlaygroundWidth = playgroundWidth;
+        window.selectedPlaygroundLength = playgroundLength;
+        console.log('createPlayground: Синхронизированы размеры с глобальными переменными:', {
+            width: window.selectedPlaygroundWidth,
+            length: window.selectedPlaygroundLength
+        });
+    }
     
     // Обновляем текстовый статус и метки размеров
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
@@ -104,6 +124,17 @@ export function resetPlayground(width, length) {
     // Обновляем текстовый статус и метки размеров
     playgroundWidth = width;
     playgroundLength = length;
+    
+    // Синхронизируем с глобальными переменными
+    if (window.selectedPlaygroundWidth !== undefined && window.selectedPlaygroundLength !== undefined) {
+        window.selectedPlaygroundWidth = playgroundWidth;
+        window.selectedPlaygroundLength = playgroundLength;
+        console.log('resetPlayground: Синхронизированы размеры с глобальными переменными:', {
+            width: window.selectedPlaygroundWidth,
+            length: window.selectedPlaygroundLength
+        });
+    }
+    
     updatePlaygroundLabels(playgroundWidth, playgroundLength);
     
     // Удаляем все желтые элементы
