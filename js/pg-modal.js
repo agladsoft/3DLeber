@@ -17,8 +17,8 @@ const PlaygroundModal = {
     // Состояние
     state: {
         isOpen: false,
-        selectedColor: 'зеленый',
-        selectedColorHex: '#2E7D32'
+        selectedColor: 'серый',
+        selectedColorHex: '#D9D9D9'
     },
     
     /**
@@ -55,10 +55,10 @@ const PlaygroundModal = {
     setupEventListeners: function() {
         // Если кнопка "Площадка" найдена, добавляем обработчик
         if (this.elements.playgroundButton) {
-            this.elements.playgroundButton.addEventListener('click', (e) => {
+            this.elements.playgroundButton.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.open();
+                await this.open();
             });
         }
         
@@ -104,6 +104,14 @@ const PlaygroundModal = {
         window.addEventListener('resize', () => {
             if (this.state.isOpen) {
                 this.updatePosition();
+            }
+        });
+        
+        // Обработчик изменения параметров площадки извне
+        document.addEventListener('playgroundChanged', async (e) => {
+            // Если модальное окно открыто, обновляем значения
+            if (this.state.isOpen) {
+                await this.loadCurrentValues();
             }
         });
     },
@@ -153,20 +161,124 @@ const PlaygroundModal = {
     },
     
     /**
+     * Получение текущих параметров площадки
+     */
+    getCurrentPlaygroundParams: async function() {
+        // Получаем текущие размеры
+        let currentWidth = 40;
+        let currentLength = 30;
+        let currentColor = 'серый'; // По умолчанию серый, как в остальном приложении
+        
+        // Пробуем получить размеры из разных источников
+        if (window.selectedPlaygroundWidth && window.selectedPlaygroundLength) {
+            currentWidth = window.selectedPlaygroundWidth;
+            currentLength = window.selectedPlaygroundLength;
+        }
+        
+        // Пробуем получить из playgroundCore модуля
+        try {
+            const module = await import('./playground/playgroundCore.js');
+            if (module.playgroundWidth && module.playgroundWidth !== 40) {
+                currentWidth = module.playgroundWidth;
+            }
+            if (module.playgroundLength && module.playgroundLength !== 30) {
+                currentLength = module.playgroundLength;
+            }
+        } catch (error) {
+            console.log('Не удалось импортировать playgroundCore:', error);
+        }
+        
+        // Пробуем получить цвет из разных источников
+        if (window.selectedPlaygroundColor) {
+            currentColor = window.selectedPlaygroundColor;
+        } else {
+            // Пробуем получить из ground объекта
+            const ground = 
+                (window.app && window.app.ground) || 
+                (window.ground) || 
+                (window.scene && window.scene.getObjectByName('main_surface'));
+            
+            if (ground && ground.userData && ground.userData.groundColor) {
+                currentColor = ground.userData.groundColor;
+            }
+        }
+        
+        return {
+            width: currentWidth,
+            length: currentLength,
+            color: currentColor
+        };
+    },
+    
+    /**
+     * Загрузка текущих значений в поля ввода
+     */
+    loadCurrentValues: async function() {
+        const params = await this.getCurrentPlaygroundParams();
+        
+        // Устанавливаем значения в поля ввода
+        if (this.elements.widthInput) {
+            this.elements.widthInput.value = params.width;
+            // Уведомляем систему суффиксов об изменении значения
+            if (window.SuffixManager) {
+                window.SuffixManager.notifyValueChange('pgWidthInput');
+            }
+        }
+        
+        if (this.elements.lengthInput) {
+            this.elements.lengthInput.value = params.length;
+            // Уведомляем систему суффиксов об изменении значения
+            if (window.SuffixManager) {
+                window.SuffixManager.notifyValueChange('pgLengthInput');
+            }
+        }
+        
+        // Устанавливаем выбранный цвет
+        this.selectColor(params.color);
+        
+        console.log('Загружены текущие параметры площадки:', params);
+    },
+    
+    /**
+     * Выбор цвета в интерфейсе
+     */
+    selectColor: function(colorName) {
+        if (!this.elements.colorSquares) return;
+        
+        // Снимаем выделение со всех квадратов
+        this.elements.colorSquares.forEach(square => {
+            square.classList.remove('selected');
+        });
+        
+        // Находим и выделяем нужный цвет
+        this.elements.colorSquares.forEach(square => {
+            const squareColor = square.getAttribute('data-color');
+            if (squareColor === colorName) {
+                square.classList.add('selected');
+                this.state.selectedColor = colorName;
+                this.state.selectedColorHex = square.style.backgroundColor;
+            }
+        });
+    },
+    
+    /**
      * Открытие модального окна
      */
-    open: function() {
+    open: async function() {
         if (!this.elements.modal || !this.elements.backdrop) {
             console.error('Элементы модального окна не найдены');
             return;
         }
         
+        // Сначала показываем модальное окно
+        this.elements.backdrop.style.display = 'block';
+        this.elements.modal.style.display = 'block';
+        
         // Обновляем позицию модального окна относительно кнопки
         this.updatePosition();
         
-        // Показываем модальное окно и backdrop
-        this.elements.backdrop.style.display = 'block';
-        this.elements.modal.style.display = 'block';
+        // Загружаем текущие значения площадки (асинхронно)
+        await this.loadCurrentValues();
         
         // Обновляем состояние
         this.state.isOpen = true;
