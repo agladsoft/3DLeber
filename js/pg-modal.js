@@ -330,8 +330,8 @@ const PlaygroundModal = {
     apply: async function() {
         try {
             // Получаем значения из полей ввода
-            const width = parseInt(this.elements.widthInput.value) || 40;
-            const length = parseInt(this.elements.lengthInput.value) || 30;
+            const width = parseFloat(this.elements.widthInput.value) || 40;
+            const length = parseFloat(this.elements.lengthInput.value) || 30;
             
             // Получаем выбранный цвет
             const selectedSquare = document.querySelector('.pg-color-square.selected');
