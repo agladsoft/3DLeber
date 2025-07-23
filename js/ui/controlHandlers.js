@@ -282,6 +282,16 @@ function setupSettingsButton() {
     }
 }
 
+// Флаг для отслеживания состояния режима "Вид сверху"
+let isTopViewActive = false;
+
+/**
+ * Устанавливает состояние режима "Вид сверху"
+ */
+function setTopViewState(isActive) {
+    isTopViewActive = isActive;
+}
+
 /**
  * Настраивает кнопку экспорта (вид сверху)
  */
@@ -321,8 +331,12 @@ function setupExportModelButton() {
                 // Визуальная обратная связь на кнопке
                 if (isActive) {
                     this.classList.add('active');
+                    // Устанавливаем флаг активности режима "Вид сверху"
+                    setTopViewState(true);
                 } else {
                     this.classList.remove('active');
+                    // Снимаем флаг активности режима "Вид сверху"
+                    setTopViewState(false);
                 }
             } catch (error) {
                 console.error('Ошибка при включении режима вид сверху:', error);
@@ -615,7 +629,19 @@ function setupChangePlaygroundButton() {
 function setupResetViewButton() {
     const resetViewButton = document.getElementById("resetView");
     if (resetViewButton) {
+        // Проверяем состояние кнопки exportModel при инициализации
+        const exportModelButton = document.getElementById('exportModel');
+        if (exportModelButton && exportModelButton.classList.contains('active')) {
+            setTopViewState(true);
+        }
+        
         resetViewButton.addEventListener("click", () => {
+            // Блокируем функционал если активен режим "Вид сверху"
+            if (isTopViewActive) {
+                console.log('Reset view blocked - top view mode is active');
+                return;
+            }
+            
             resetCameraView(playgroundWidth, playgroundLength);
         });
     }
