@@ -1,9 +1,8 @@
 /**
- * Модуль с исправлениями для решения проблем с перемещением объектов
+ * Файл с исправлениями и улучшениями для совместимости и корректной работы приложения
  */
-
 import * as THREE from 'three';
-import { API_BASE_URL } from './api/serverConfig.js'
+import { API_BASE_URL } from './api/serverConfig.js';
 
 /**
  * Проверяет целостность сцены и объектов
@@ -340,6 +339,18 @@ export async function restorePlacedObjects(session) {
         // Импортируем необходимые модули
         const objectManager = await import('./modules/objectManager.js');
         const collisionModule = await import('./modules/collisionDetection.js');
+        
+        // Импортируем функции для обновления загрузочного экрана
+        let loadingManager = null;
+        try {
+            const loadingModule = await import('./loadingManager.js');
+            loadingManager = {
+                updateProgress: loadingModule.updateStandardLoadingProgress,
+                setLoadingText: loadingModule.setLoadingText
+            };
+        } catch (error) {
+            console.log('Loading manager not available for progress updates:', error);
+        }
                 
         // Фильтруем объекты - восстанавливаем только те, модели которых есть в текущих modelsData
         const objectsToRestore = session.placedObjects.filter(objectData => {
@@ -350,10 +361,46 @@ export async function restorePlacedObjects(session) {
             return isAvailable;
         });
         
-        console.log(`Будет восстановлено ${objectsToRestore.length} из ${session.placedObjects.length} объектов`);
+        console.log(`Начинаем восстановление ${objectsToRestore.length} из ${session.placedObjects.length} объектов`);
+        
+        // Обновляем прогресс - подготовка к восстановлению объектов
+        if (loadingManager) {
+            await loadingManager.updateProgress(75, `Подготовка к восстановлению (${objectsToRestore.length} объектов)...`);
+        }
+        
+        // Создаем 3D preloader'ы для всех объектов на их позициях
+        console.log('Создаем 3D preloader\'ы на площадке...');
+        const preloaderIds = [];
+        
+        objectsToRestore.forEach((objectData, index) => {
+            const position = new THREE.Vector3(
+                parseFloat(objectData.coordinates.x),
+                parseFloat(objectData.coordinates.y),
+                parseFloat(objectData.coordinates.z)
+            );
+            
+            const preloaderId = `restore_${index}_${objectData.id}`;
+            objectManager.createScenePreloader(preloaderId, position, objectData.modelName);
+            preloaderIds.push(preloaderId);
+        });
+        
+        console.log(`Создано ${preloaderIds.length} 3D preloader'ов на площадке`);
         
         // Восстанавливаем только отфильтрованные объекты
-        for (const objectData of objectsToRestore) {
+        for (let i = 0; i < objectsToRestore.length; i++) {
+            const objectData = objectsToRestore[i];
+            const modelName = objectData.modelName;
+            const preloaderId = preloaderIds[i];
+            
+            console.log(`Восстанавливаем объект ${i + 1}/${objectsToRestore.length}: ${modelName}`);
+            
+            // Обновляем прогресс восстановления
+            if (loadingManager) {
+                const progress = 75 + Math.round((i / objectsToRestore.length) * 20); // 75-95%
+                const progressText = `Восстановление объектов (${i + 1}/${objectsToRestore.length})...`;
+                await loadingManager.updateProgress(progress, progressText);
+            }
+            
             // Создаем объект позиции из сохраненных координат
             const position = {
                 x: parseFloat(objectData.coordinates.x),
@@ -361,36 +408,62 @@ export async function restorePlacedObjects(session) {
                 z: parseFloat(objectData.coordinates.z)
             };
             
-            // Загружаем и размещаем модель с флагом восстановления
-            await objectManager.loadAndPlaceModel(objectData.modelName, position, true);
-            
-            // Находим последний размещенный объект и устанавливаем его поворот
-            const lastPlacedObject = objectManager.placedObjects[objectManager.placedObjects.length - 1];
-            if (lastPlacedObject) {
-                lastPlacedObject.rotation.y = parseFloat(objectData.rotation);
+            try {
+                // Загружаем и размещаем модель с флагом восстановления
+                await objectManager.loadAndPlaceModel(objectData.modelName, position, true);
                 
-                // Обновляем размеры объекта, если они были сохранены
-                if (objectData.dimensions) {
-                    lastPlacedObject.userData.realWidth = parseFloat(objectData.dimensions.width);
-                    lastPlacedObject.userData.realHeight = parseFloat(objectData.dimensions.height);
-                    lastPlacedObject.userData.realDepth = parseFloat(objectData.dimensions.depth);
+                // Находим последний размещенный объект и устанавливаем его поворот
+                const lastPlacedObject = objectManager.placedObjects[objectManager.placedObjects.length - 1];
+                if (lastPlacedObject) {
+                    lastPlacedObject.rotation.y = parseFloat(objectData.rotation);
+                    
+                    // Обновляем размеры объекта, если они были сохранены
+                    if (objectData.dimensions) {
+                        lastPlacedObject.userData.realWidth = parseFloat(objectData.dimensions.width);
+                        lastPlacedObject.userData.realHeight = parseFloat(objectData.dimensions.height);
+                        lastPlacedObject.userData.realDepth = parseFloat(objectData.dimensions.depth);
+                    }
+                    
+                    // ВАЖНО: сохраняем исходный ID объекта, чтобы при последующих
+                    // обновлениях позиции/поворота в существующей сессии данные
+                    // в базе перезаписывались, а не добавлялись как новые записи
+                    lastPlacedObject.userData.id = objectData.id;
+                    
+                    // Также обновляем имя контейнера (используется в логах/отладке)
+                    // чтобы он соответствовал исходному ID
+                    if (lastPlacedObject.name) {
+                        lastPlacedObject.name = `${objectData.modelName}_${objectData.id}`;
+                    }
                 }
                 
-                // ВАЖНО: сохраняем исходный ID объекта, чтобы при последующих
-                // обновлениях позиции/поворота в существующей сессии данные
-                // в базе перезаписывались, а не добавлялись как новые записи
-                lastPlacedObject.userData.id = objectData.id;
+                // Удаляем 3D preloader для этого объекта после успешной загрузки
+                objectManager.removeScenePreloader(preloaderId);
+                console.log(`3D preloader удален для объекта ${modelName} после успешной загрузки`);
                 
-                // Также обновляем имя контейнера (используется в логах/отладке)
-                // чтобы он соответствовал исходному ID
-                if (lastPlacedObject.name) {
-                    lastPlacedObject.name = `${objectData.modelName}_${objectData.id}`;
-                }
+            } catch (error) {
+                console.error(`Ошибка при восстановлении объекта ${modelName}:`, error);
+                
+                // Удаляем 3D preloader при ошибке
+                objectManager.removeScenePreloader(preloaderId);
+                console.log(`3D preloader удален для объекта ${modelName} из-за ошибки загрузки`);
             }
         }
         
+        // Финальное обновление прогресса
+        if (loadingManager) {
+            await loadingManager.updateProgress(95, 'Завершение восстановления...');
+        }
+        
+        // Убеждаемся, что все 3D preloader'ы удалены (принудительная очистка)
+        setTimeout(() => {
+            objectManager.removeAllScenePreloaders();
+            console.log('Принудительно удалены все оставшиеся 3D preloader\'ы');
+        }, 1000);
+        
         // Проверяем все объекты на коллизии после восстановления
         collisionModule.checkAllObjectsPositions();
+        
+        console.log(`Восстановление завершено: ${objectsToRestore.length} объектов восстановлено`);
         
         // Если некоторые объекты были отфильтрованы, обновляем сессию в базе данных
         if (objectsToRestore.length < session.placedObjects.length) {
