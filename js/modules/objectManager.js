@@ -357,7 +357,7 @@ export function createScenePreloader(objectId, position, modelName = '') {
     // Создаем wireframe куб (уменьшенный размер)
     const geometry = new THREE.BoxGeometry(1.5, cubeHeight, 1.5);
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-        color: 0xF05323, // Оранжевый цвет как в CSS
+        color: 0xFFFFFF, // Оранжевый цвет как в CSS
         wireframe: true,
         transparent: true,
         opacity: 0.8
@@ -369,7 +369,7 @@ export function createScenePreloader(objectId, position, modelName = '') {
     // Создаем внутренний solid куб для дополнительного эффекта
     const solidGeometry = new THREE.BoxGeometry(1.2, cubeHeight * 0.8, 1.2);
     const solidMaterial = new THREE.MeshBasicMaterial({
-        color: 0xF05323,
+        color: 0xFFFFFF,
         transparent: true,
         opacity: 0.2
     });
