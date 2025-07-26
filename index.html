@@ -12,6 +12,9 @@
     <!-- Model Viewer -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     
+    <!-- Fabric.js для кастомного редактора площадок -->
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+    
     <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -45,7 +48,28 @@
         <div class="modal-content platform-select-content">
             <h3>ВЫБЕРИТЕ<br>ПАРАМЕТРЫ ПЛОЩАДКИ</h3>
             
-            <div class="platform-settings">
+            <!-- Выбор типа площадки -->
+            <div class="control-group">
+                <label>Тип площадки:</label>
+                <div class="playground-type-selector">
+                    <div id="standardPlayground" class="type-option active" data-type="standard">
+                        <div class="type-icon">📐</div>
+                        <div class="type-info">
+                            <div class="type-title">Стандартная</div>
+                            <div class="type-desc">Прямоугольная форма</div>
+                        </div>
+                    </div>
+                    <div id="customPlayground" class="type-option" data-type="custom">
+                        <div class="type-icon">🎨</div>
+                        <div class="type-info">
+                            <div class="type-title">Нестандартная</div>
+                            <div class="type-desc">Произвольная форма</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="platform-settings" id="standardSettings">
                 <div class="control-group input-with-suffix">
                     <input type="number" id="modalPlaygroundWidth" min="10" max="100" value="" placeholder="Ширина" class="modern-input">
                     <span class="input-suffix" style="opacity: 0;">м</span>
@@ -73,6 +97,16 @@
                     <input type="hidden" id="modalPlaygroundColor" value="серый">
                 </div>
             </div>
+            
+            <!-- Настройки для нестандартной площадки -->
+            <div class="platform-settings" id="customSettings" style="display: none;">
+                <div class="custom-playground-status">
+                    <div class="status-icon">🎨</div>
+                    <h4>Редактор площадки откроется в новом окне</h4>
+                    <p>После создания площадки приложение запустится автоматически</p>
+                </div>
+            </div>
+            
             <div class="platform-buttons modern-buttons">
                 <button id="cancelPlatformButton" class="action-button modern-button outline-button">Отмена</button>
                 <button id="startAppButton" class="action-button modern-button filled-button">Создать</button>

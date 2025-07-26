@@ -349,6 +349,11 @@ async function autoRestoreSession(userId, session) {
             window.selectedPlaygroundWidth = session.playground.width;
             window.selectedPlaygroundLength = session.playground.length;
             window.selectedPlaygroundColor = session.playground.color;
+            
+            // Восстанавливаем данные кастомной площадки если есть
+            if (session.playground.customShape) {
+                window.customPlaygroundShape = session.playground.customShape;
+            }
         } else {
             // Если параметры не найдены, используем дефолтные значения
             window.selectedPlaygroundType = 'rubber';
@@ -573,8 +578,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPlaygroundColorField = document.getElementById('modalPlaygroundColor');
     const colorSquares = document.querySelectorAll('.color-square');
     
+    // Элементы для управления типом площадки
+    const standardPlaygroundOption = document.getElementById('standardPlayground');
+    const customPlaygroundOption = document.getElementById('customPlayground');
+    const standardPlaygroundConfig = document.getElementById('standardSettings');
+    const customPlaygroundEditor = document.getElementById('customSettings');
+    
     // Инициализация превью площадки
     initializePlaygroundPreview();
+    
+    // Инициализация переключения типа площадки
+    initializePlaygroundTypeSwitch();
 
     // Добавляем обработчики для цветных квадратиков
     colorSquares.forEach(square => {
@@ -637,16 +651,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Инициализируем стандартную загрузку новой сессии
                 const loadingManager = await standardNewSessionInit();
                 
-                // Получаем выбранные значения
-                const selectedWidth = document.getElementById('modalPlaygroundWidth').value;
-                const selectedLength = document.getElementById('modalPlaygroundLength').value;
-                const selectedColor = document.getElementById('modalPlaygroundColor').value;
+                // Определяем тип площадки
+                const customPlaygroundElement = document.getElementById('customPlayground');
+                const isCustomPlayground = customPlaygroundElement && (customPlaygroundElement.classList.contains('selected') || customPlaygroundElement.classList.contains('active'));
+                
+                console.log('Custom playground element:', customPlaygroundElement);
+                console.log('Is custom playground:', isCustomPlayground);
+                if (customPlaygroundElement) {
+                    console.log('Custom playground classes:', customPlaygroundElement.classList.toString());
+                }
+                console.log('Custom playground shape data:', window.customPlaygroundShape);
+                
+                let selectedWidth, selectedLength, selectedColor, customShape = null;
+                
+                if (isCustomPlayground) {
+                    // Кастомная площадка - экспортируем данные из Fabric.js
+                    if (window.customPlaygroundCanvas) {
+                        const playgroundObjects = window.customPlaygroundCanvas.getObjects()
+                            .filter(obj => !obj.isGrid && obj.objectType === 'playground');
+                        
+                        if (playgroundObjects.length === 0) {
+                            throw new Error('Создайте хотя бы одну фигуру для кастомной площадки');
+                        }
+                        
+                        customShape = {
+                            objects: playgroundObjects.map(obj => obj.toObject(['objectType'])),
+                            canvasWidth: window.customPlaygroundCanvas.width,
+                            canvasHeight: window.customPlaygroundCanvas.height
+                        };
+                        
+                        // Для кастомной площадки используем размеры canvas
+                        selectedWidth = 60; // Примерный размер в метрах
+                        selectedLength = 40;
+                        selectedColor = 'зеленый';
+                    } else {
+                        throw new Error('Canvas кастомной площадки не инициализирован');
+                    }
+                } else {
+                    // Стандартная площадка
+                    selectedWidth = document.getElementById('modalPlaygroundWidth').value;
+                    selectedLength = document.getElementById('modalPlaygroundLength').value;
+                    selectedColor = document.getElementById('modalPlaygroundColor').value;
+                }
                 
                 // Сохраняем выбранные значения в глобальных переменных для использования в приложении
-                window.selectedPlaygroundType = 'rubber';
+                window.selectedPlaygroundType = isCustomPlayground ? 'custom' : 'rubber';
                 window.selectedPlaygroundWidth = parseFloat(selectedWidth);
                 window.selectedPlaygroundLength = parseFloat(selectedLength);
                 window.selectedPlaygroundColor = selectedColor;
+                window.customPlaygroundShape = customShape;
                     
                 // Получаем project_id из sessionStorage
                 const userId = sessionStorage.getItem('userId');
@@ -821,6 +874,781 @@ function initializePlaygroundPreview() {
         // Устанавливаем начальную модель
         updatePlaygroundPreview('rubber');
     }
+}
+
+/**
+ * Инициализирует переключение типа площадки
+ */
+function initializePlaygroundTypeSwitch() {
+    const standardPlaygroundOption = document.getElementById('standardPlayground');
+    const customPlaygroundOption = document.getElementById('customPlayground');
+    const standardPlaygroundConfig = document.getElementById('standardSettings');
+    const customPlaygroundEditor = document.getElementById('customSettings');
+    
+    if (!standardPlaygroundOption || !customPlaygroundOption) {
+        console.log('Playground type options not found, skipping initialization');
+        console.log('Standard option:', standardPlaygroundOption);
+        console.log('Custom option:', customPlaygroundOption);
+        return;
+    }
+    
+    console.log('Playground type switch initialized successfully');
+    console.log('Standard config:', standardPlaygroundConfig);
+    console.log('Custom editor:', customPlaygroundEditor);
+    
+    // Обработчик для стандартной площадки
+    standardPlaygroundOption.addEventListener('click', () => {
+        // Визуальное обновление выбора
+        standardPlaygroundOption.classList.add('selected', 'active');
+        customPlaygroundOption.classList.remove('selected', 'active');
+        
+        // Показать/скрыть соответствующие секции
+        if (standardPlaygroundConfig) standardPlaygroundConfig.style.display = 'block';
+        if (customPlaygroundEditor) customPlaygroundEditor.style.display = 'none';
+        
+        // Очистить любой активный Fabric.js canvas
+        if (window.customPlaygroundCanvas) {
+            window.customPlaygroundCanvas.dispose();
+            window.customPlaygroundCanvas = null;
+        }
+        
+        console.log('Выбрана стандартная площадка');
+    });
+    
+    // Обработчик для кастомной площадки
+    customPlaygroundOption.addEventListener('click', () => {
+        // Открываем полный редактор в новом окне
+        openFullPlaygroundEditor();
+    });
+    
+    // Установить стандартную площадку по умолчанию
+    standardPlaygroundOption.click();
+}
+
+/**
+ * Открывает полный редактор площадок в новом окне
+ */
+window.openFullPlaygroundEditor = function openFullPlaygroundEditor() {
+    // Параметры нового окна
+    const windowFeatures = [
+        'width=1200',
+        'height=800', 
+        'scrollbars=yes',
+        'resizable=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Открываем новое окно с полным редактором
+    const editorWindow = window.open('playground-fabric-editor.html', 'playgroundEditor', windowFeatures);
+    
+    if (!editorWindow) {
+        alert('Не удалось открыть редактор. Пожалуйста, разрешите всплывающие окна для этого сайта.');
+        return;
+    }
+    
+    // Центрируем окно на экране
+    editorWindow.onload = () => {
+        const screenWidth = screen.width;
+        const screenHeight = screen.height;
+        const windowWidth = 1200;
+        const windowHeight = 800;
+        
+        const left = (screenWidth - windowWidth) / 2;
+        const top = (screenHeight - windowHeight) / 2;
+        
+        editorWindow.moveTo(left, top);
+        editorWindow.focus();
+    };
+    
+    // Слушаем сообщения от редактора
+    window.addEventListener('message', handleEditorMessage);
+    
+    console.log('Opened full playground editor in new window');
+}
+
+/**
+ * Обрабатывает сообщения от редактора площадок
+ */
+function handleEditorMessage(event) {
+    console.log('Received message from editor:', event);
+    console.log('Event origin:', event.origin);
+    console.log('Window origin:', window.location.origin);
+    console.log('Event data:', event.data);
+    
+    // Проверяем источник сообщения для безопасности
+    if (event.origin !== window.location.origin) {
+        console.warn('Message from different origin ignored');
+        return;
+    }
+    
+    const { type, data } = event.data;
+    console.log('Message type:', type);
+    console.log('Message data:', data);
+    
+    switch (type) {
+        case 'PLAYGROUND_CREATED':
+            console.log('=== ОБРАБОТКА PLAYGROUND_CREATED ===');
+            console.log('Получены данные площадки:', data);
+            console.log('Количество объектов в данных:', data?.objects?.length || 0);
+            
+            // Получаем данные созданной площадки
+            window.customPlaygroundShape = data;
+            console.log('=== ДАННЫЕ СОХРАНЕНЫ В window.customPlaygroundShape ===');
+            console.log('window.customPlaygroundShape:', window.customPlaygroundShape);
+            console.log('objects в window.customPlaygroundShape:', window.customPlaygroundShape?.objects);
+            
+            // Remove message listener to prevent duplicate handling
+            window.removeEventListener('message', handleEditorMessage);
+            
+            // Визуально выбираем кастомную площадку
+            const customPlaygroundOption = document.getElementById('customPlayground');
+            const standardPlaygroundOption = document.getElementById('standardPlayground');
+            
+            if (customPlaygroundOption && standardPlaygroundOption) {
+                customPlaygroundOption.classList.add('selected', 'active');
+                standardPlaygroundOption.classList.remove('selected', 'active');
+            }
+            
+            // Автоматически запускаем приложение с кастомной площадкой
+            console.log('=== ЗАПУСК ПРИЛОЖЕНИЯ С КАСТОМНОЙ ПЛОЩАДКОЙ ===');
+            console.log('window.customPlaygroundShape в handleEditorMessage:', window.customPlaygroundShape);
+            console.log('Объекты в данных:', window.customPlaygroundShape?.objects);
+            startAppWithCustomPlayground();
+            break;
+            
+        case 'EDITOR_CLOSED':
+            // Редактор закрыт без создания площадки
+            console.log('Editor closed without creating playground');
+            // Remove message listener when editor is closed
+            window.removeEventListener('message', handleEditorMessage);
+            break;
+            
+        case 'TEST_MESSAGE':
+            console.log('Received test message:', data);
+            alert('Тестовое сообщение получено: ' + data.message);
+            break;
+            
+        default:
+            console.log('Unknown message type:', type);
+    }
+}
+
+/**
+ * Показывает подтверждение созданной кастомной площадки
+ */
+function showCustomPlaygroundConfirmation(playgroundData) {
+    // Заменяем стандартные настройки на информацию о кастомной площадке
+    const standardSettings = document.getElementById('standardSettings');
+    const customSettings = document.getElementById('customSettings');
+    
+    if (standardSettings) standardSettings.style.display = 'none';
+    if (customSettings) {
+        customSettings.style.display = 'block';
+        customSettings.innerHTML = `
+            <div class="custom-playground-confirmation">
+                <div class="confirmation-header">
+                    <span class="confirmation-icon">✅</span>
+                    <h4>Нестандартная площадка готова</h4>
+                </div>
+                <div class="confirmation-details">
+                    <p><strong>Объектов создано:</strong> ${playgroundData.objects?.length || 0}</p>
+                    <p><strong>Размер canvas:</strong> ${playgroundData.canvasWidth}×${playgroundData.canvasHeight} пикселей</p>
+                    <p><strong>Статус:</strong> <span style="color: #4CAF50;">Готово к использованию</span></p>
+                </div>
+                <div class="confirmation-actions">
+                    <button class="canvas-action-btn" onclick="window.openFullPlaygroundEditor()">
+                        🔧 Редактировать снова
+                    </button>
+                    <button class="canvas-action-btn" onclick="window.clearCustomPlayground()">
+                        🗑️ Удалить и создать новую
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Очищает кастомную площадку и возвращается к стандартной
+ */
+window.clearCustomPlayground = function clearCustomPlayground() {
+    window.customPlaygroundShape = null;
+    
+    // Возвращаемся к стандартной площадке
+    const customPlaygroundOption = document.getElementById('customPlayground');
+    const standardPlaygroundOption = document.getElementById('standardPlayground');
+    
+    if (customPlaygroundOption && standardPlaygroundOption) {
+        customPlaygroundOption.classList.remove('selected', 'active');
+        standardPlaygroundOption.classList.add('selected', 'active');
+        
+        const standardSettings = document.getElementById('standardSettings');
+        const customSettings = document.getElementById('customSettings');
+        
+        if (standardSettings) standardSettings.style.display = 'block';
+        if (customSettings) customSettings.style.display = 'none';
+    }
+    
+    console.log('Custom playground cleared');
+}
+
+/**
+ * Запускает приложение с кастомной площадкой
+ */
+async function startAppWithCustomPlayground() {
+    try {
+        console.log('Starting app with custom playground...');
+        
+        // Получаем необходимые элементы
+        const platformSelectModal = document.getElementById('platformSelectModal');
+        const appModal = document.getElementById('appModal');
+        
+        // Показываем загрузочный экран
+        await showLoadingScreen();
+        
+        // Инициализируем стандартную загрузку новой сессии
+        const loadingManager = await standardNewSessionInit();
+        
+        // Получаем project_id из sessionStorage
+        const userId = sessionStorage.getItem('userId');
+        const models = JSON.parse(sessionStorage.getItem('models'));
+
+        if (!userId) {
+            throw new Error('No user ID found');
+        }
+
+        // Обновляем прогресс - инициализация сессии
+        await loadingManager.updateProgress(30, 'Инициализация новой сессии...');
+
+        // Инициализируем новую сессию с моделями из JSON
+        if (models && Array.isArray(models)) {
+            console.log('Initializing new session with models:', models);
+            const newSessionData = await initializeNewSession(userId, models);
+            
+            // Обновляем прогресс - сохранение параметров кастомной площадки
+            await loadingManager.updateProgress(50, 'Сохранение кастомной площадки...');
+            
+            // Сохраняем параметры кастомной площадки
+            if (newSessionData && window.customPlaygroundShape) {
+                const playgroundModule = await import('./playground.js');
+                
+                // Сохраняем параметры кастомной площадки
+                await playgroundModule.savePlaygroundParameters(
+                    'custom',  // тип площадки
+                    60,        // примерная ширина
+                    40,        // примерная длина
+                    'зеленый'  // цвет
+                );
+            }
+        }
+        
+        // Устанавливаем глобальные переменные для кастомной площадки
+        window.selectedPlaygroundType = 'custom';
+        window.selectedPlaygroundWidth = 60;
+        window.selectedPlaygroundLength = 40;
+        window.selectedPlaygroundColor = 'зеленый';
+        
+        // Обновляем прогресс - подготовка к запуску
+        await loadingManager.updateProgress(60, 'Подготовка к запуску приложения...');
+        
+        // Скрываем модальное окно выбора площадки
+        if (platformSelectModal) {
+            platformSelectModal.style.display = 'none';
+        }
+        
+        // Показываем приложение
+        if (appModal) {
+            appModal.style.display = 'block';
+        }
+        
+        // Убеждаемся, что canvas правильно отображается
+        ensureAppVisibility();
+        
+        // Обновляем прогресс - запуск приложения
+        await loadingManager.updateProgress(70, 'Запуск приложения...');
+        
+        // Запускаем приложение
+        console.log('🔍 Отладка запуска приложения с кастомной площадкой:');
+        console.log('window.initApp:', typeof window.initApp);
+        console.log('window.appInitialized:', window.appInitialized);
+        
+        if (window.initApp && !window.appInitialized) {
+            console.log('✅ Запускаем window.initApp() - инициализация Three.js и сцены');
+            window.appInitialized = true;
+            
+            // Обновляем прогресс - инициализация Three.js
+            await loadingManager.updateProgress(80, 'Инициализация Three.js...');
+            
+            window.initApp();
+            
+            // После инициализации приложения загружаем кастомную площадку
+            setTimeout(async () => {
+                try {
+                    console.log('Loading custom playground...');
+                    const playgroundModule = await import('./playground.js');
+                    await standardPlaygroundLoading(
+                        playgroundModule.loadPlayground,
+                        'custom',  // тип площадки
+                        60,        // ширина
+                        40,        // длина  
+                        'зеленый'  // цвет
+                    );
+                    console.log('Custom playground loaded successfully');
+                } catch (error) {
+                    console.error('Error loading custom playground:', error);
+                    
+                    // Принудительно скрываем loading screen в случае ошибки
+                    const { hideLoadingOverlay } = await import('./loadingManager.js');
+                    hideLoadingOverlay();
+                }
+            }, 1000);
+            
+            setTimeout(() => {
+                startSceneChecks();
+            }, 3000);
+            
+            // Завершаем загрузку через стандартный механизм
+            setTimeout(async () => {
+                await loadingManager.finish();
+            }, 2000);
+        } else {
+            // Если приложение уже инициализировано, просто загружаем кастомную площадку
+            console.log('App already initialized, loading custom playground directly');
+            try {
+                const playgroundModule = await import('./playground.js');
+                await standardPlaygroundLoading(
+                    playgroundModule.loadPlayground,
+                    'custom',  // тип площадки
+                    60,        // ширина
+                    40,        // длина
+                    'зеленый'  // цвет
+                );
+                console.log('Custom playground loaded successfully');
+            } catch (error) {
+                console.error('Error loading custom playground:', error);
+                await forceHideAllLoading();
+            }
+            await loadingManager.finish();
+        }
+        
+        console.log('✅ Custom playground app started successfully');
+        
+    } catch (error) {
+        console.error('Error starting app with custom playground:', error);
+        await forceHideAllLoading();
+        
+        // Скрываем загрузочный экран в случае ошибки
+        await hideLoadingScreenSmooth();
+        
+        // Показываем ошибку пользователю
+        alert('Ошибка при запуске приложения с кастомной площадкой: ' + error.message);
+    }
+}
+
+/**
+ * Инициализирует Fabric.js canvas для кастомной площадки
+ */
+function initializeCustomPlaygroundCanvas() {
+    const canvasElement = document.getElementById('customPlaygroundCanvas');
+    if (!canvasElement) {
+        console.error('Custom playground canvas element not found');
+        return;
+    }
+    
+    // Освобождаем предыдущий canvas если есть
+    if (window.customPlaygroundCanvas) {
+        window.customPlaygroundCanvas.dispose();
+    }
+    
+    // Создаем новый canvas
+    window.customPlaygroundCanvas = new fabric.Canvas('customPlaygroundCanvas', {
+        width: 600,
+        height: 400,
+        backgroundColor: '#f8f9fa',
+        selection: true
+    });
+    
+    // Добавляем сетку
+    addGridToCustomCanvas();
+    
+    // Инициализируем инструменты рисования
+    initializeCustomDrawingTools();
+    
+    console.log('Custom playground canvas initialized');
+}
+
+/**
+ * Добавляет сетку на кастомный canvas
+ */
+function addGridToCustomCanvas() {
+    if (!window.customPlaygroundCanvas) return;
+    
+    const canvas = window.customPlaygroundCanvas;
+    const gridSize = 25;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Очищаем предыдущую сетку
+    const gridObjects = canvas.getObjects().filter(obj => obj.isGrid);
+    gridObjects.forEach(obj => canvas.remove(obj));
+    
+    // Вертикальные линии
+    for (let i = 0; i <= width; i += gridSize) {
+        const line = new fabric.Line([i, 0, i, height], {
+            stroke: '#e0e0e0',
+            strokeWidth: 1,
+            selectable: false,
+            evented: false,
+            opacity: 0.6,
+            isGrid: true
+        });
+        canvas.add(line);
+    }
+    
+    // Горизонтальные линии
+    for (let i = 0; i <= height; i += gridSize) {
+        const line = new fabric.Line([0, i, width, i], {
+            stroke: '#e0e0e0',
+            strokeWidth: 1,
+            selectable: false,
+            evented: false,
+            opacity: 0.6,
+            isGrid: true
+        });
+        canvas.add(line);
+    }
+    
+    canvas.renderAll();
+}
+
+/**
+ * Инициализирует инструменты рисования для кастомной площадки
+ */
+function initializeCustomDrawingTools() {
+    // Получаем кнопки инструментов
+    const polygonBtn = document.getElementById('polygonTool');
+    const freehandBtn = document.getElementById('freehandTool');
+    const clearBtn = document.getElementById('clearCanvas');
+    const unionBtn = document.getElementById('unionShapes');
+    
+    // Состояние рисования
+    let currentTool = 'select';
+    let polygonPoints = [];
+    let isDrawingPolygon = false;
+    
+    // Обработчик для инструмента многоугольника
+    if (polygonBtn) {
+        polygonBtn.addEventListener('click', () => {
+            setDrawingTool('polygon');
+            updateToolButtons('polygon');
+        });
+    }
+    
+    // Обработчик для инструмента свободного рисования
+    if (freehandBtn) {
+        freehandBtn.addEventListener('click', () => {
+            setDrawingTool('freehand');
+            updateToolButtons('freehand');
+        });
+    }
+    
+    // Обработчик для очистки canvas
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            clearCustomCanvas();
+        });
+    }
+    
+    // Обработчик для объединения фигур
+    if (unionBtn) {
+        unionBtn.addEventListener('click', () => {
+            unionSelectedShapes();
+        });
+    }
+    
+    function setDrawingTool(tool) {
+        currentTool = tool;
+        const canvas = window.customPlaygroundCanvas;
+        if (!canvas) return;
+        
+        // Сбрасываем режимы
+        canvas.isDrawingMode = false;
+        canvas.selection = true;
+        
+        if (tool === 'freehand') {
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush.width = 3;
+            canvas.freeDrawingBrush.color = '#2E7D32';
+        } else if (tool === 'polygon') {
+            polygonPoints = [];
+            isDrawingPolygon = true;
+            canvas.selection = false;
+            
+            // Обработчик кликов для многоугольника
+            canvas.on('mouse:down', handlePolygonClick);
+        } else {
+            // Режим выделения
+            canvas.off('mouse:down', handlePolygonClick);
+            isDrawingPolygon = false;
+        }
+    }
+    
+    function handlePolygonClick(event) {
+        if (!isDrawingPolygon || currentTool !== 'polygon') return;
+        
+        const pointer = window.customPlaygroundCanvas.getPointer(event.e);
+        polygonPoints.push({x: pointer.x, y: pointer.y});
+        
+        // Добавляем точку на canvas
+        const point = new fabric.Circle({
+            left: pointer.x - 3,
+            top: pointer.y - 3,
+            radius: 3,
+            fill: '#F05323',
+            selectable: false,
+            evented: false,
+            isPolygonPoint: true
+        });
+        window.customPlaygroundCanvas.add(point);
+        
+        // Если есть минимум 3 точки, можно завершить многоугольник на Enter
+        if (polygonPoints.length >= 3) {
+            document.addEventListener('keydown', handlePolygonComplete);
+        }
+    }
+    
+    function handlePolygonComplete(event) {
+        if (event.key === 'Enter' && polygonPoints.length >= 3) {
+            createPolygonFromPoints();
+            document.removeEventListener('keydown', handlePolygonComplete);
+        }
+    }
+    
+    function createPolygonFromPoints() {
+        if (polygonPoints.length < 3) return;
+        
+        const canvas = window.customPlaygroundCanvas;
+        
+        // Удаляем точки
+        const points = canvas.getObjects().filter(obj => obj.isPolygonPoint);
+        points.forEach(point => canvas.remove(point));
+        
+        // Создаем многоугольник
+        const polygon = new fabric.Polygon(polygonPoints, {
+            fill: '#2E7D32',
+            stroke: '#1B5E20',
+            strokeWidth: 2,
+            opacity: 0.8,
+            objectType: 'playground'
+        });
+        
+        canvas.add(polygon);
+        canvas.renderAll();
+        
+        // Сбрасываем состояние
+        polygonPoints = [];
+        isDrawingPolygon = false;
+        setDrawingTool('select');
+        updateToolButtons('select');
+    }
+    
+    function updateToolButtons(activeTool) {
+        const buttons = [polygonBtn, freehandBtn];
+        buttons.forEach(btn => {
+            if (btn) {
+                btn.classList.remove('active');
+                if (btn.id === activeTool + 'Tool') {
+                    btn.classList.add('active');
+                }
+            }
+        });
+    }
+    
+    function clearCustomCanvas() {
+        const canvas = window.customPlaygroundCanvas;
+        if (!canvas) return;
+        
+        // Удаляем все объекты кроме сетки
+        const objects = canvas.getObjects().filter(obj => !obj.isGrid);
+        objects.forEach(obj => canvas.remove(obj));
+        canvas.renderAll();
+        
+        // Сбрасываем состояние
+        polygonPoints = [];
+        isDrawingPolygon = false;
+        setDrawingTool('select');
+        updateToolButtons('select');
+    }
+    
+    function unionSelectedShapes() {
+        const canvas = window.customPlaygroundCanvas;
+        const activeObjects = canvas.getActiveObjects();
+        
+        if (activeObjects.length < 2) {
+            showCustomConfirmDialog(
+                'Недостаточно фигур',
+                'Выберите минимум 2 фигуры для объединения',
+                null
+            );
+            return;
+        }
+        
+        // Показываем диалог подтверждения
+        showCustomConfirmDialog(
+            'Объединить фигуры?',
+            `Вы уверены, что хотите объединить ${activeObjects.length} выбранных фигур? Это действие нельзя отменить.`,
+            () => {
+                // Создаем объединенную группу
+                const group = new fabric.Group(activeObjects, {
+                    objectType: 'playground',
+                    fill: '#2E7D32',
+                    stroke: '#1B5E20',
+                    strokeWidth: 2,
+                    opacity: 0.8
+                });
+                
+                // Удаляем исходные объекты
+                activeObjects.forEach(obj => canvas.remove(obj));
+                
+                // Добавляем группу
+                canvas.add(group);
+                canvas.renderAll();
+                
+                console.log(`${activeObjects.length} shapes united successfully`);
+                
+                // Показываем уведомление об успехе
+                showCustomConfirmDialog(
+                    'Объединение завершено',
+                    'Фигуры успешно объединены в одну группу',
+                    null
+                );
+            }
+        );
+    }
+    
+    function showCustomConfirmDialog(title, message, onConfirm) {
+        // Создаем диалог подтверждения
+        const dialog = document.createElement('div');
+        dialog.className = 'custom-confirm-dialog';
+        dialog.innerHTML = `
+            <div class="custom-confirm-content">
+                <h4>${title}</h4>
+                <p>${message}</p>
+                <div class="custom-confirm-buttons">
+                    ${onConfirm ? '<button class="confirm-btn">Да</button>' : ''}
+                    <button class="cancel-btn">${onConfirm ? 'Отмена' : 'OK'}</button>
+                </div>
+            </div>
+        `;
+        
+        // Добавляем стили для диалога
+        if (!document.getElementById('customConfirmStyles')) {
+            const styles = document.createElement('style');
+            styles.id = 'customConfirmStyles';
+            styles.textContent = `
+                .custom-confirm-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                }
+                
+                .custom-confirm-content {
+                    background: white;
+                    padding: 24px;
+                    border-radius: 12px;
+                    max-width: 400px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                }
+                
+                .custom-confirm-content h4 {
+                    margin: 0 0 16px 0;
+                    color: #333;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+                
+                .custom-confirm-content p {
+                    margin: 0 0 24px 0;
+                    color: #666;
+                    line-height: 1.5;
+                }
+                
+                .custom-confirm-buttons {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                }
+                
+                .custom-confirm-buttons button {
+                    padding: 8px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .confirm-btn {
+                    background: #F05323;
+                    color: white;
+                }
+                
+                .confirm-btn:hover {
+                    background: #e04519;
+                }
+                
+                .cancel-btn {
+                    background: #f5f5f5;
+                    color: #333;
+                }
+                
+                .cancel-btn:hover {
+                    background: #e0e0e0;
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+        
+        document.body.appendChild(dialog);
+        
+        // Обработчики кнопок
+        const confirmBtn = dialog.querySelector('.confirm-btn');
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        
+        if (confirmBtn && onConfirm) {
+            confirmBtn.addEventListener('click', () => {
+                document.body.removeChild(dialog);
+                onConfirm();
+            });
+        }
+        
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+        });
+        
+        // Закрытие по клику вне диалога
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                document.body.removeChild(dialog);
+            }
+        });
+    }
+    
+    // Инициализируем инструмент выделения по умолчанию
+    setDrawingTool('select');
 }
 
 /**

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор площадок нестандартной формы - Fabric.js</title>
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+        }
+
+        .tool-section h3 {
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tool-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .tool-btn.active {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+        }
+
+        .action-btn.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        #playgroundCanvas {
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            background: #f8f9fa;
+        }
+
+        .canvas-info {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .canvas-info p {
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .texture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .texture-btn {
+            width: 60px;
+            height: 40px;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .texture-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .texture-btn.active {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        /* Режимы рисования */
+        .drawing-mode {
+            background: rgba(255, 235, 59, 0.1);
+            border: 2px dashed #FFC107;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .drawing-mode.active {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4CAF50;
+        }
+
+        .drawing-mode p {
+            color: #333;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏗️ Редактор площадок нестандартной формы</h1>
+        <p>Создавайте уникальные детские площадки с помощью Fabric.js</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <!-- Инструменты рисования -->
+            <div class="tool-section">
+                <h3>🎨 Инструменты рисования</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="select">Выбор/Перемещение</button>
+                    <button class="tool-btn active" data-tool="polygon">Многоугольник</button>
+                    <button class="tool-btn" data-tool="freehand">Свободное рисование</button>
+                    <button class="tool-btn" data-tool="rectangle">Прямоугольник</button>
+                    <button class="tool-btn" data-tool="circle">Круг</button>
+                </div>
+                <div class="drawing-mode" id="drawingStatus">
+                    <p>Режим: Выбор объектов</p>
+                </div>
+            </div>
+
+            <!-- Цвета покрытия -->
+            <div class="tool-section">
+                <h3>🎯 Цвет покрытия</h3>
+                <div class="color-grid">
+                    <div class="color-btn active" style="background: #D9D9D9" data-color="#D9D9D9" title="Серый"></div>
+                    <div class="color-btn" style="background: #2E7D32" data-color="#2E7D32" title="Зеленый"></div>
+                    <div class="color-btn" style="background: #5D4037" data-color="#5D4037" title="Коричневый"></div>
+                    <div class="color-btn" style="background: #1976D2" data-color="#1976D2" title="Синий"></div>
+                    <div class="color-btn" style="background: #D32F2F" data-color="#D32F2F" title="Красный"></div>
+                    <div class="color-btn" style="background: #7B1FA2" data-color="#7B1FA2" title="Фиолетовый"></div>
+                    <div class="color-btn" style="background: #F57C00" data-color="#F57C00" title="Оранжевый"></div>
+                    <div class="color-btn" style="background: #FBC02D" data-color="#FBC02D" title="Желтый"></div>
+                </div>
+            </div>
+
+            <!-- Текстуры -->
+            <div class="tool-section">
+                <h3>🏗️ Текстуры покрытия</h3>
+                <div class="texture-grid">
+                    <div class="texture-btn active" data-texture="rubber" title="Резиновое покрытие">🔴</div>
+                    <div class="texture-btn" data-texture="wood" title="Деревянное покрытие">🟤</div>
+                    <div class="texture-btn" data-texture="sand" title="Песочное покрытие">🟡</div>
+                </div>
+            </div>
+
+            <!-- Параметры -->
+            <div class="tool-section">
+                <h3>⚙️ Параметры</h3>
+                <div class="input-group">
+                    <label>Толщина линии:</label>
+                    <input type="range" id="strokeWidth" min="1" max="10" value="3">
+                    <span id="strokeWidthValue">3px</span>
+                </div>
+                <div class="input-group">
+                    <label>Прозрачность:</label>
+                    <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="0.8">
+                    <span id="opacityValue">80%</span>
+                </div>
+                <div class="input-group">
+                    <label>Масштаб (м/пиксель):</label>
+                    <input type="number" id="scale" min="0.05" max="0.5" step="0.05" value="0.1">
+                    <small style="color: #666; font-size: 12px;">Текущий: 1м = 10 пикселей (100x100м площадка)</small>
+                </div>
+            </div>
+
+            <!-- Действия -->
+            <div class="tool-section">
+                <h3>🔧 Действия</h3>
+                <button class="action-btn" id="clearCanvas">🗑️ Очистить всё</button>
+                <button class="action-btn secondary" id="undoAction">↶ Отменить</button>
+                <button class="action-btn secondary" id="exportJSON">💾 Экспорт JSON</button>
+                <button class="action-btn secondary" id="importJSON">📁 Импорт JSON</button>
+                <button class="action-btn secondary" id="exportImage">🖼️ Экспорт PNG</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+                
+                <!-- Кнопки для интеграции с основным приложением -->
+                <div class="integration-buttons" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">
+                    <button class="action-btn" id="testMessage" style="background: #FF9800; margin-bottom: 10px;">
+                        🧪 Тест связи
+                    </button>
+                    <button class="action-btn primary" id="saveAndUse" style="background: #4CAF50; font-size: 16px; padding: 12px 24px;">
+                        ✅ Сохранить и использовать
+                    </button>
+                    <button class="action-btn secondary" id="cancelEditor" style="margin-top: 10px;">
+                        ❌ Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="playgroundCanvas" width="1000" height="1000" style="max-width: 100%; max-height: 70vh; border: 1px solid #ddd;"></canvas>
+            
+            <div class="canvas-info">
+                <p><strong>💡 Инструкции:</strong></p>
+                <p>• <strong>Площадка:</strong> 100x100 метров с сеткой 1 метр</p>
+                <p>• <strong>Выбор/Перемещение:</strong> Выделяйте, перемещайте и поворачивайте объекты</p>
+                <p>• <strong>Многоугольник:</strong> Кликайте для точек, Enter для завершения → автоматически выделится</p>
+                <p>• <strong>Свободное рисование:</strong> Рисуйте мышью → созданная линия автоматически выделится</p>
+                <p>• <strong>Фигуры:</strong> Создавайте прямоугольники и круги → автоматически выделяются</p>
+                <p>• <strong>Управление:</strong> Центр = перемещение, углы = масштабирование, верх = поворот</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="objectCount">0</div>
+                        <div class="stat-label">Объектов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalArea">0</div>
+                        <div class="stat-label">Площадь м²</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/modules/fabricPlaygroundEditor.js"></script>
+    
+    <script>
+        // Функции для интеграции с основным приложением
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ждем полной инициализации редактора
+            setTimeout(() => {
+            
+            // Тестовая кнопка для проверки связи
+            const testBtn = document.getElementById('testMessage');
+            if (testBtn) {
+                testBtn.addEventListener('click', () => {
+                    console.log('Test button clicked');
+                    if (window.opener) {
+                        console.log('Sending test message to opener');
+                        window.opener.postMessage({
+                            type: 'TEST_MESSAGE',
+                            data: { message: 'Hello from editor!' }
+                        }, window.location.origin);
+                        alert('Тестовое сообщение отправлено!');
+                    } else {
+                        alert('Родительское окно не найдено!');
+                    }
+                });
+            }
+            
+            // Кнопка "Сохранить и использовать"
+            const saveAndUseBtn = document.getElementById('saveAndUse');
+            if (saveAndUseBtn) {
+                saveAndUseBtn.addEventListener('click', () => {
+                    console.log('Save and use button clicked');
+                    console.log('window.editor:', window.editor);
+                    console.log('window.canvas:', window.canvas);
+                    
+                    // Попробуем найти canvas разными способами
+                    let canvas = null;
+                    if (window.editor && window.editor.canvas) {
+                        canvas = window.editor.canvas;
+                        console.log('Using editor canvas');
+                    } else if (window.canvas) {
+                        canvas = window.canvas;
+                        console.log('Using global canvas');
+                    } else {
+                        // Попробуем получить canvas напрямую через fabric
+                        const canvasElement = document.getElementById('playgroundCanvas');
+                        if (canvasElement && window.fabric) {
+                            canvas = window.fabric.__canvas;
+                            console.log('Trying to get canvas from fabric global');
+                        }
+                    }
+                    
+                    if (!canvas) {
+                        console.error('Canvas not found! Available globals:', Object.keys(window).filter(k => k.includes('canvas') || k.includes('fabric')));
+                        alert('Ошибка: Canvas не найден. Убедитесь, что редактор полностью загружен.');
+                        return;
+                    }
+                    
+                    console.log('Canvas found:', canvas);
+                    console.log('Canvas objects:', canvas.getObjects());
+                    
+                    const allObjects = canvas.getObjects();
+                    const playgroundObjects = allObjects.filter(obj => {
+                        console.log('=== ФИЛЬТРАЦИЯ ОБЪЕКТА ===');
+                        console.log('Object:', obj);
+                        console.log('- type:', obj.type);
+                        console.log('- isGrid:', obj.isGrid);
+                        console.log('- objectType:', obj.objectType);
+                        console.log('- selectable:', obj.selectable);
+                        console.log('- evented:', obj.evented);
+                        
+                        // Исключаем сетку, линии и текстовые элементы
+                        const isValid = !obj.isGrid && obj.type !== 'line' && obj.type !== 'text' && obj.objectType === 'playground';
+                        console.log('- Объект проходит фильтр:', isValid);
+                        console.log('========================');
+                        
+                        return isValid;
+                    });
+                    
+                    console.log('Playground objects found:', playgroundObjects.length);
+                    
+                    if (playgroundObjects.length === 0) {
+                        alert('Создайте хотя бы одну фигуру перед сохранением!');
+                        return;
+                    }
+                    
+                    const playgroundData = {
+                        objects: playgroundObjects.map(obj => obj.toObject(['objectType'])),
+                        canvasWidth: canvas.width,
+                        canvasHeight: canvas.height,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    console.log('Playground data prepared:', playgroundData);
+                    
+                    // Отправляем данные в родительское окно
+                    if (window.opener) {
+                        console.log('Sending message to opener');
+                        window.opener.postMessage({
+                            type: 'PLAYGROUND_CREATED',
+                            data: playgroundData
+                        }, window.location.origin);
+                        
+                        // Закрываем окно редактора
+                        setTimeout(() => window.close(), 500);
+                    } else {
+                        // Если окно открыто не из другого окна, просто скачиваем JSON
+                        console.log('No opener found, downloading data');
+                        downloadPlaygroundData(playgroundData);
+                    }
+                });
+            }
+            
+            // Кнопка "Отмена"
+            const cancelBtn = document.getElementById('cancelEditor');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    if (window.opener) {
+                        window.opener.postMessage({
+                            type: 'EDITOR_CLOSED'
+                        }, window.location.origin);
+                    }
+                    window.close();
+                });
+            }
+            
+            // Уведомление о закрытии окна
+            window.addEventListener('beforeunload', () => {
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'EDITOR_CLOSED'
+                    }, window.location.origin);
+                }
+            });
+            }, 1000); // Ждем 1 секунду для полной инициализации
+        });
+        
+        // Функция для скачивания данных площадки
+        function downloadPlaygroundData(data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+                type: 'application/json'
+            });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `custom_playground_${Date.now()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
