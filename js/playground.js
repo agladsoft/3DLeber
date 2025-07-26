@@ -59,6 +59,11 @@ export async function savePlaygroundParameters(modelName, width, length, color) 
             length: length || 30,
             color: color || 'серый'
         };
+        
+        // Добавляем данные кастомной площадки если они есть
+        if (modelName === 'custom' && window.customPlaygroundShape) {
+            sessionData.playground.customShape = window.customPlaygroundShape;
+        }
 
         // Сохраняем обновленную сессию
         const saveResponse = await fetch(`${API_BASE_URL}/session`, {

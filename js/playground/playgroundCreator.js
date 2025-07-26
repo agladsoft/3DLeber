@@ -72,7 +72,7 @@ function removeExistingPlaygrounds() {
  * @param {Number} length - Длина основной площадки
  * @returns {THREE.Mesh} Созданный зеленый фон
  */
-function createGreenBackground(width, length) {
+export function createGreenBackground(width, length) {
     console.log('Создаем зеленый фон с окружностью');
 
     // Устанавливаем фиксированный большой размер для фона, независимо от размеров площадки

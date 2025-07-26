@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор произвольной площадки - Leber 3D</title>
+    <link rel="icon" type="image/svg+xml" href="textures/favicon/favicon.svg" />
+    
+    <!-- Шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+        
+        .launch-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9999;
+        }
+        
+        .launch-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .launch-card h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .launch-card p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        
+        .feature-list {
+            text-align: left;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .feature-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .feature-list ul {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            color: #555;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            font-size: 14px;
+        }
+        
+        .feature-list li:before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        .launch-button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+        
+        .launch-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(76, 175, 80, 0.4);
+        }
+        
+        .launch-button:active {
+            transform: translateY(0);
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-badge {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="launch-screen" id="launchScreen">
+        <div class="launch-card">
+            <div class="info-badge">🎨 Редактор произвольной формы</div>
+            
+            <h1>Создание площадки любой формы</h1>
+            
+            <p>Мощный инструмент для создания детских площадок произвольной геометрической формы с использованием Three.js Shape.</p>
+            
+            <div class="feature-list">
+                <h3>Возможности редактора:</h3>
+                <ul>
+                    <li>Прямые линии для создания многоугольников</li>
+                    <li>Кривые Безье для плавных изгибов</li>
+                    <li>Дуги для закругленных элементов</li>
+                    <li>Размерная сетка 100x100 метров с подписями</li>
+                    <li>Визуальный предпросмотр в реальном времени</li>
+                    <li>Отмена последней точки и полная очистка</li>
+                    <li>Изменение цвета площадки в любой момент</li>
+                    <li>Фиксация готовой площадки</li>
+                </ul>
+            </div>
+            
+            <button class="launch-button" onclick="startEditor()" id="launchBtn">
+                🚀 Запустить редактор
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 15px; color: #666;">Инициализация 3D редактора...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.173.0/build/three.module.js"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import CustomPlaygroundEditor from './js/modules/customPlaygroundEditor.js';
+        
+        window.startEditor = function() {
+            const launchBtn = document.getElementById('launchBtn');
+            const loading = document.getElementById('loading');
+            const launchScreen = document.getElementById('launchScreen');
+            
+            // Показываем загрузку
+            launchBtn.style.display = 'none';
+            loading.style.display = 'block';
+            
+            // Небольшая задержка для показа загрузки
+            setTimeout(() => {
+                try {
+                    // Скрываем экран запуска
+                    launchScreen.style.display = 'none';
+                    
+                    // Запускаем редактор
+                    new CustomPlaygroundEditor();
+                } catch (error) {
+                    console.error('Ошибка запуска редактора:', error);
+                    alert('Ошибка запуска редактора: ' + error.message);
+                    
+                    // Возвращаем интерфейс
+                    launchBtn.style.display = 'block';
+                    loading.style.display = 'none';
+                    launchScreen.style.display = 'flex';
+                }
+            }, 1000);
+        };
+        
+        // Дополнительные функции для тестирования
+        window.testShapes = function() {
+            console.log('🧪 Тестовые функции доступны:');
+            console.log('- window.createTestTriangle() - создать треугольник');
+            console.log('- window.createTestStar() - создать звезду');
+            console.log('- window.createTestHeart() - создать сердце');
+        };
+        
+        // Глобальная функция для быстрого тестирования
+        window.quickTest = function() {
+            document.getElementById('launchScreen').style.display = 'none';
+            new CustomPlaygroundEditor();
+        };
+    </script>
+    
+    <script>
+        // Обработка ошибок загрузки модулей
+        window.addEventListener('error', (event) => {
+            console.error('Ошибка загрузки:', event.error);
+            if (event.error && event.error.message.includes('module')) {
+                alert('Ошибка загрузки модуля. Убедитесь, что файлы находятся в правильной структуре папок.');
+            }
+        });
+        
+        // Информация о версии
+        console.log('🎨 Редактор произвольной площадки v1.0');
+        console.log('📐 Использует Three.js Shape для создания сложных форм');
+        console.log('🚀 Для быстрого тестирования: quickTest()');
+    </script>
+</body>
+</html>

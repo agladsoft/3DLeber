@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Демо редактора площадки - Three.js Shape</title>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .demo-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .demo-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .demo-btn {
+            padding: 12px 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 500;
+        }
+        
+        .demo-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .demo-description {
+            background: white;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .feature-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .tech-stack {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 20px;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .tech-items {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tech-item {
+            text-align: center;
+        }
+        
+        .tech-item-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-header">
+        <h1>🎨 Редактор площадок произвольной формы</h1>
+        <p>Инновационное решение на основе Three.js Shape для создания площадок любой геометрии</p>
+        
+        <div class="demo-buttons">
+            <button class="demo-btn" onclick="openEditor()">
+                🚀 Запустить полный редактор
+            </button>
+            <button class="demo-btn" onclick="createTriangleDemo()">
+                📐 Демо: Треугольная площадка
+            </button>
+            <button class="demo-btn" onclick="createStarDemo()">
+                ⭐ Демо: Звездообразная площадка
+            </button>
+            <button class="demo-btn" onclick="createCurvedDemo()">
+                🌊 Демо: Изогнутая площадка
+            </button>
+        </div>
+    </div>
+    
+    <div class="demo-description">
+        <h2>Описание функциональности</h2>
+        <p>Этот редактор предоставляет полную свободу в создании площадок произвольной формы с использованием мощных возможностей Three.js Shape API. Создавайте площадки любой сложности: от простых многоугольников до сложных фигур с плавными изгибами.</p>
+    </div>
+    
+    <div class="features">
+        <div class="feature-card">
+            <h3>🛠 Инструменты рисования</h3>
+            <p>Полный набор инструментов для создания любых форм:</p>
+            <ul class="feature-list">
+                <li>Прямые линии для точных углов</li>
+                <li>Кривые Безье для плавных изгибов</li>
+                <li>Дуги для идеальных окружностей</li>
+                <li>Комбинирование различных типов линий</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>📏 Точное позиционирование</h3>
+            <p>Система координат и измерений:</p>
+            <ul class="feature-list">
+                <li>Размерная сетка 100x100 метров</li>
+                <li>Координатные подписи каждые 10 метров</li>
+                <li>Привязка к сетке для точности</li>
+                <li>Визуальные маркеры точек</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🎨 Настройка и превью</h3>
+            <p>Интерактивный предпросмотр и настройка:</p>
+            <ul class="feature-list">
+                <li>Предпросмотр в реальном времени</li>
+                <li>Выбор цвета покрытия</li>
+                <li>Отмена последней операции</li>
+                <li>Полная очистка для начала заново</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>💾 Управление проектом</h3>
+            <p>Контроль процесса создания:</p>
+            <ul class="feature-list">
+                <li>Замыкание фигуры одним кликом</li>
+                <li>Фиксация готовой площадки</li>
+                <li>Сохранение конфигурации</li>
+                <li>Возможность редактирования заново</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="tech-stack">
+        <h2>Технический стек</h2>
+        <div class="tech-items">
+            <div class="tech-item">
+                <span class="tech-item-icon">🎯</span>
+                <strong>Three.js</strong><br>
+                <small>3D рендеринг и Shape API</small>
+            </div>
+            <div class="tech-item">
+                <span class="tech-item-icon">📐</span>
+                <strong>Shape Geometry</strong><br>
+                <small>Создание сложных форм</small>
+            </div>
+            <div class="tech-item">
+                <span class="tech-item-icon">🎨</span>
+                <strong>WebGL</strong><br>
+                <small>Аппаратное ускорение</small>
+            </div>
+            <div class="tech-item">
+                <span class="tech-item-icon">⚡</span>
+                <strong>ES6 Modules</strong><br>
+                <small>Современный JavaScript</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Скрипты -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.173.0/build/three.module.js"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        
+        // Функция запуска полного редактора
+        window.openEditor = function() {
+            window.open('custom-playground-editor.html', '_blank');
+        };
+        
+        // Демо создания треугольной площадки
+        window.createTriangleDemo = function() {
+            console.log('🔥 Демо: Создание треугольной площадки');
+            
+            // Создаем треугольную форму
+            const triangleShape = new THREE.Shape();
+            triangleShape.moveTo(0, 0);
+            triangleShape.lineTo(30, 0);
+            triangleShape.lineTo(15, 25);
+            triangleShape.lineTo(0, 0);
+            
+            // Создаем геометрию
+            const geometry = new THREE.ShapeGeometry(triangleShape);
+            console.log('Треугольная площадка создана:', geometry);
+            console.log('Количество вершин:', geometry.attributes.position.count);
+            
+            // Вычисляем площадь
+            const vertices = geometry.attributes.position.array;
+            const area = calculateTriangleArea(0, 0, 30, 0, 15, 25);
+            console.log(`Площадь: ${area} кв. метров`);
+            
+            alert(`✓ Треугольная площадка создана!\n\nПараметры:\n• Площадь: ${area} кв.м\n• Количество вершин: ${geometry.attributes.position.count}\n• Форма: равнобедренный треугольник\n\nПроверьте консоль для подробностей.`);
+        };
+        
+        // Демо создания звездообразной площадки
+        window.createStarDemo = function() {
+            console.log('⭐ Демо: Создание звездообразной площадки');
+            
+            const starShape = createStarShape(20, 10, 5);
+            const geometry = new THREE.ShapeGeometry(starShape);
+            
+            console.log('Звездообразная площадка создана:', geometry);
+            console.log('Количество точек звезды: 5');
+            console.log('Внешний радиус: 20м, внутренний: 10м');
+            
+            alert(`✓ Звездообразная площадка создана!\n\nПараметры:\n• Тип: 5-конечная звезда\n• Внешний радиус: 20м\n• Внутренний радиус: 10м\n• Количество вершин: ${geometry.attributes.position.count}\n\nПроверьте консоль для подробностей.`);
+        };
+        
+        // Демо создания изогнутой площадки
+        window.createCurvedDemo = function() {
+            console.log('🌊 Демо: Создание изогнутой площадки');
+            
+            const curvedShape = new THREE.Shape();
+            curvedShape.moveTo(0, 0);
+            curvedShape.lineTo(30, 0);
+            curvedShape.quadraticCurveTo(35, 10, 30, 20);
+            curvedShape.lineTo(0, 20);
+            curvedShape.quadraticCurveTo(-5, 10, 0, 0);
+            
+            const geometry = new THREE.ShapeGeometry(curvedShape, 20); // 20 сегментов для плавности
+            
+            console.log('Изогнутая площадка создана:', geometry);
+            console.log('Использованы квадратичные кривые Безье');
+            console.log('Количество сегментов кривых: 20');
+            
+            alert(`✓ Изогнутая площадка создана!\n\nПараметры:\n• Форма: прямоугольник с изогнутыми сторонами\n• Технология: кривые Безье\n• Сегменты кривых: 20 (высокое качество)\n• Количество вершин: ${geometry.attributes.position.count}\n\nПроверьте консоль для подробностей.`);
+        };
+        
+        // Вспомогательные функции
+        function createStarShape(outerRadius, innerRadius, points) {
+            const star = new THREE.Shape();
+            const angleStep = (Math.PI * 2) / points;
+            
+            for (let i = 0; i < points * 2; i++) {
+                const angle = i * angleStep / 2;
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    star.moveTo(x, y);
+                } else {
+                    star.lineTo(x, y);
+                }
+            }
+            star.lineTo(outerRadius, 0); // Замыкаем фигуру
+            
+            return star;
+        }
+        
+        function calculateTriangleArea(x1, y1, x2, y2, x3, y3) {
+            return Math.abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2);
+        }
+        
+        // Информация при загрузке
+        console.log('🎨 Демо страница редактора площадок загружена');
+        console.log('📐 Доступны функции демонстрации Three.js Shape');
+        console.log('🚀 Используйте кнопки для тестирования функциональности');
+    </script>
+</body>
+</html>
