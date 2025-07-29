@@ -8,6 +8,7 @@ import { scene } from '../scene.js';
 import { updateGroundReferences } from './playgroundCore.js';
 import { updatePlaygroundLabels } from './playgroundUI.js';
 import { createDimensionGrid } from '../scene/gridManager.js';
+import { createBackground } from './backgroundManager.js';
 
 /**
  * Создает основную площадку для размещения моделей и зеленый фон
@@ -22,8 +23,8 @@ export function createSimplePlayground(width, length, color = 'серый') {
         // Удаляем предыдущие площадки
         removeExistingPlaygrounds();
 
-        // 1. Создаем зеленый фон с окружностью
-        const greenBackground = createGreenBackground(width, length);
+        // 1. Создаем фон с окружностью (используем менеджер фона)
+        const background = createBackground(width, length);
 
         // 2. Создаем основную площадку
         const mainSurface = createMainSurface(width, length, color);
@@ -50,7 +51,8 @@ function removeExistingPlaygrounds() {
     const playgroundObjects = scene.children.filter(obj =>
         obj.userData && (obj.userData.isPlayground || obj.userData.isGround ||
                          obj.name === 'grass_surround' || obj.name === 'green_background' ||
-                         obj.name === 'main_surface')
+                         obj.name === 'main_surface' || obj.name === 'background_surface' ||
+                         obj.userData.isBackground)
     );
 
     playgroundObjects.forEach(obj => {
@@ -73,54 +75,9 @@ function removeExistingPlaygrounds() {
  * @returns {THREE.Mesh} Созданный зеленый фон
  */
 function createGreenBackground(width, length) {
-    console.log('Создаем зеленый фон с окружностью');
-
-    // Устанавливаем фиксированный большой размер для фона, независимо от размеров площадки
-    const size = 1000; // Фиксированный большой размер в метрах
-
-    // Создаем геометрию круга
-    const circleGeometry = new THREE.CircleGeometry(size / 2, 64);
-
-    // Создаем материал для травы
-    const textureLoader = new THREE.TextureLoader();
-    const grassTexture = textureLoader.load('textures/grass/grass_texture.png');
-    grassTexture.wrapS = THREE.RepeatWrapping;
-    grassTexture.wrapT = THREE.RepeatWrapping;
-
-    // Настраиваем повторение текстуры в зависимости от размера
-    const repeats = size / 2;
-    grassTexture.repeat.set(repeats, repeats);
-    grassTexture.anisotropy = 16; // Улучшает качество при наклонных углах
-
-    const grassMaterial = new THREE.MeshStandardMaterial({
-        map: grassTexture,
-        color: 0x4CAF50, // Зеленый цвет для травы
-        roughness: 0.7,
-        metalness: 0.1,
-        side: THREE.DoubleSide
-    });
-    
-    // Создаем меш травы
-    const grassPlane = new THREE.Mesh(circleGeometry, grassMaterial);
-    
-    // Поворачиваем и позиционируем круг травы
-    grassPlane.rotation.x = -Math.PI / 2;
-    grassPlane.position.y = -0.1; // Чуть ниже основной площадки
-    grassPlane.receiveShadow = true;
-    grassPlane.name = "green_background";
-    
-    // Добавляем информацию для предотвращения выбора
-    grassPlane.userData = {
-        isGround: true,
-        nonInteractive: true,
-        isGrassBackground: true
-    };
-    
-    // Добавляем траву в сцену
-    scene.add(grassPlane);
-    console.log('Зеленый фон добавлен в сцену');
-
-    return grassPlane;
+    // Эта функция теперь устарела, используем createBackground из backgroundManager
+    console.log('createGreenBackground устарела, используем createBackground');
+    return createBackground(width, length, 'grass');
 }
 
 /**

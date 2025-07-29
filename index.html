@@ -176,6 +176,15 @@
                         </svg>
                     </button>
                     
+                    <!-- Кнопка для выбора фона -->
+                    <button class="tool-button-new" id="backgroundButton">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    
                     <!-- Кнопка для удаления всех моделей -->
                     <button class="tool-button-new" id="deleteAllModels">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -277,6 +286,35 @@
         <button class="pg-apply-button" id="pgApplyButton">Применить</button>
         
         <button class="pg-close-button" id="pgCloseButton">&times;</button>
+    </div>
+
+    <!-- Модальное окно выбора фона -->
+    <div id="backgroundModalBackdrop" class="pg-modal-backdrop"></div>
+    <div id="backgroundModal" class="pg-modal">
+        <h3 class="pg-modal-title">Выбор фона</h3>
+        
+        <div class="background-options">
+            <div class="background-option" data-background="grass">
+                <div class="background-preview grass-preview"></div>
+                <span class="background-name">Трава</span>
+            </div>
+            <div class="background-option" data-background="sand">
+                <div class="background-preview sand-preview"></div>
+                <span class="background-name">Песок</span>
+            </div>
+            <div class="background-option" data-background="dirt">
+                <div class="background-preview dirt-preview"></div>
+                <span class="background-name">Земля</span>
+            </div>
+            <div class="background-option" data-background="concrete">
+                <div class="background-preview concrete-preview"></div>
+                <span class="background-name">Бетон</span>
+            </div>
+        </div>
+        
+        <button class="pg-apply-button" id="backgroundApplyButton">Применить</button>
+        
+        <button class="pg-close-button" id="backgroundCloseButton">&times;</button>
     </div>
 
     <!-- Модальное окно помощи с видео -->

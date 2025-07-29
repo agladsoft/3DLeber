@@ -154,6 +154,14 @@ export async function initializeApp() {
         }
         
         try {
+            // Инициализируем менеджер фона
+            const { initBackgroundManager } = await import('../playground/backgroundManager.js');
+            initBackgroundManager();
+        } catch (backgroundError) {
+            console.error('Ошибка при инициализации менеджера фона:', backgroundError);
+        }
+        
+        try {
             // Обновляем видимость safety zones в соответствии с настройками пользователя
             updateSafetyZonesVisibility();
         } catch (safetyError) {

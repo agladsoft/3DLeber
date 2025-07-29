@@ -27,7 +27,8 @@ const TOOL_DESCRIPTIONS = {
     'checkMissingModelsButton': 'Проверить отсутствующие модели',
     'closeAppButton': 'Закрыть приложение',
     'exportModel': 'Вид сверху',
-    'playgroundButton': 'Настройки площадки'
+    'playgroundButton': 'Настройки площадки',
+    'backgroundButton': 'Выбор фона'
 };
 
 // Флаг для защиты от повторной инициализации
@@ -69,6 +70,7 @@ function setupControlHandlers() {
     setupToggleSafetyZoneButton();
     setupCloseAppButton();
     setupCheckMissingModelsButton();
+    setupBackgroundButton();
     setupToolButtonsEffects();
     setupToolButtonsContainerState();
 }
@@ -694,5 +696,29 @@ function setupCheckMissingModelsButton() {
         });
     } else {
         console.warn('Check missing models button not found');
+    }
+}
+
+/**
+ * Настраивает обработчик для кнопки выбора фона
+ */
+function setupBackgroundButton() {
+    const backgroundButton = document.getElementById('backgroundButton');
+    
+    if (backgroundButton) {
+        backgroundButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+                        
+            try {
+                // Динамически импортируем модуль backgroundModal
+                const { showBackgroundModal } = await import('../playground/backgroundModal.js');
+                showBackgroundModal();
+            } catch (error) {
+                console.error('Error loading background modal:', error);
+            }
+        });
+    } else {
+        console.warn('Background button not found');
     }
 }
