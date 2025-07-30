@@ -135,69 +135,54 @@ function createLighting() {
 }
 
 /**
- * Создание HDRI окружения для правильного отображения металла и стекла
+ * Устанавливает HDRI-фон по указанному пути
+ * @param {string} hdriPath - путь к .exr файлу
  */
-function createEXRBackground() {
+export function setHdriBackground(hdriPath) {
     if (!renderer) {
         console.error('Renderer не инициализирован');
         return;
     }
     
     // Показываем сообщение о загрузке HDRI
-    console.log('🌅 Начинаем загрузку HDRI environment map...');
+    console.log('🌅 Загружаем HDRI environment map:', hdriPath);
     
-    // Загружаем HDRI текстуру для PBR материалов
     const exrLoader = new EXRLoader();
     const pmremGenerator = new PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
     
-    exrLoader.load('textures/hdri/buikslotermeerplein_4k.exr', (texture) => {
-        // Настраиваем texture для правильного отображения
+    exrLoader.load(hdriPath, (texture) => {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.colorSpace = THREE.LinearSRGBColorSpace;
-        
-        // Генерируем environment map для отражений
         const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-        
-        // Устанавливаем окружение для всей сцены
         scene.environment = envMap;
-        
-        // Опционально устанавливаем фон (можно отключить, если нужен только environment для отражений)
         scene.background = envMap;
-        
-        // Освобождаем ресурсы
         texture.dispose();
         pmremGenerator.dispose();
-        
-        console.log('✅ HDRI environment map успешно загружен для корректного отображения PBR материалов');
-        
-        // Обновляем материалы всех уже размещенных объектов
+        console.log('✅ HDRI environment map успешно установлен:', hdriPath);
         setTimeout(() => {
             import('../modules/objectManager.js').then(({ updateMaterialsEnvironmentMap, updateWoodenMaterials }) => {
                 updateMaterialsEnvironmentMap();
-                // Дополнительно обновляем деревянные материалы для более светлого отображения
-                if (updateWoodenMaterials) {
-                    updateWoodenMaterials();
-                }
+                if (updateWoodenMaterials) updateWoodenMaterials();
             }).catch(err => console.warn('Не удалось обновить материалы:', err));
         }, 100);
-        
-        // Скрываем loadingScreen только после полной загрузки HDRI
         setTimeout(async () => {
             try {
                 const { hideLoadingScreenSmooth } = await import('../utils/loadingScreen.js');
-                console.log('🌅 HDRI environment map полностью готов, скрываем loadingScreen');
                 await hideLoadingScreenSmooth();
             } catch (err) {
                 console.warn('Не удалось скрыть loadingScreen:', err);
             }
-        }, 200); // Небольшая задержка для завершения всех операций
-        
+        }, 200);
     }, undefined, (error) => {
         console.error('Ошибка загрузки HDRI:', error);
-        // Fallback на citybox если HDRI не загрузился
         createCityboxFallback();
     });
+}
+
+// createEXRBackground теперь вызывает setHdriBackground с дефолтным путем
+function createEXRBackground() {
+    setHdriBackground('textures/hdri/autumn_park_4k.exr');
 }
 
 /**

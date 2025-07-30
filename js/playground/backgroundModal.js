@@ -4,8 +4,17 @@
 import { changeBackground, getCurrentBackgroundType, getAvailableBackgroundTypes } from './backgroundManager.js';
 import { playgroundWidth, playgroundLength } from './playgroundCore.js';
 import { showNotification } from '../utils/notifications.js';
+import { setHdriBackground } from '../scene/sceneCore.js';
 
-let selectedBackgroundType = 'grass';
+// Список доступных HDRI-фонов (можно расширять)
+const HDRI_LIST = [
+    { name: 'Осенний парк', file: 'textures/hdri/autumn_park_4k.exr', preview: 'textures/hdri/autumn_park_4k.png' },
+    { name: 'Летний парк', file: 'textures/hdri/green_point_park_4k.exr', preview: 'textures/hdri/green_point_park_4k.png' },
+    { name: 'Городской парк', file: 'textures/hdri/buikslotermeerplein_4k.exr', preview: 'textures/hdri/buikslotermeerplein_4k.png' }
+  ];
+
+let selectedHdriPath = HDRI_LIST[0].file;
+let selectedBackgroundType = 'grass'; // Добавляем переменную для типа покрытия
 
 /**
  * Показывает модальное окно выбора фона
@@ -50,12 +59,20 @@ export function hideBackgroundModal() {
  */
 function initializeBackgroundModal() {
     // Получаем текущий тип фона
-    selectedBackgroundType = getCurrentBackgroundType();
+    const currentBackgroundType = getCurrentBackgroundType();
+    selectedBackgroundType = currentBackgroundType;
     
     // Устанавливаем выбранный фон
-    updateBackgroundSelection(selectedBackgroundType);
+    updateBackgroundSelection(currentBackgroundType);
     
-    console.log('Модальное окно выбора фона инициализировано с типом:', selectedBackgroundType);
+    // Выделить первый HDRI по умолчанию
+    const hdriOptions = document.querySelectorAll('.hdri-option');
+    hdriOptions.forEach((el, idx) => {
+        if (idx === 0) el.classList.add('selected');
+        else el.classList.remove('selected');
+    });
+    
+    console.log('Модальное окно выбора фона инициализировано с типом:', currentBackgroundType);
 }
 
 /**
@@ -114,6 +131,16 @@ function setupBackgroundModalHandlers() {
             hideBackgroundModal();
         }
     });
+
+    // Обработчики для HDRI
+    const hdriOptions = document.querySelectorAll('.hdri-option');
+    hdriOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            hdriOptions.forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedHdriPath = this.getAttribute('data-hdri');
+        });
+    });
 }
 
 /**
@@ -131,13 +158,16 @@ async function applyBackgroundChange() {
             length = window.app.playgroundLength;
         }
         
-        console.log('Применяем изменение фона на:', selectedBackgroundType, 'с размерами:', width, 'x', length);
+        console.log('Применяем изменение фона на:', selectedHdriPath, 'с покрытием:', selectedBackgroundType, 'с размерами:', width, 'x', length);
         
-        // Меняем фон
+        // Меняем HDRI фон
+        await setHdriBackground(selectedHdriPath);
+        // Меняем покрытие площадки
         await changeBackground(selectedBackgroundType, width, length);
         
         // Показываем уведомление об успехе
-        showNotification(`Фон изменен на "${getBackgroundDisplayName(selectedBackgroundType)}"`, 'success');
+        const displayName = await getBackgroundDisplayName(selectedBackgroundType);
+        showNotification(`Фон изменен на "${displayName}"`, 'success');
         
         // Закрываем модальное окно
         hideBackgroundModal();
@@ -153,8 +183,11 @@ async function applyBackgroundChange() {
  * @param {String} backgroundType - Тип фона
  * @returns {String} Отображаемое имя
  */
-function getBackgroundDisplayName(backgroundType) {
-    const backgroundTypes = getAvailableBackgroundTypes();
-    const background = backgroundTypes.find(bg => bg.name === backgroundType);
-    return background ? background.displayName : backgroundType;
+async function getBackgroundDisplayName(backgroundType) {
+    // Импортируем BACKGROUND_TYPES напрямую
+    const { BACKGROUND_TYPES } = await import('./backgroundManager.js');
+    
+    // Ищем конфигурацию по имени
+    const backgroundConfig = Object.values(BACKGROUND_TYPES).find(bg => bg.name === backgroundType);
+    return backgroundConfig ? backgroundConfig.displayName : backgroundType;
 } 

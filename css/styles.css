@@ -3136,3 +3136,168 @@ color: #333 !important;
         font-size: 12px;
     }
 }
+
+/* Стили для блока выбора HDRI */
+/* Стили для модального окна выбора фона */
+#backgroundModal {
+    max-height: 90vh;
+    max-width: 600px;
+    width: 90vw;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+    margin: 20px auto;
+}
+
+/* Стили для скроллбара в модальном окне */
+#backgroundModal::-webkit-scrollbar {
+    width: 8px;
+}
+
+#backgroundModal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#backgroundModal::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+#backgroundModal::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+#backgroundModal .pg-modal-title {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+/* Стили для кнопки "Применить" в модальном окне выбора фона */
+#backgroundModal .pg-apply-button {
+    position: sticky;
+    bottom: 0;
+    background: #F05323;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    z-index: 10;
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#backgroundModal .pg-apply-button:hover {
+    background: #E64A19;
+}
+
+.hdri-label {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+.hdri-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.hdri-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 6px 8px 6px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.hdri-option.selected {
+    border-color: #F05323;
+    background: #fdf6f3;
+    box-shadow: 0 4px 12px rgba(240,83,35,0.10);
+}
+.hdri-option:hover {
+    border-color: #F05323;
+    background: #fbeee7;
+}
+.hdri-option img {
+    width: 50px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #eee;
+    border: 1px solid #ddd;
+}
+.hdri-option span {
+    font-size: 11px;
+    color: #444;
+    text-align: center;
+    margin-top: 2px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+@media (max-width: 700px) {
+    #backgroundModal {
+        max-width: 500px;
+        width: 95vw;
+        padding: 15px;
+    }
+    
+    .hdri-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .hdri-option img {
+        width: 48px;
+        height: 28px;
+    }
+}
+@media (max-width: 480px) {
+    #backgroundModal {
+        max-height: 95vh;
+        padding: 15px;
+        margin: 10px;
+    }
+    
+    .hdri-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .hdri-option img {
+        width: 40px;
+        height: 22px;
+    }
+    .hdri-label {
+        font-size: 13px;
+    }
+    
+    .background-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    /* Специальные стили для кнопки в модальном окне выбора фона */
+    #backgroundModal .pg-apply-button {
+        position: sticky;
+        bottom: 0;
+        background: #F05323;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        z-index: 10;
+        width: 100%;
+        height: 50px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+}
