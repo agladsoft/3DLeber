@@ -10,33 +10,33 @@ export const BACKGROUND_TYPES = {
         name: 'grass',
         displayName: 'Трава',
         texturePath: 'textures/ground/grass_texture.png',
-        color: 0x4CAF50,
-        roughness: 0.7,
-        metalness: 0.1
+        color: 0x7CB342, // Более естественный зеленый цвет
+        roughness: 0.8, // Увеличена шероховатость для травы
+        metalness: 0.0  // Трава не металлическая
     },
     SAND: {
         name: 'sand',
         displayName: 'Песок',
         texturePath: 'textures/ground/smooth-sand-dunes-2048x2048.png',
-        color: 0xF4D03F,
-        roughness: 0.9,
-        metalness: 0.05
+        color: 0xF4D03F, // Желтый песок
+        roughness: 0.95, // Очень шероховатый
+        metalness: 0.0   // Песок не металлический
     },
     DIRT: {
         name: 'dirt',
         displayName: 'Земля',
         texturePath: 'textures/ground/red-sand-ground-2048x2048.png',
-        color: 0x8B4513,
-        roughness: 0.8,
-        metalness: 0.1
+        color: 0x8B4513, // Коричневый цвет земли
+        roughness: 0.9,  // Очень шероховатый
+        metalness: 0.0   // Земля не металлическая
     },
     CONCRETE: {
         name: 'concrete',
         displayName: 'Бетон',
         texturePath: 'textures/ground/concrete-wall-2048x2048.png',
-        color: 0x95A5A6,
-        roughness: 0.6,
-        metalness: 0.2
+        color: 0x95A5A6, // Серый бетон
+        roughness: 0.7,  // Средняя шероховатость
+        metalness: 0.1   // Слегка металлический
     }
 };
 
@@ -81,10 +81,10 @@ export function createBackground(width, length, backgroundType = 'grass') {
     currentBackgroundType = backgroundConfig;
     
     // Устанавливаем фиксированный большой размер для фона
-    const size = 1000; // Фиксированный большой размер в метрах
+    const size = 2000; // Увеличенный размер для лучшего качества текстур
     
-    // Создаем геометрию круга
-    const circleGeometry = new THREE.CircleGeometry(size / 2, 64);
+    // Создаем геометрию круга с большим количеством сегментов для гладкости
+    const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
     
     // Создаем материал для фона
     const material = createBackgroundMaterial(backgroundConfig, size);
@@ -130,10 +130,31 @@ function createBackgroundMaterial(config, size) {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         
-        // Настраиваем повторение текстуры в зависимости от размера
-        const repeats = size / 2;
+        // Улучшенные настройки повторения текстуры для реалистичности
+        // Используем более разумное повторение в зависимости от типа текстуры
+        let repeats;
+        switch (config.name) {
+            case 'grass':
+                repeats = size / 20; // Трава - более крупная текстура
+                break;
+            case 'sand':
+                repeats = size / 15; // Песок - средняя текстура
+                break;
+            case 'dirt':
+                repeats = size / 12; // Земля - крупная текстура
+                break;
+            case 'concrete':
+                repeats = size / 25; // Бетон - мелкая текстура
+                break;
+            default:
+                repeats = size / 20;
+        }
+        
         texture.repeat.set(repeats, repeats);
         texture.anisotropy = 16; // Улучшает качество при наклонных углах
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
         
         console.log('Текстура загружена:', config.texturePath);
     } catch (error) {
