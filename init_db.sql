@@ -140,3 +140,232 @@ ON CONFLICT (article) DO UPDATE
 SET name = EXCLUDED.name,
     description = EXCLUDED.description,
     category = EXCLUDED.category;
+
+-- ============================================================================
+-- СТРУКТУРА ДЛЯ КЛИМАТИЧЕСКИХ ЗОН
+-- ============================================================================
+
+-- Таблица климатических зон
+CREATE TABLE IF NOT EXISTS climate_zones (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица настроек окружения для климатических зон (объединенная)
+CREATE TABLE IF NOT EXISTS climate_environment_settings (
+    id SERIAL PRIMARY KEY,
+    climate_zone_id INTEGER REFERENCES climate_zones(id) ON DELETE CASCADE,
+    -- Настройки HDRI и камеры
+    hdri_file_path VARCHAR(255) NOT NULL,
+    hdri_display_name VARCHAR(100) NOT NULL,
+    camera_fov DECIMAL(5,2) DEFAULT 75.0, -- Поле зрения камеры
+    camera_near DECIMAL(5,2) DEFAULT 0.1, -- Ближняя плоскость отсечения
+    camera_far DECIMAL(8,2) DEFAULT 1000.0, -- Дальняя плоскость отсечения
+    background_size DECIMAL(8,2) DEFAULT 1000.0, -- Размер фоновой поверхности
+    -- Настройки поверхности
+    surface_texture_path VARCHAR(255) NOT NULL,
+    surface_display_name VARCHAR(100) NOT NULL,
+    surface_color VARCHAR(7) DEFAULT '#4CAF50', -- HEX цвет
+    surface_roughness DECIMAL(3,2) DEFAULT 0.7,
+    surface_metalness DECIMAL(3,2) DEFAULT 0.1,
+    texture_repeat_factor DECIMAL(5,2) DEFAULT 20.0,
+    -- Настройки освещения
+    tone_mapping_exposure DECIMAL(3,2) DEFAULT 0.5, -- Экспозиция tone mapping рендерера
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица связи моделей с климатическими зонами
+CREATE TABLE IF NOT EXISTS model_climate_zones (
+    id SERIAL PRIMARY KEY,
+    model_id INTEGER REFERENCES models(id) ON DELETE CASCADE,
+    climate_zone_id INTEGER REFERENCES climate_zones(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(model_id, climate_zone_id)
+);
+
+-- Индексы для оптимизации запросов
+CREATE INDEX IF NOT EXISTS idx_climate_zones_name ON climate_zones(name);
+CREATE INDEX IF NOT EXISTS idx_climate_zones_active ON climate_zones(is_active);
+CREATE INDEX IF NOT EXISTS idx_climate_environment_settings_zone ON climate_environment_settings(climate_zone_id);
+CREATE INDEX IF NOT EXISTS idx_model_climate_zones_model ON model_climate_zones(model_id);
+CREATE INDEX IF NOT EXISTS idx_model_climate_zones_climate ON model_climate_zones(climate_zone_id);
+
+-- Комментарии к таблицам
+COMMENT ON TABLE climate_zones IS 'Таблица климатических зон';
+COMMENT ON TABLE climate_environment_settings IS 'Объединенные настройки окружения, поверхности и освещения для климатических зон';
+COMMENT ON TABLE model_climate_zones IS 'Связь моделей с климатическими зонами';
+
+-- Комментарии к колонкам
+COMMENT ON COLUMN climate_zones.name IS 'Уникальное имя климатической зоны (для кода)';
+COMMENT ON COLUMN climate_zones.display_name IS 'Отображаемое имя климатической зоны';
+COMMENT ON COLUMN climate_environment_settings.hdri_file_path IS 'Путь к HDRI файлу';
+COMMENT ON COLUMN climate_environment_settings.camera_fov IS 'Поле зрения камеры (FOV) в градусах';
+COMMENT ON COLUMN climate_environment_settings.camera_near IS 'Ближняя плоскость отсечения камеры';
+COMMENT ON COLUMN climate_environment_settings.camera_far IS 'Дальняя плоскость отсечения камеры';
+COMMENT ON COLUMN climate_environment_settings.background_size IS 'Размер фоновой поверхности';
+COMMENT ON COLUMN climate_environment_settings.surface_texture_path IS 'Путь к текстуре поверхности';
+COMMENT ON COLUMN climate_environment_settings.texture_repeat_factor IS 'Коэффициент повторения текстуры';
+COMMENT ON COLUMN climate_environment_settings.tone_mapping_exposure IS 'Экспозиция tone mapping рендерера (0.1-2.0)';
+
+
+-- ============================================================================
+-- ДАННЫЕ ДЛЯ КЛИМАТИЧЕСКИХ ЗОН
+-- ============================================================================
+
+
+-- Вставка климатических зон
+INSERT INTO climate_zones (name, display_name, description) VALUES
+    ('russia_cis', 'Россия и СНГ', 'Климатическая зона для России и стран СНГ с умеренным климатом'),
+    ('middle_east', 'Средний Восток', 'Климатическая зона для стран Среднего Востока с жарким климатом')
+ON CONFLICT (name) DO UPDATE 
+SET display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description;
+
+
+
+-- Настройки окружения для России и СНГ (Осенний парк + Трава)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/autumn_park_4k.exr', 'Осенний парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/grass_texture.png', 'Трава', '#7CB342', 0.8, 0.0, 20.0,
+    0.5 -- Умеренная экспозиция для осеннего климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+
+
+
+-- Настройки окружения для России и СНГ (Летний парк + Трава)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/green_point_park_4k.exr', 'Летний парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/grass_texture.png', 'Трава', '#7CB342', 0.8, 0.0, 20.0,
+    0.5 -- Умеренная экспозиция для летнего климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+
+
+-- Настройки окружения для России и СНГ (Городской парк + Трава)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/buikslotermeerplein_4k.exr', 'Городской парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/grass_texture.png', 'Трава', '#7CB342', 0.8, 0.0, 20.0,
+    0.5 -- Умеренная экспозиция для городского климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+-- Настройки окружения для России и СНГ (Городской парк + Песок)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/buikslotermeerplein_4k.exr', 'Городской парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/smooth-sand-dunes-2048x2048.png', 'Песок', '#F4D03F', 0.95, 0.0, 15.0,
+    0.5 -- Умеренная экспозиция для городского климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+-- Настройки окружения для России и СНГ (Городской парк + Земля)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/buikslotermeerplein_4k.exr', 'Городской парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/red-sand-ground-2048x2048.png', 'Земля', '#db9e6c', 0.9, 0.0, 12.0,
+    0.5 -- Умеренная экспозиция для городского климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+-- Настройки окружения для России и СНГ (Городской парк + Бетон)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/buikslotermeerplein_4k.exr', 'Городской парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/concrete-wall-2048x2048.png', 'Бетон', '#95A5A6', 0.7, 0.1, 25.0,
+    0.5 -- Умеренная экспозиция для городского климата
+FROM climate_zones cz WHERE cz.name = 'russia_cis';
+
+
+
+
+-- Настройки окружения для Среднего Востока (Осенний парк)
+INSERT INTO climate_environment_settings (
+    climate_zone_id, 
+    hdri_file_path, hdri_display_name,
+    camera_fov, camera_near, camera_far, background_size,
+    surface_texture_path, surface_display_name, surface_color, surface_roughness, surface_metalness, texture_repeat_factor,
+    tone_mapping_exposure
+) 
+SELECT 
+    cz.id, 
+    'textures/hdri/autumn_park_4k.exr', 'Осенний парк',
+    75.0, 0.1, 1000.0, 1000.0,
+    'textures/ground/grass_texture.png', 'Трава', '#7CB342', 0.8, 0.0, 20.0,
+    0.5 -- Умеренная экспозиция для осеннего климата
+FROM climate_zones cz WHERE cz.name = 'middle_east';
+
+
+
+
+
+
+-- Связь моделей с климатическими зонами (Россия и СНГ)
+INSERT INTO model_climate_zones (model_id, climate_zone_id)
+SELECT m.id, cz.id
+FROM models m, climate_zones cz 
+WHERE cz.name = 'russia_cis' 
+AND m.category IN ('Пальмы', 'Кустарники')
+ON CONFLICT (model_id, climate_zone_id) DO NOTHING;
+
+-- Связь моделей с климатическими зонами (Средний Восток)
+INSERT INTO model_climate_zones (model_id, climate_zone_id)
+SELECT m.id, cz.id
+FROM models m, climate_zones cz 
+WHERE cz.name = 'middle_east' 
+AND m.category IN ('Деревья', 'Кустарники')
+ON CONFLICT (model_id, climate_zone_id) DO NOTHING;

@@ -10,7 +10,7 @@ export const BACKGROUND_TYPES = {
         name: 'grass',
         displayName: 'Трава',
         texturePath: 'textures/ground/grass_texture.png',
-        color: 0x7CB342, // Более естественный зеленый цвет
+        color: '#7CB342', // Более естественный зеленый цвет
         roughness: 0.8, // Увеличена шероховатость для травы
         metalness: 0.0  // Трава не металлическая
     },
@@ -18,7 +18,7 @@ export const BACKGROUND_TYPES = {
         name: 'sand',
         displayName: 'Песок',
         texturePath: 'textures/ground/smooth-sand-dunes-2048x2048.png',
-        color: 0xF4D03F, // Желтый песок
+        color: '#F4D03F', // Желтый песок
         roughness: 0.95, // Очень шероховатый
         metalness: 0.0   // Песок не металлический
     },
@@ -26,7 +26,7 @@ export const BACKGROUND_TYPES = {
         name: 'dirt',
         displayName: 'Земля',
         texturePath: 'textures/ground/red-sand-ground-2048x2048.png',
-        color: 0x8B4513, // Коричневый цвет земли
+        color: '#db9e6c', // Коричневый цвет земли
         roughness: 0.9,  // Очень шероховатый
         metalness: 0.0   // Земля не металлическая
     },
@@ -34,7 +34,7 @@ export const BACKGROUND_TYPES = {
         name: 'concrete',
         displayName: 'Бетон',
         texturePath: 'textures/ground/concrete-wall-2048x2048.png',
-        color: 0x95A5A6, // Серый бетон
+        color: '#95A5A6', // Серый бетон
         roughness: 0.7,  // Средняя шероховатость
         metalness: 0.1   // Слегка металлический
     }
