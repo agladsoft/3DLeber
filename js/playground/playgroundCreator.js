@@ -69,18 +69,6 @@ function removeExistingPlaygrounds() {
 }
 
 /**
- * Создает зеленый фон с окружностью вокруг основной площадки
- * @param {Number} width - Ширина основной площадки
- * @param {Number} length - Длина основной площадки
- * @returns {THREE.Mesh} Созданный зеленый фон
- */
-function createGreenBackground(width, length) {
-    // Эта функция теперь устарела, используем createBackground из backgroundManager
-    console.log('createGreenBackground устарела, используем createBackground');
-    return createBackground(width, length, 'grass');
-}
-
-/**
  * Создает основную площадку для размещения моделей
  * @param {Number} width - Ширина площадки
  * @param {Number} length - Длина площадки

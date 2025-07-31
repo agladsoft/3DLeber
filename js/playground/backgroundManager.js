@@ -81,7 +81,7 @@ export function createBackground(width, length, backgroundType = 'grass') {
     currentBackgroundType = backgroundConfig;
     
     // Устанавливаем фиксированный большой размер для фона
-    const size = 2000; // Увеличенный размер для лучшего качества текстур
+    const size = 1000; // Увеличенный размер для лучшего качества текстур
     
     // Создаем геометрию круга с большим количеством сегментов для гладкости
     const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
