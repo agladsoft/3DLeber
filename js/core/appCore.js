@@ -156,7 +156,7 @@ export async function initializeApp() {
         try {
             // Инициализируем менеджер фона
             const { initBackgroundManager } = await import('../playground/backgroundManager.js');
-            initBackgroundManager();
+            await initBackgroundManager();
         } catch (backgroundError) {
             console.error('Ошибка при инициализации менеджера фона:', backgroundError);
         }

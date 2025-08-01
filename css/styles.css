@@ -3080,6 +3080,72 @@ color: #333 !important;
     background: #4CAF50;
 }
 
+/* Стили для выбора климатической зоны */
+.climate-zone-label {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #F05323;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.climate-zone-label::before {
+    content: '🌍';
+    font-size: 18px;
+}
+
+.climate-zone-label::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: #F05323;
+}
+
+.climate-zone-options {
+    display: flex;
+    gap: 15px;
+    margin: 10px 0 20px 0;
+}
+
+.climate-zone-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+    min-height: 50px;
+}
+
+.climate-zone-option:hover {
+    border-color: #F05323;
+    background-color: #fff5f2;
+}
+
+.climate-zone-option.selected {
+    border-color: #F05323;
+    background-color: #F05323;
+    color: white;
+}
+
+.climate-zone-name {
+    font-weight: 500;
+    font-size: 14px;
+    text-align: center;
+}
+
 .background-option {
     display: flex;
     flex-direction: column;

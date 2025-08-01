@@ -69,7 +69,6 @@ function setupControlHandlers() {
     setupToggleDimensionsButton();
     setupToggleSafetyZoneButton();
     setupCloseAppButton();
-    setupCheckMissingModelsButton();
     setupBackgroundButton();
     setupToolButtonsEffects();
     setupToolButtonsContainerState();
@@ -661,6 +660,9 @@ function setupHelpButton() {
         helpButton.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Добавляем активное состояние кнопки при открытии модального окна
+            this.classList.add('active');
                         
             try {
                 // Динамически импортируем модуль helpModal
@@ -676,30 +678,6 @@ function setupHelpButton() {
 }
 
 /**
- * Настраивает обработчик для кнопки проверки отсутствующих моделей
- */
-function setupCheckMissingModelsButton() {
-    const checkMissingModelsButton = document.getElementById('checkMissingModelsButton');
-    
-    if (checkMissingModelsButton) {
-        checkMissingModelsButton.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-                        
-            try {
-                // Динамически импортируем модуль checkMissingModelsModal
-                const { showCheckMissingModelsModal } = await import('../checkMissingModelsModal.js');
-                showCheckMissingModelsModal();
-            } catch (error) {
-                console.error('Error loading check missing models modal:', error);
-            }
-        });
-    } else {
-        console.warn('Check missing models button not found');
-    }
-}
-
-/**
  * Настраивает обработчик для кнопки выбора фона
  */
 function setupBackgroundButton() {
@@ -709,6 +687,9 @@ function setupBackgroundButton() {
         backgroundButton.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Добавляем активное состояние кнопки при открытии модального окна
+            this.classList.add('active');
                         
             try {
                 // Динамически импортируем модуль backgroundModal

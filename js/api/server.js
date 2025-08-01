@@ -1093,6 +1093,167 @@ async function sendEmailWithJson(jsonData, userId, stats, userEmail) {
     }
 }
 
+// Climate API endpoints
+
+// Получение всех климатических зон
+app.get('/api/climate/zones', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, name, display_name, description, is_active 
+            FROM climate_zones 
+            WHERE is_active = true 
+            ORDER BY display_name
+        `;
+        const result = await pool.query(query);
+        
+        res.json({ zones: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/zones',
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching climate zones' });
+    }
+});
+
+// Получение настроек окружения для климатической зоны
+app.get('/api/climate/environment/:zoneName', async (req, res) => {
+    try {
+        const { zoneName } = req.params;
+        const query = `
+            SELECT ces.*, cz.display_name as zone_display_name
+            FROM climate_environment_settings ces
+            JOIN climate_zones cz ON ces.climate_zone_id = cz.id
+            WHERE cz.name = $1 AND cz.is_active = true
+            ORDER BY ces.hdri_display_name, ces.surface_display_name
+        `;
+        const result = await pool.query(query, [zoneName]);
+        
+        res.json({ settings: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/environment/:zoneName',
+            zoneName: req.params.zoneName,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching climate environment settings' });
+    }
+});
+
+// Получение моделей для климатической зоны
+app.get('/api/climate/models/:zoneName', async (req, res) => {
+    try {
+        const { zoneName } = req.params;
+        const query = `
+            SELECT m.*, mcz.climate_zone_id
+            FROM models m
+            JOIN model_climate_zones mcz ON m.id = mcz.model_id
+            JOIN climate_zones cz ON mcz.climate_zone_id = cz.id
+            WHERE cz.name = $1 AND cz.is_active = true
+            ORDER BY m.category, m.article
+        `;
+        const result = await pool.query(query, [zoneName]);
+        
+        res.json({ models: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/models/:zoneName',
+            zoneName: req.params.zoneName,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching models for climate zone' });
+    }
+});
+
+// Получение уникальных настроек поверхности для климатической зоны
+app.get('/api/climate/surfaces/:zoneName', async (req, res) => {
+    try {
+        const { zoneName } = req.params;
+        const query = `
+            SELECT DISTINCT
+                surface_texture_path,
+                surface_display_name,
+                surface_color,
+                surface_roughness,
+                surface_metalness,
+                texture_repeat_factor
+            FROM climate_environment_settings ces
+            JOIN climate_zones cz ON ces.climate_zone_id = cz.id
+            WHERE cz.name = $1 AND cz.is_active = true
+            ORDER BY surface_display_name
+        `;
+        const result = await pool.query(query, [zoneName]);
+        
+        res.json({ surfaces: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/surfaces/:zoneName',
+            zoneName: req.params.zoneName,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching surface settings for climate zone' });
+    }
+});
+
+// Получение уникальных HDRI настроек для климатической зоны
+app.get('/api/climate/hdri/:zoneName', async (req, res) => {
+    try {
+        const { zoneName } = req.params;
+        const query = `
+            SELECT DISTINCT
+                hdri_file_path,
+                hdri_display_name,
+                tone_mapping_exposure
+            FROM climate_environment_settings ces
+            JOIN climate_zones cz ON ces.climate_zone_id = cz.id
+            WHERE cz.name = $1 AND cz.is_active = true
+            ORDER BY hdri_display_name
+        `;
+        const result = await pool.query(query, [zoneName]);
+        
+        res.json({ hdri: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/hdri/:zoneName',
+            zoneName: req.params.zoneName,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching HDRI settings for climate zone' });
+    }
+});
+
+// Получение всех комбинаций настроек для климатической зоны
+app.get('/api/climate/settings/:zoneName', async (req, res) => {
+    try {
+        const { zoneName } = req.params;
+        const query = `
+            SELECT 
+                ces.*,
+                cz.display_name as zone_display_name
+            FROM climate_environment_settings ces
+            JOIN climate_zones cz ON ces.climate_zone_id = cz.id
+            WHERE cz.name = $1 AND cz.is_active = true
+            ORDER BY ces.hdri_display_name, ces.surface_display_name
+        `;
+        const result = await pool.query(query, [zoneName]);
+        
+        res.json({ settings: result.rows });
+    } catch (err) {
+        logError(err, {
+            endpoint: '/api/climate/settings/:zoneName',
+            zoneName: req.params.zoneName,
+            method: req.method,
+            ip: req.ip || req.connection.remoteAddress
+        });
+        res.status(500).json({ error: 'Error fetching climate settings' });
+    }
+});
+
 app.use('/models', express.static(modelsDir));
 
 // Middleware для обработки ошибок должен быть последним

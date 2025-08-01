@@ -3,42 +3,55 @@
  */
 import * as THREE from 'three';
 import { scene } from '../scene.js';
+import { getSurfaceSettings } from '../api/climate.js';
 
-// Конфигурация доступных фонов и текстур
+// Кэш для загруженных настроек поверхности
+let cachedSurfaceSettings = null;
+let currentClimateZone = 'russia_cis'; // Зона по умолчанию
+
+// Конфигурация доступных фонов и текстур (резервная, если БД недоступна)
 export const BACKGROUND_TYPES = {
     GRASS: {
         name: 'grass',
         displayName: 'Трава',
         texturePath: 'textures/ground/grass_texture.png',
-        color: '#7CB342', // Более естественный зеленый цвет
-        roughness: 0.8, // Увеличена шероховатость для травы
-        metalness: 0.0  // Трава не металлическая
-    },
-    SAND: {
-        name: 'sand',
-        displayName: 'Песок',
-        texturePath: 'textures/ground/smooth-sand-dunes-2048x2048.png',
-        color: '#F4D03F', // Желтый песок
-        roughness: 0.95, // Очень шероховатый
-        metalness: 0.0   // Песок не металлический
-    },
-    DIRT: {
-        name: 'dirt',
-        displayName: 'Земля',
-        texturePath: 'textures/ground/red-sand-ground-2048x2048.png',
-        color: '#db9e6c', // Коричневый цвет земли
-        roughness: 0.9,  // Очень шероховатый
-        metalness: 0.0   // Земля не металлическая
-    },
-    CONCRETE: {
-        name: 'concrete',
-        displayName: 'Бетон',
-        texturePath: 'textures/ground/concrete-wall-2048x2048.png',
-        color: '#95A5A6', // Серый бетон
-        roughness: 0.7,  // Средняя шероховатость
-        metalness: 0.1   // Слегка металлический
+        color: '#7CB342',
+        roughness: 0.8,
+        metalness: 0.0
     }
 };
+
+/**
+ * Устанавливает текущую климатическую зону
+ * @param {string} zoneName - Название климатической зоны
+ */
+export function setCurrentClimateZone(zoneName) {
+    currentClimateZone = zoneName;
+    // Очищаем кэш при смене зоны
+    cachedSurfaceSettings = null;
+    console.log('Climate zone changed to:', zoneName);
+}
+
+/**
+ * Получает настройки поверхности из базы данных
+ * @returns {Promise<Array>} Массив настроек поверхности
+ */
+async function loadSurfaceSettingsFromDB() {
+    try {
+        if (cachedSurfaceSettings) {
+            return cachedSurfaceSettings;
+        }
+        
+        const settings = await getSurfaceSettings(currentClimateZone);
+        cachedSurfaceSettings = settings;
+        console.log('Loaded surface settings from DB:', settings);
+        return settings;
+    } catch (error) {
+        console.error('Error loading surface settings from DB:', error);
+        // Возвращаем резервные настройки при ошибке
+        return Object.values(BACKGROUND_TYPES);
+    }
+}
 
 // Текущий тип фона
 let currentBackgroundType = BACKGROUND_TYPES.GRASS;
@@ -47,70 +60,121 @@ let currentBackgroundMesh = null;
 /**
  * Инициализирует менеджер фона
  */
-export function initBackgroundManager() {
-    // Восстанавливаем сохраненный тип фона из localStorage
-    const savedBackground = localStorage.getItem('selectedBackgroundType');
-    if (savedBackground && BACKGROUND_TYPES[savedBackground.toUpperCase()]) {
-        currentBackgroundType = BACKGROUND_TYPES[savedBackground.toUpperCase()];
+export async function initBackgroundManager() {
+    try {
+        // Восстанавливаем сохраненную поверхность из localStorage
+        const savedSurface = localStorage.getItem('selectedSurfaceName');
+        if (savedSurface) {
+            // Пытаемся загрузить конфигурацию из БД
+            const backgroundConfig = await getBackgroundConfig(savedSurface);
+            if (backgroundConfig) {
+                currentBackgroundType = backgroundConfig;
+            }
+        }
+        
+        // Если не удалось загрузить, используем трavu по умолчанию
+        if (!currentBackgroundType || !currentBackgroundType.name) {
+            currentBackgroundType = BACKGROUND_TYPES.GRASS;
+        }
+        
+        console.log('Background manager initialized with surface:', currentBackgroundType.displayName || currentBackgroundType.name);
+    } catch (error) {
+        console.error('Error initializing background manager:', error);
+        currentBackgroundType = BACKGROUND_TYPES.GRASS;
+        console.log('Background manager initialized with fallback surface:', currentBackgroundType.name);
     }
-    
-    console.log('Background manager initialized with type:', currentBackgroundType.name);
 }
 
 /**
  * Создает фон с указанным типом
  * @param {Number} width - Ширина основной площадки
  * @param {Number} length - Длина основной площадки
- * @param {String} backgroundType - Тип фона (grass, sand, dirt, concrete)
- * @returns {THREE.Mesh} Созданный фон
+ * @param {String} surfaceName - Название поверхности
+ * @returns {Promise<THREE.Mesh>} Созданный фон
  */
-export function createBackground(width, length, backgroundType = 'grass') {
-    console.log('Создаем фон типа:', backgroundType);
+export async function createBackground(width, length, surfaceName = 'Трава') {
+    console.log('Создаем фон:', surfaceName);
     
-    // Удаляем существующий фон
-    removeExistingBackground();
-    
-    // Получаем конфигурацию для выбранного типа
-    const backgroundConfig = getBackgroundConfig(backgroundType);
-    if (!backgroundConfig) {
-        console.warn('Неизвестный тип фона:', backgroundType, 'используем траву');
-        backgroundConfig = BACKGROUND_TYPES.GRASS;
+    try {
+        // Удаляем существующий фон
+        removeExistingBackground();
+        
+        // Получаем конфигурацию для выбранной поверхности
+        const backgroundConfig = await getBackgroundConfig(surfaceName);
+        if (!backgroundConfig) {
+            console.warn('Неизвестная поверхность:', surfaceName, 'используем траву');
+            backgroundConfig = BACKGROUND_TYPES.GRASS;
+        }
+        
+        // Обновляем текущий тип
+        currentBackgroundType = backgroundConfig;
+        
+        // Устанавливаем фиксированный большой размер для фона
+        const size = 1000;
+        
+        // Создаем геометрию круга с большим количеством сегментов для гладкости
+        const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
+        
+        // Создаем материал для фона
+        const material = createBackgroundMaterial(backgroundConfig, size);
+        
+        // Создаем меш фона
+        const backgroundMesh = new THREE.Mesh(circleGeometry, material);
+        
+        // Поворачиваем и позиционируем круг
+        backgroundMesh.rotation.x = -Math.PI / 2;
+        backgroundMesh.position.y = -0.1;
+        backgroundMesh.receiveShadow = true;
+        backgroundMesh.name = "background_surface";
+        
+        // Добавляем информацию для предотвращения выбора
+        backgroundMesh.userData = {
+            isGround: true,
+            nonInteractive: true,
+            isBackground: true,
+            surfaceName: surfaceName
+        };
+        
+        // Добавляем фон в сцену
+        scene.add(backgroundMesh);
+        currentBackgroundMesh = backgroundMesh;
+        
+        console.log('Фон создан:', surfaceName);
+        return backgroundMesh;
+    } catch (error) {
+        console.error('Ошибка создания фона:', error);
+        // При ошибке создаем базовый фон
+        return createBasicBackground();
     }
-    
-    // Обновляем текущий тип
+}
+
+/**
+ * Создает базовый фон при ошибке загрузки из БД
+ * @private
+ */
+function createBasicBackground() {
+    const backgroundConfig = BACKGROUND_TYPES.GRASS;
     currentBackgroundType = backgroundConfig;
     
-    // Устанавливаем фиксированный большой размер для фона
-    const size = 1000; // Увеличенный размер для лучшего качества текстур
-    
-    // Создаем геометрию круга с большим количеством сегментов для гладкости
+    const size = 1000;
     const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
-    
-    // Создаем материал для фона
     const material = createBackgroundMaterial(backgroundConfig, size);
-    
-    // Создаем меш фона
     const backgroundMesh = new THREE.Mesh(circleGeometry, material);
     
-    // Поворачиваем и позиционируем круг
     backgroundMesh.rotation.x = -Math.PI / 2;
-    backgroundMesh.position.y = -0.1; // Чуть ниже основной площадки
+    backgroundMesh.position.y = -0.1;
     backgroundMesh.receiveShadow = true;
     backgroundMesh.name = "background_surface";
-    
-    // Добавляем информацию для предотвращения выбора
     backgroundMesh.userData = {
         isGround: true,
         nonInteractive: true,
         isBackground: true,
-        backgroundType: backgroundType
+        surfaceName: 'Трава'
     };
     
-    // Добавляем фон в сцену
     scene.add(backgroundMesh);
     currentBackgroundMesh = backgroundMesh;
     
-    console.log('Фон типа', backgroundType, 'добавлен в сцену');
     return backgroundMesh;
 }
 
@@ -130,24 +194,18 @@ function createBackgroundMaterial(config, size) {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         
-        // Улучшенные настройки повторения текстуры для реалистичности
-        // Используем более разумное повторение в зависимости от типа текстуры
+        // Используем коэффициент повторения из конфигурации или вычисляем по умолчанию
         let repeats;
-        switch (config.name) {
-            case 'grass':
-                repeats = size / 20; // Трава - более крупная текстура
-                break;
-            case 'sand':
-                repeats = size / 15; // Песок - средняя текстура
-                break;
-            case 'dirt':
-                repeats = size / 12; // Земля - крупная текстура
-                break;
-            case 'concrete':
-                repeats = size / 25; // Бетон - мелкая текстура
-                break;
-            default:
-                repeats = size / 20;
+        if (config.repeatFactor) {
+            repeats = size / config.repeatFactor;
+        } else {
+            // Резервная логика для старых настроек
+            switch (config.name) {
+                case 'grass':
+                case 'трава':
+                    repeats = size / 20;
+                    break;
+            }
         }
         
         texture.repeat.set(repeats, repeats);
@@ -179,12 +237,40 @@ function createBackgroundMaterial(config, size) {
 
 /**
  * Получает конфигурацию фона по типу
- * @param {String} type - Тип фона
- * @returns {Object|null} Конфигурация фона
+ * @param {String} surfaceName - Название поверхности
+ * @returns {Promise<Object|null>} Конфигурация фона
  */
-function getBackgroundConfig(type) {
-    const upperType = type.toUpperCase();
-    return BACKGROUND_TYPES[upperType] || BACKGROUND_TYPES.GRASS;
+async function getBackgroundConfig(surfaceName) {
+    try {
+        const surfaceSettings = await loadSurfaceSettingsFromDB();
+        
+        // Ищем настройки по названию поверхности
+        const config = surfaceSettings.find(setting => 
+            setting.surface_display_name === surfaceName ||
+            setting.surface_display_name.toLowerCase() === surfaceName.toLowerCase()
+        );
+        
+        if (config) {
+            return {
+                name: surfaceName.toLowerCase().replace(/\s+/g, '_'),
+                displayName: config.surface_display_name,
+                texturePath: config.surface_texture_path,
+                color: config.surface_color,
+                roughness: parseFloat(config.surface_roughness),
+                metalness: parseFloat(config.surface_metalness),
+                repeatFactor: parseFloat(config.texture_repeat_factor)
+            };
+        }
+        
+        // Если не найдено в БД, используем резервные настройки
+        const upperType = surfaceName.toUpperCase();
+        return BACKGROUND_TYPES[upperType] || BACKGROUND_TYPES.GRASS;
+    } catch (error) {
+        console.error('Error getting background config:', error);
+        // При ошибке возвращаем резервные настройки
+        const upperType = surfaceName.toUpperCase();
+        return BACKGROUND_TYPES[upperType] || BACKGROUND_TYPES.GRASS;
+    }
 }
 
 /**
@@ -227,34 +313,57 @@ function removeExistingBackground() {
 
 /**
  * Меняет тип фона
- * @param {String} newBackgroundType - Новый тип фона
+ * @param {String} surfaceName - Название поверхности
  * @param {Number} width - Ширина площадки
  * @param {Number} length - Длина площадки
+ * @returns {Promise<THREE.Mesh>} Новый фон
  */
-export function changeBackground(newBackgroundType, width, length) {
-    console.log('Меняем фон на:', newBackgroundType);
+export async function changeBackground(surfaceName, width, length) {
+    console.log('Меняем фон на:', surfaceName);
     
-    // Создаем новый фон
-    const newBackground = createBackground(width, length, newBackgroundType);
-    
-    // Сохраняем выбор в localStorage
-    localStorage.setItem('selectedBackgroundType', newBackgroundType);
-    
-    return newBackground;
+    try {
+        // Создаем новый фон
+        const newBackground = await createBackground(width, length, surfaceName);
+        
+        // Сохраняем выбор в localStorage
+        localStorage.setItem('selectedSurfaceName', surfaceName);
+        
+        return newBackground;
+    } catch (error) {
+        console.error('Ошибка смены фона:', error);
+        throw error;
+    }
 }
 
 /**
- * Получает текущий тип фона
- * @returns {String} Текущий тип фона
+ * Получает текущую поверхность
+ * @returns {String} Название текущей поверхности
  */
 export function getCurrentBackgroundType() {
-    return currentBackgroundType.name;
+    return currentBackgroundType.displayName || currentBackgroundType.name;
 }
 
 /**
- * Получает список доступных типов фона
- * @returns {Array} Массив доступных типов фона
+ * Получает список доступных поверхностей для текущей климатической зоны
+ * @returns {Promise<Array>} Массив доступных поверхностей
  */
-export function getAvailableBackgroundTypes() {
-    return Object.values(BACKGROUND_TYPES);
+export async function getAvailableBackgroundTypes() {
+    try {
+        const surfaceSettings = await loadSurfaceSettingsFromDB();
+        
+        // Конвертируем настройки БД в формат, совместимый со старым API
+        return surfaceSettings.map(setting => ({
+            name: setting.surface_display_name.toLowerCase().replace(/\s+/g, '_'),
+            displayName: setting.surface_display_name,
+            texturePath: setting.surface_texture_path,
+            color: setting.surface_color,
+            roughness: parseFloat(setting.surface_roughness),
+            metalness: parseFloat(setting.surface_metalness),
+            repeatFactor: parseFloat(setting.texture_repeat_factor)
+        }));
+    } catch (error) {
+        console.error('Error getting available background types:', error);
+        // При ошибке возвращаем резервные настройки
+        return Object.values(BACKGROUND_TYPES);
+    }
 } 

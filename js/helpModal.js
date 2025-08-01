@@ -135,6 +135,12 @@ export function hideHelpModal() {
         // Останавливаем все видео при закрытии
         pauseAllVideos();
     }
+    
+    // Убираем активное состояние кнопки помощи
+    const helpButton = document.getElementById('helpButton');
+    if (helpButton) {
+        helpButton.classList.remove('active');
+    }
 }
 
 /**
