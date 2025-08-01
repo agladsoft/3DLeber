@@ -483,8 +483,30 @@ const PlaygroundModal = {
             // Сохраняем изменения площадки в базу данных session
             try {
                 const { savePlaygroundParameters } = await import('./playground.js');
-                await savePlaygroundParameters('rubber', width, length, color);
-                console.log('Параметры площадки сохранены в базу данных:', { width, length, color });
+                
+                // Получаем текущие настройки фона
+                let background = 'textures/hdri/buikslotermeerplein_4k.exr';
+                let climateZone = 'russia_cis';
+                let coverage = 'Трава';
+                
+                try {
+                    const { 
+                        getCurrentHdriBackground, 
+                        getCurrentClimateZone, 
+                        getCurrentSurfaceCoverage 
+                    } = await import('./playground/backgroundManager.js');
+                    
+                    background = getCurrentHdriBackground();
+                    climateZone = getCurrentClimateZone();
+                    coverage = getCurrentSurfaceCoverage();
+                } catch (bgError) {
+                    console.warn('Не удалось получить текущие настройки фона, используем дефолтные:', bgError);
+                }
+                
+                await savePlaygroundParameters('rubber', width, length, color, background, climateZone, coverage);
+                console.log('Параметры площадки сохранены в базу данных:', { 
+                    width, length, color, background, climateZone, coverage 
+                });
             } catch (error) {
                 console.error('Ошибка при сохранении параметров площадки в базу данных:', error);
             }

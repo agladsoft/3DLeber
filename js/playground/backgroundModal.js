@@ -22,6 +22,129 @@ let selectedHdriPath = FALLBACK_HDRI_LIST[0].file;
 let selectedSurfaceName = 'Трава';
 
 /**
+ * Получает текущие настройки фона из сессии
+ * @returns {Promise<Object>} Объект с текущими настройками
+ */
+async function getCurrentBackgroundSettings() {
+    try {
+        // Получаем userId из sessionStorage
+        const userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            console.log('No user ID found, using default settings');
+            return {
+                background: 'textures/hdri/buikslotermeerplein_4k.exr',
+                climateZone: 'russia_cis',
+                coverage: 'Трава'
+            };
+        }
+
+        // Получаем сессию из API
+        const { API_BASE_URL } = await import('../api/serverConfig.js');
+        const sessionResponse = await fetch(`${API_BASE_URL}/session/${userId}`);
+        
+        if (!sessionResponse.ok) {
+            console.log('Failed to get session, using default settings');
+            return {
+                background: 'textures/hdri/buikslotermeerplein_4k.exr',
+                climateZone: 'russia_cis',
+                coverage: 'Трава'
+            };
+        }
+
+        const { session } = await sessionResponse.json();
+        
+        if (session && session.playground) {
+            console.log('Found background settings in session:', session.playground);
+            return {
+                background: session.playground.background || 'textures/hdri/buikslotermeerplein_4k.exr',
+                climateZone: session.playground.climateZone || 'russia_cis',
+                coverage: session.playground.coverage || 'Трава'
+            };
+        } else {
+            console.log('No playground settings in session, using default settings');
+            return {
+                background: 'textures/hdri/buikslotermeerplein_4k.exr',
+                climateZone: 'russia_cis',
+                coverage: 'Трава'
+            };
+        }
+    } catch (error) {
+        console.error('Error getting current background settings:', error);
+        return {
+            background: 'textures/hdri/buikslotermeerplein_4k.exr',
+            climateZone: 'russia_cis',
+            coverage: 'Трава'
+        };
+    }
+}
+
+/**
+ * Загружает текущие значения в UI модального окна
+ */
+async function loadCurrentBackgroundValues() {
+    try {
+        const settings = await getCurrentBackgroundSettings();
+        
+        console.log('Loading current background values:', settings);
+        
+        // Обновляем глобальные переменные
+        selectedHdriPath = settings.background;
+        selectedSurfaceName = settings.coverage;
+        currentClimateZone = settings.climateZone;
+        
+        // Обновляем localStorage
+        localStorage.setItem('selectedHdriPath', settings.background);
+        localStorage.setItem('selectedClimateZone', settings.climateZone);
+        localStorage.setItem('selectedSurfaceName', settings.coverage);
+        
+        // Обновляем UI после загрузки всех опций
+        setTimeout(() => {
+            updateBackgroundSelection(settings.coverage);
+            updateClimateZoneSelection(settings.climateZone);
+            updateHdriSelection(settings.background);
+        }, 300);
+        
+        console.log('Current background values loaded successfully');
+    } catch (error) {
+        console.error('Error loading current background values:', error);
+    }
+}
+
+/**
+ * Обновляет выделение климатической зоны в UI
+ * @param {string} zoneName - Название климатической зоны
+ */
+function updateClimateZoneSelection(zoneName) {
+    const climateOptions = document.querySelectorAll('.climate-zone-option');
+    climateOptions.forEach(option => {
+        const optionZone = option.getAttribute('data-climate');
+        if (optionZone === zoneName) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });
+    console.log('Climate zone selection updated:', zoneName);
+}
+
+/**
+ * Обновляет выделение HDRI в UI
+ * @param {string} hdriPath - Путь к HDRI файлу
+ */
+function updateHdriSelection(hdriPath) {
+    const hdriOptions = document.querySelectorAll('.hdri-option');
+    hdriOptions.forEach(option => {
+        const optionPath = option.getAttribute('data-hdri-path');
+        if (optionPath === hdriPath) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });
+    console.log('HDRI selection updated:', hdriPath);
+}
+
+/**
  * Получает путь к превью изображению для HDRI
  * @param {Object} hdri - Объект HDRI
  * @returns {string} Путь к превью изображению
@@ -124,15 +247,8 @@ function updateClimateZoneOptions(zones) {
         zoneOption.className = 'climate-zone-option';
         zoneOption.setAttribute('data-climate', zone.name);
         
-        // Выделяем сохраненную зону или первую по умолчанию
-        if (zone.name === currentClimateZone) {
-            zoneOption.classList.add('selected');
-        } else if (index === 0 && !zones.some(z => z.name === currentClimateZone)) {
-            // Если сохраненная зона не найдена, выделяем первую
-            zoneOption.classList.add('selected');
-            currentClimateZone = zone.name;
-            localStorage.setItem('selectedClimateZone', zone.name);
-        }
+        // Не устанавливаем выделение здесь - это будет делать loadCurrentBackgroundValues
+        // Выделение будет установлено позже на основе данных из сессии
         
         const nameSpan = document.createElement('span');
         nameSpan.className = 'climate-zone-name';
@@ -230,7 +346,9 @@ function updateHdriOptions(hdriList) {
     hdriList.forEach((hdri, index) => {
         const hdriOption = document.createElement('div');
         hdriOption.className = 'hdri-option';
-        hdriOption.setAttribute('data-hdri', hdri.hdri_file_path || hdri.file);
+        const hdriPath = hdri.hdri_file_path || hdri.file;
+        hdriOption.setAttribute('data-hdri', hdriPath);
+        hdriOption.setAttribute('data-hdri-path', hdriPath); // Добавляем атрибут для выделения
         
         // Используем название из БД или резервное
         const displayName = hdri.hdri_display_name || hdri.name;
@@ -275,11 +393,8 @@ function updateHdriOptions(hdriList) {
         hdriOption.appendChild(imgElement);
         hdriOption.appendChild(spanElement);
         
-        // Выделяем первую опцию по умолчанию
-        if (index === 0) {
-            hdriOption.classList.add('selected');
-            selectedHdriPath = hdri.hdri_file_path || hdri.file;
-        }
+        // Не устанавливаем выделение здесь - это будет делать loadCurrentBackgroundValues
+        // Выделение будет установлено позже на основе данных из сессии
         
         hdriContainer.appendChild(hdriOption);
     });
@@ -399,22 +514,8 @@ async function initializeBackgroundModal() {
         // Загружаем доступные поверхности для текущей зоны
         await loadSurfaceOptions();
         
-        // Получаем текущую поверхность
-        const currentSurface = getCurrentBackgroundType();
-        selectedSurfaceName = currentSurface;
-        console.log('Current surface loaded:', currentSurface);
-        
-        // Устанавливаем выбранную поверхность после загрузки
-        setTimeout(() => {
-            updateBackgroundSelection(currentSurface);
-        }, 200);
-        
-        // Выделить первый HDRI по умолчанию
-        const hdriOptions = document.querySelectorAll('.hdri-option');
-        hdriOptions.forEach((el, idx) => {
-            if (idx === 0) el.classList.add('selected');
-            else el.classList.remove('selected');
-        });
+        // Загружаем текущие значения из сессии
+        await loadCurrentBackgroundValues();
         
         console.log('Модальное окно выбора фона инициализировано');
     } catch (error) {
@@ -427,16 +528,24 @@ async function initializeBackgroundModal() {
 /**
  * Инициализация с резервными значениями при ошибке загрузки из БД
  */
-function initializeFallbackModal() {
-    const currentSurface = getCurrentBackgroundType();
-    selectedSurfaceName = currentSurface;
-    updateBackgroundSelection(currentSurface);
-    
-    const hdriOptions = document.querySelectorAll('.hdri-option');
-    hdriOptions.forEach((el, idx) => {
-        if (idx === 0) el.classList.add('selected');
-        else el.classList.remove('selected');
-    });
+async function initializeFallbackModal() {
+    try {
+        // Пытаемся загрузить текущие значения из сессии даже при ошибке БД
+        await loadCurrentBackgroundValues();
+    } catch (error) {
+        console.error('Error loading current values in fallback mode:', error);
+        
+        // Используем дефолтные значения
+        const currentSurface = getCurrentBackgroundType();
+        selectedSurfaceName = currentSurface;
+        updateBackgroundSelection(currentSurface);
+        
+        const hdriOptions = document.querySelectorAll('.hdri-option');
+        hdriOptions.forEach((el, idx) => {
+            if (idx === 0) el.classList.add('selected');
+            else el.classList.remove('selected');
+        });
+    }
     
     console.log('Модальное окно инициализировано с резервными значениями');
 }
@@ -533,9 +642,49 @@ async function applyBackgroundChange() {
         // Меняем покрытие площадки
         await changeBackground(selectedSurfaceName, width, length);
         
+        // Сохраняем настройки в localStorage
+        localStorage.setItem('selectedHdriPath', selectedHdriPath);
+        localStorage.setItem('selectedClimateZone', currentClimateZone);
+        localStorage.setItem('selectedSurfaceName', selectedSurfaceName);
+        
+        // Сохраняем настройки в сессию
+        try {
+            const { savePlaygroundParameters } = await import('../playground.js');
+            const currentColor = window.selectedPlaygroundColor || 'серый';
+            
+            await savePlaygroundParameters(
+                'rubber', // тип площадки
+                width,
+                length,
+                currentColor,
+                selectedHdriPath, // HDRI фон
+                currentClimateZone, // климатическая зона
+                selectedSurfaceName // покрытие
+            );
+            
+            console.log('Настройки фона сохранены в сессию:', {
+                background: selectedHdriPath,
+                climateZone: currentClimateZone,
+                coverage: selectedSurfaceName
+            });
+        } catch (saveError) {
+            console.error('Ошибка при сохранении настроек фона в сессию:', saveError);
+        }
+        
         // Показываем уведомление об успехе
         const displayName = await getBackgroundDisplayName(selectedSurfaceName);
         showNotification(`Фон изменен на "${displayName}"`, 'success');
+        
+        // Генерируем событие изменения фона для обновления других модулей
+        const event = new CustomEvent('backgroundChanged', {
+            detail: {
+                background: selectedHdriPath,
+                climateZone: currentClimateZone,
+                coverage: selectedSurfaceName,
+                displayName: displayName
+            }
+        });
+        document.dispatchEvent(event);
         
         // Закрываем модальное окно
         hideBackgroundModal();
@@ -666,3 +815,30 @@ function setupHdriHandlers() {
         });
     });
 } 
+
+// Добавляем обработчик события для обновления значений в модальном окне
+document.addEventListener('DOMContentLoaded', () => {
+    // Обработчик события изменения фона
+    document.addEventListener('backgroundChanged', async (e) => {
+        console.log('Background changed event received:', e.detail);
+        
+        // Если модальное окно открыто, обновляем значения
+        const modal = document.getElementById('backgroundModal');
+        if (modal && modal.style.display === 'block') {
+            console.log('Background modal is open, updating values');
+            await loadCurrentBackgroundValues();
+        }
+    });
+    
+    // Обработчик события изменения сессии
+    document.addEventListener('sessionChanged', async (e) => {
+        console.log('Session changed event received:', e.detail);
+        
+        // Если модальное окно открыто, обновляем значения
+        const modal = document.getElementById('backgroundModal');
+        if (modal && modal.style.display === 'block') {
+            console.log('Background modal is open, updating values from session');
+            await loadCurrentBackgroundValues();
+        }
+    });
+}); 

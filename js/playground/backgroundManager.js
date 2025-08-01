@@ -344,6 +344,107 @@ export function getCurrentBackgroundType() {
 }
 
 /**
+ * Получает текущую климатическую зону
+ * @returns {String} Название текущей климатической зоны
+ */
+export function getCurrentClimateZone() {
+    return currentClimateZone;
+}
+
+/**
+ * Получает текущий HDRI фон из localStorage или возвращает дефолтный
+ * @returns {String} Путь к текущему HDRI фону
+ */
+export function getCurrentHdriBackground() {
+    // Пытаемся получить из localStorage
+    const savedHdri = localStorage.getItem('selectedHdriPath');
+    if (savedHdri) {
+        return savedHdri;
+    }
+    
+    // Возвращаем дефолтный HDRI
+    return 'textures/hdri/buikslotermeerplein_4k.exr';
+}
+
+/**
+ * Получает текущее покрытие площадки из localStorage или возвращает дефолтное
+ * @returns {String} Название текущего покрытия
+ */
+export function getCurrentSurfaceCoverage() {
+    // Пытаемся получить из localStorage
+    const savedSurface = localStorage.getItem('selectedSurfaceName');
+    if (savedSurface) {
+        return savedSurface;
+    }
+    
+    // Возвращаем дефолтное покрытие
+    return 'Трава';
+}
+
+/**
+ * Восстанавливает фон из сохраненных настроек сессии
+ * @param {Object} playgroundSettings - Настройки площадки из сессии
+ * @param {Number} width - Ширина площадки
+ * @param {Number} length - Длина площадки
+ */
+export async function restoreBackgroundFromSession(playgroundSettings, width, length) {
+    try {
+        if (!playgroundSettings) {
+            console.log('Нет настроек фона для восстановления, используем дефолтные');
+            return;
+        }
+        
+        const { background, climateZone, coverage } = playgroundSettings;
+        
+        console.log('Восстанавливаем фон из сессии:', { background, climateZone, coverage });
+        
+        // Устанавливаем климатическую зону
+        if (climateZone) {
+            setCurrentClimateZone(climateZone);
+            localStorage.setItem('selectedClimateZone', climateZone);
+        }
+        
+        // Восстанавливаем HDRI фон
+        if (background) {
+            localStorage.setItem('selectedHdriPath', background);
+            try {
+                const { setHdriBackground } = await import('../scene/sceneCore.js');
+                await setHdriBackground(background);
+                console.log('HDRI фон восстановлен:', background);
+            } catch (hdriError) {
+                console.error('Ошибка при восстановлении HDRI фона:', hdriError);
+            }
+        }
+        
+        // Восстанавливаем покрытие площадки
+        if (coverage) {
+            localStorage.setItem('selectedSurfaceName', coverage);
+            try {
+                await changeBackground(coverage, width, length);
+                console.log('Покрытие площадки восстановлено:', coverage);
+            } catch (coverageError) {
+                console.error('Ошибка при восстановлении покрытия площадки:', coverageError);
+            }
+        }
+        
+        console.log('Фон успешно восстановлен из сессии');
+        
+        // Генерируем событие восстановления фона для обновления других модулей
+        const event = new CustomEvent('backgroundChanged', {
+            detail: {
+                background: playgroundSettings.background,
+                climateZone: playgroundSettings.climateZone,
+                coverage: playgroundSettings.coverage,
+                restored: true
+            }
+        });
+        document.dispatchEvent(event);
+    } catch (error) {
+        console.error('Ошибка при восстановлении фона из сессии:', error);
+    }
+}
+
+/**
  * Получает список доступных поверхностей для текущей климатической зоны
  * @returns {Promise<Array>} Массив доступных поверхностей
  */

@@ -349,12 +349,38 @@ async function autoRestoreSession(userId, session) {
             window.selectedPlaygroundWidth = session.playground.width;
             window.selectedPlaygroundLength = session.playground.length;
             window.selectedPlaygroundColor = session.playground.color;
+            
+            // Восстанавливаем фон, климатическую зону и покрытие
+            if (session.playground.background) {
+                localStorage.setItem('selectedHdriPath', session.playground.background);
+            }
+            if (session.playground.climateZone) {
+                localStorage.setItem('selectedClimateZone', session.playground.climateZone);
+            }
+            if (session.playground.coverage) {
+                localStorage.setItem('selectedSurfaceName', session.playground.coverage);
+            }
+            
+            console.log('Восстановлены параметры площадки из сессии:', {
+                type: session.playground.type,
+                width: session.playground.width,
+                length: session.playground.length,
+                color: session.playground.color,
+                background: session.playground.background,
+                climateZone: session.playground.climateZone,
+                coverage: session.playground.coverage
+            });
         } else {
             // Если параметры не найдены, используем дефолтные значения
             window.selectedPlaygroundType = 'rubber';
             window.selectedPlaygroundWidth = 40;
             window.selectedPlaygroundLength = 30;
             window.selectedPlaygroundColor = 'серый';
+            
+            // Устанавливаем дефолтные значения для фона
+            localStorage.setItem('selectedHdriPath', 'textures/hdri/buikslotermeerplein_4k.exr');
+            localStorage.setItem('selectedClimateZone', 'russia_cis');
+            localStorage.setItem('selectedSurfaceName', 'Трава');
         }
         
         // Обновляем прогресс - запуск приложения
@@ -373,6 +399,20 @@ async function autoRestoreSession(userId, session) {
                     window.selectedPlaygroundColor
                 );
                 console.log('Площадка успешно восстановлена');
+                
+                // Восстанавливаем фон из сессии
+                if (session.playground) {
+                    try {
+                        const { restoreBackgroundFromSession } = await import('./playground/backgroundManager.js');
+                        await restoreBackgroundFromSession(
+                            session.playground,
+                            window.selectedPlaygroundWidth,
+                            window.selectedPlaygroundLength
+                        );
+                    } catch (bgError) {
+                        console.error('Ошибка при восстановлении фона:', bgError);
+                    }
+                }
             } catch (error) {
                 console.error('Ошибка при загрузке площадки:', error);
                 await forceHideAllLoading();
@@ -391,6 +431,22 @@ async function autoRestoreSession(userId, session) {
                     console.log("Запуск проверки сцены после открытия модального окна");
                     startSceneChecks();
                 }, 3000);
+                
+                // Восстанавливаем фон из сессии после инициализации приложения
+                setTimeout(async () => {
+                    if (session.playground) {
+                        try {
+                            const { restoreBackgroundFromSession } = await import('./playground/backgroundManager.js');
+                            await restoreBackgroundFromSession(
+                                session.playground,
+                                window.selectedPlaygroundWidth,
+                                window.selectedPlaygroundLength
+                            );
+                        } catch (bgError) {
+                            console.error('Ошибка при восстановлении фона:', bgError);
+                        }
+                    }
+                }, 4000);
                 
                 // Завершаем загрузку через стандартный механизм
                 setTimeout(async () => {
@@ -414,6 +470,20 @@ async function autoRestoreSession(userId, session) {
                     window.selectedPlaygroundColor
                 );
                 console.log('Площадка успешно восстановлена для существующего приложения');
+                
+                // Восстанавливаем фон из сессии
+                if (session.playground) {
+                    try {
+                        const { restoreBackgroundFromSession } = await import('./playground/backgroundManager.js');
+                        await restoreBackgroundFromSession(
+                            session.playground,
+                            window.selectedPlaygroundWidth,
+                            window.selectedPlaygroundLength
+                        );
+                    } catch (bgError) {
+                        console.error('Ошибка при восстановлении фона:', bgError);
+                    }
+                }
             } catch (error) {
                 console.error('Ошибка при загрузке площадки для существующего приложения:', error);
                 await forceHideAllLoading();
@@ -672,12 +742,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Импортируем модуль playground
                         const playgroundModule = await import('./playground.js');
                         
+                        // Получаем текущие настройки фона
+                        let background = 'textures/hdri/buikslotermeerplein_4k.exr';
+                        let climateZone = 'russia_cis';
+                        let coverage = 'Трава';
+                        
+                        try {
+                            const { 
+                                getCurrentHdriBackground, 
+                                getCurrentClimateZone, 
+                                getCurrentSurfaceCoverage 
+                            } = await import('./playground/backgroundManager.js');
+                            
+                            background = getCurrentHdriBackground();
+                            climateZone = getCurrentClimateZone();
+                            coverage = getCurrentSurfaceCoverage();
+                        } catch (bgError) {
+                            console.warn('Не удалось получить текущие настройки фона, используем дефолтные:', bgError);
+                        }
+                        
                         // Сохраняем параметры площадки
                         await playgroundModule.savePlaygroundParameters(
                             window.selectedPlaygroundType,
                             window.selectedPlaygroundWidth,
                             window.selectedPlaygroundLength,
-                            window.selectedPlaygroundColor
+                            window.selectedPlaygroundColor,
+                            background,
+                            climateZone,
+                            coverage
                         );
                     }
                 }
@@ -715,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('window.appInitialized:', window.appInitialized);
                 
                 if (window.returnToApp) {
-                    console.log('📁 Путь: Возвращение к существующему приложению');
+                    console.log('📁 Путь: Возвращение к существующему приложения');
                     try {
                         const playgroundModule = await import('./playground.js');
                         // Используем стандартную загрузку площадки
@@ -727,6 +819,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.selectedPlaygroundColor
                         );
                         console.log('Площадка успешно восстановлена');
+                        
+                        // Восстанавливаем фон из сохраненных настроек
+                        try {
+                            const { restoreBackgroundFromSession } = await import('./playground/backgroundManager.js');
+                            const playgroundSettings = {
+                                background: background,
+                                climateZone: climateZone,
+                                coverage: coverage
+                            };
+                            await restoreBackgroundFromSession(
+                                playgroundSettings,
+                                window.selectedPlaygroundWidth,
+                                window.selectedPlaygroundLength
+                            );
+                        } catch (bgError) {
+                            console.error('Ошибка при восстановлении фона:', bgError);
+                        }
                     } catch (error) {
                         console.error('Ошибка при загрузке площадки:', error);
                         await forceHideAllLoading();
@@ -744,6 +853,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => {
                             startSceneChecks();
                         }, 3000);
+                        
+                        // Восстанавливаем фон из сохраненных настроек после инициализации приложения
+                        setTimeout(async () => {
+                            try {
+                                const { restoreBackgroundFromSession } = await import('./playground/backgroundManager.js');
+                                const playgroundSettings = {
+                                    background: background,
+                                    climateZone: climateZone,
+                                    coverage: coverage
+                                };
+                                await restoreBackgroundFromSession(
+                                    playgroundSettings,
+                                    window.selectedPlaygroundWidth,
+                                    window.selectedPlaygroundLength
+                                );
+                            } catch (bgError) {
+                                console.error('Ошибка при восстановлении фона:', bgError);
+                            }
+                        }, 4000);
                         
                         // Завершаем загрузку через стандартный механизм
                         setTimeout(async () => {
