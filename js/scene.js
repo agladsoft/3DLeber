@@ -16,7 +16,8 @@ import {
     createGrid,
     initScene as _initScene,
     setHdriBackground,
-    updateRendererSettings
+    updateRendererSettings,
+    updateCameraSettings
 } from './scene/index.js';
 
 // Реэкспорт всех переменных и функций для внешнего интерфейса
@@ -32,7 +33,8 @@ export {
     takeScreenshot, 
     createGrid,
     setHdriBackground,
-    updateRendererSettings
+    updateRendererSettings,
+    updateCameraSettings
 };
 
 /**

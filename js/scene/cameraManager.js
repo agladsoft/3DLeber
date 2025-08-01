@@ -21,17 +21,48 @@ let isToggling = false;
 /**
  * Создает и настраивает камеру и её элементы управления
  * @param {THREE.WebGLRenderer} rendererInstance - Рендерер
- * @returns {Object} Объект, содержащий камеру и её контролы
+ * @returns {Promise<Object>} Объект, содержащий камеру и её контролы
  */
-export function setupCamera(rendererInstance) {
+export async function setupCamera(rendererInstance) {
     // Сохраняем ссылку на renderer
     renderer = rendererInstance;
-    // Создание и настройка камеры
+    
+    // Получаем настройки камеры из БД
+    let cameraSettings = {
+        fov: CAMERA_SETTINGS.fov,
+        near: 0.1,
+        far: 1000
+    };
+    
+    try {
+        const climateZone = localStorage.getItem('selectedClimateZone') || 'russia_cis';
+        const hdriPath = localStorage.getItem('selectedHdriPath') || 'textures/hdri/autumn_park_4k.exr';
+        const surfaceName = localStorage.getItem('selectedSurfaceName') || 'Трава';
+        
+        const { getCameraSettings } = await import('../api/climate.js');
+        const dbSettings = await getCameraSettings(climateZone, hdriPath, surfaceName);
+        
+        if (dbSettings) {
+            cameraSettings = dbSettings;
+            console.log('📷 Настройки камеры загружены из БД:', {
+                fov: cameraSettings.fov,
+                near: cameraSettings.near,
+                far: cameraSettings.far,
+                climateZone,
+                hdri: hdriPath,
+                surface: surfaceName
+            });
+        }
+    } catch (error) {
+        console.warn('Не удалось загрузить настройки камеры из БД, используем дефолтные:', error);
+    }
+    
+    // Создание и настройка камеры с настройками из БД
     camera = new THREE.PerspectiveCamera(
-        CAMERA_SETTINGS.fov,
+        cameraSettings.fov,
         window.innerWidth / window.innerHeight,
-        0.1,
-        1000
+        cameraSettings.near,
+        cameraSettings.far
     );
     
     // Устанавливаем начальную позицию камеры
@@ -526,4 +557,52 @@ function disableTopView() {
 function cleanupGridHelper() {
     // Функция оставлена для совместимости, но больше не удаляет сетку
     console.log("cleanupGridHelper вызвана, но сетка не удаляется (функционал отключен)");
+}
+
+/**
+ * Обновляет настройки камеры из базы данных
+ * @param {string} climateZone - Климатическая зона
+ * @param {string} [hdriPath] - Путь к HDRI файлу (опционально)
+ * @param {string} [surfaceName] - Название поверхности (опционально)
+ * @returns {Promise<boolean>} true если настройки были применены, false если нет
+ */
+export async function updateCameraSettings(climateZone, hdriPath = null, surfaceName = null) {
+    if (!camera) {
+        console.warn('Камера не инициализирована, невозможно обновить настройки');
+        return false;
+    }
+    
+    try {
+        // Используем переданные параметры или берем из localStorage
+        const actualHdriPath = hdriPath || localStorage.getItem('selectedHdriPath') || 'textures/hdri/autumn_park_4k.exr';
+        const actualSurfaceName = surfaceName || localStorage.getItem('selectedSurfaceName') || 'Трава';
+        
+        const { getCameraSettings } = await import('../api/climate.js');
+        const settings = await getCameraSettings(climateZone, actualHdriPath, actualSurfaceName);
+        
+        if (settings) {
+            // Обновляем FOV камеры
+            camera.fov = settings.fov;
+            camera.near = settings.near;
+            camera.far = settings.far;
+            
+            // Обновляем проекционную матрицу для применения изменений
+            camera.updateProjectionMatrix();
+            
+            console.log('📷 Обновлены настройки камеры:', {
+                fov: settings.fov,
+                near: settings.near,
+                far: settings.far,
+                climateZone,
+                hdri: actualHdriPath,
+                surface: actualSurfaceName
+            });
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.warn('Не удалось обновить настройки камеры:', error);
+        return false;
+    }
 }

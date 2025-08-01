@@ -109,14 +109,24 @@ export async function createBackground(width, length, surfaceName = 'Трава'
         // Обновляем текущий тип
         currentBackgroundType = backgroundConfig;
         
-        // Устанавливаем фиксированный большой размер для фона
-        const size = 1000;
+        // Получаем размер фона из БД
+        let size = 1000; // дефолтный размер
+        try {
+            const { getBackgroundSettings } = await import('../api/climate.js');
+            const backgroundSettings = await getBackgroundSettings(currentClimateZone, surfaceName);
+            if (backgroundSettings && backgroundSettings.backgroundSize) {
+                size = backgroundSettings.backgroundSize;
+                console.log('📐 Размер фона загружен из БД:', size, 'для поверхности:', surfaceName);
+            }
+        } catch (error) {
+            console.warn('Не удалось загрузить размер фона из БД, используем дефолтный:', error);
+        }
         
         // Создаем геометрию круга с большим количеством сегментов для гладкости
         const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
         
-        // Создаем материал для фона
-        const material = createBackgroundMaterial(backgroundConfig, size);
+        // Создаем материал для фона с настройками из БД
+        const material = await createBackgroundMaterial(backgroundConfig, size, currentClimateZone, surfaceName);
         
         // Создаем меш фона
         const backgroundMesh = new THREE.Mesh(circleGeometry, material);
@@ -144,7 +154,7 @@ export async function createBackground(width, length, surfaceName = 'Трава'
     } catch (error) {
         console.error('Ошибка создания фона:', error);
         // При ошибке создаем базовый фон
-        return createBasicBackground();
+        return await createBasicBackground();
     }
 }
 
@@ -152,13 +162,25 @@ export async function createBackground(width, length, surfaceName = 'Трава'
  * Создает базовый фон при ошибке загрузки из БД
  * @private
  */
-function createBasicBackground() {
+async function createBasicBackground() {
     const backgroundConfig = BACKGROUND_TYPES.GRASS;
     currentBackgroundType = backgroundConfig;
     
-    const size = 1000;
+    // Получаем размер из БД или используем дефолтный
+    let size = 1000;
+    try {
+        const { getBackgroundSettings } = await import('../api/climate.js');
+        const backgroundSettings = await getBackgroundSettings(currentClimateZone, 'Трава');
+        if (backgroundSettings && backgroundSettings.backgroundSize) {
+            size = backgroundSettings.backgroundSize;
+            console.log('📐 Размер базового фона загружен из БД:', size);
+        }
+    } catch (error) {
+        console.warn('Не удалось загрузить размер базового фона из БД, используем дефолтный');
+    }
+    
     const circleGeometry = new THREE.CircleGeometry(size / 2, 128);
-    const material = createBackgroundMaterial(backgroundConfig, size);
+    const material = await createBackgroundMaterial(backgroundConfig, size, currentClimateZone, 'Трава');
     const backgroundMesh = new THREE.Mesh(circleGeometry, material);
     
     backgroundMesh.rotation.x = -Math.PI / 2;
@@ -182,10 +204,25 @@ function createBasicBackground() {
  * Создает материал для фона
  * @param {Object} config - Конфигурация фона
  * @param {Number} size - Размер фона
- * @returns {THREE.Material} Материал для фона
+ * @param {String} climateZone - Климатическая зона
+ * @param {String} surfaceName - Название поверхности
+ * @returns {Promise<THREE.Material>} Материал для фона
  */
-function createBackgroundMaterial(config, size) {
+async function createBackgroundMaterial(config, size, climateZone, surfaceName) {
     const textureLoader = new THREE.TextureLoader();
+    
+    // Получаем настройки текстуры из БД
+    let textureRepeatFactor = 20.0; // дефолтное значение
+    try {
+        const { getBackgroundSettings } = await import('../api/climate.js');
+        const backgroundSettings = await getBackgroundSettings(climateZone, surfaceName);
+        if (backgroundSettings && backgroundSettings.textureRepeatFactor) {
+            textureRepeatFactor = backgroundSettings.textureRepeatFactor;
+            console.log('🎨 Коэффициент повторения текстуры загружен из БД:', textureRepeatFactor, 'для поверхности:', surfaceName);
+        }
+    } catch (error) {
+        console.warn('Не удалось загрузить настройки текстуры из БД, используем дефолтные');
+    }
     
     // Пытаемся загрузить текстуру
     let texture = null;
@@ -194,20 +231,8 @@ function createBackgroundMaterial(config, size) {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         
-        // Используем коэффициент повторения из конфигурации или вычисляем по умолчанию
-        let repeats;
-        if (config.repeatFactor) {
-            repeats = size / config.repeatFactor;
-        } else {
-            // Резервная логика для старых настроек
-            switch (config.name) {
-                case 'grass':
-                case 'трава':
-                    repeats = size / 20;
-                    break;
-            }
-        }
-        
+        // Используем коэффициент повторения из БД
+        const repeats = size / textureRepeatFactor;
         texture.repeat.set(repeats, repeats);
         texture.anisotropy = 16; // Улучшает качество при наклонных углах
         texture.generateMipmaps = true;
@@ -466,5 +491,29 @@ export async function getAvailableBackgroundTypes() {
         console.error('Error getting available background types:', error);
         // При ошибке возвращаем резервные настройки
         return Object.values(BACKGROUND_TYPES);
+    }
+}
+
+/**
+ * Получает размер фона для текущей климатической зоны и поверхности
+ * @param {string} surfaceName - Название поверхности
+ * @returns {Promise<number>} Размер фона
+ */
+export async function getBackgroundSize(surfaceName = null) {
+    try {
+        const { getBackgroundSettings } = await import('../api/climate.js');
+        const backgroundSettings = await getBackgroundSettings(
+            currentClimateZone, 
+            surfaceName || getCurrentBackgroundType()
+        );
+        
+        if (backgroundSettings && backgroundSettings.backgroundSize) {
+            return backgroundSettings.backgroundSize;
+        }
+        
+        return 1000.0; // дефолтный размер
+    } catch (error) {
+        console.warn('Не удалось получить размер фона из БД:', error);
+        return 1000.0;
     }
 } 

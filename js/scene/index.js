@@ -22,7 +22,8 @@ export {
     setupCamera, 
     resetCameraView, 
     toggleTopView,
-    animateCameraMove
+    animateCameraMove,
+    updateCameraSettings
 } from './cameraManager.js';
 
 // Импортируем компоненты сетки (функции оставлены для совместимости)
@@ -50,7 +51,7 @@ export async function initScene() {
     const scene = createScene();
     
     // Создаем и настраиваем камеру
-    const { camera, controls } = setupCamera(renderer);
+    const { camera, controls } = await setupCamera(renderer);
     
     // Возвращаем компоненты для инициализации приложения
     const appComponents = { 

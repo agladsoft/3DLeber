@@ -226,3 +226,113 @@ function getDefaultRendererSettings() {
         toneMappingExposure: 0.5
     };
 }
+
+/**
+ * Получает настройки фона для конкретного покрытия из базы данных
+ * @param {string} zoneName - Название климатической зоны
+ * @param {string} surfaceName - Название поверхности
+ * @returns {Promise<Object|null>} Настройки фона или null
+ */
+export async function getBackgroundSettings(zoneName, surfaceName) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/climate/environment/${encodeURIComponent(zoneName)}`);
+        if (!response.ok) {
+            console.warn(`Background settings API not available (${response.status}), using defaults`);
+            return getDefaultBackgroundSettings();
+        }
+        const data = await response.json();
+        
+        // Ищем конкретные настройки для данной поверхности
+        const settings = data.settings.find(setting => 
+            setting.surface_display_name === surfaceName ||
+            setting.surface_display_name.toLowerCase() === surfaceName.toLowerCase()
+        );
+        
+        if (settings) {
+            return {
+                backgroundSize: parseFloat(settings.background_size) || 1000.0,
+                surfaceName: settings.surface_display_name,
+                textureRepeatFactor: parseFloat(settings.texture_repeat_factor) || 20.0
+            };
+        }
+        
+        // Если не найдено, возвращаем дефолтные настройки
+        return getDefaultBackgroundSettings();
+    } catch (error) {
+        console.error('Error fetching background settings:', error);
+        return getDefaultBackgroundSettings();
+    }
+}
+
+/**
+ * Получает дефолтные настройки фона
+ * @returns {Object} Дефолтные настройки
+ */
+function getDefaultBackgroundSettings() {
+    return {
+        backgroundSize: 1000.0,
+        textureRepeatFactor: 20.0
+    };
+}
+
+/**
+ * Получает настройки камеры для конкретной климатической зоны и выбранных настроек из базы данных
+ * @param {string} zoneName - Название климатической зоны
+ * @param {string} hdriPath - Путь к HDRI файлу
+ * @param {string} surfaceName - Название поверхности
+ * @returns {Promise<Object|null>} Настройки камеры или null
+ */
+export async function getCameraSettings(zoneName, hdriPath, surfaceName) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/climate/environment/${encodeURIComponent(zoneName)}`);
+        if (!response.ok) {
+            console.warn(`Camera settings API not available (${response.status}), using defaults`);
+            return getDefaultCameraSettings();
+        }
+        const data = await response.json();
+        
+        // Ищем конкретные настройки для данной комбинации HDRI и поверхности
+        const settings = data.settings.find(setting => 
+            setting.hdri_file_path === hdriPath &&
+            (setting.surface_display_name === surfaceName ||
+             setting.surface_display_name.toLowerCase() === surfaceName.toLowerCase())
+        );
+        
+        if (settings) {
+            return {
+                fov: parseFloat(settings.camera_fov) || 75.0,
+                near: parseFloat(settings.camera_near) || 0.1,
+                far: parseFloat(settings.camera_far) || 1000.0
+            };
+        }
+        
+        // Если точная комбинация не найдена, берем первую доступную запись для зоны
+        const fallbackSettings = data.settings[0];
+        if (fallbackSettings) {
+            console.log('Точная комбинация не найдена, используем fallback настройки камеры для зоны:', zoneName);
+            return {
+                fov: parseFloat(fallbackSettings.camera_fov) || 75.0,
+                near: parseFloat(fallbackSettings.camera_near) || 0.1,
+                far: parseFloat(fallbackSettings.camera_far) || 1000.0
+            };
+        }
+        
+        // Если не найдено, возвращаем дефолтные настройки
+        return getDefaultCameraSettings();
+    } catch (error) {
+        console.error('Error fetching camera settings:', error);
+        return getDefaultCameraSettings();
+    }
+}
+
+/**
+ * Получает дефолтные настройки камеры
+ * @returns {Object} Дефолтные настройки
+ */
+function getDefaultCameraSettings() {
+    return {
+        fov: 75.0,
+        near: 0.1,
+        far: 1000.0
+    };
+}
