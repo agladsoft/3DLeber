@@ -638,7 +638,7 @@ async function applyBackgroundChange() {
         setCurrentClimateZone(currentClimateZone);
         
         // Меняем HDRI фон
-        await setHdriBackground(selectedHdriPath);
+        await setHdriBackground(selectedHdriPath, currentClimateZone);
         // Меняем покрытие площадки
         await changeBackground(selectedSurfaceName, width, length);
         

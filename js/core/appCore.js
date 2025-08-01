@@ -46,7 +46,7 @@ export async function initializeApp() {
         ensureLoadingOverlayHidden(6000);
         
         // Инициализируем Three.js сцену, камеру и освещение
-        const sceneComponents = initScene();
+        const sceneComponents = await initScene();
         console.log('Сцена инициализирована, компоненты:', sceneComponents);
         
         // Удаляем все объекты отображения размеров из сцены

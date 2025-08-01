@@ -409,7 +409,7 @@ export async function restoreBackgroundFromSession(playgroundSettings, width, le
             localStorage.setItem('selectedHdriPath', background);
             try {
                 const { setHdriBackground } = await import('../scene/sceneCore.js');
-                await setHdriBackground(background);
+                await setHdriBackground(background, climateZone);
                 console.log('HDRI фон восстановлен:', background);
             } catch (hdriError) {
                 console.error('Ошибка при восстановлении HDRI фона:', hdriError);

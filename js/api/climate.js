@@ -182,3 +182,47 @@ export async function getClimateSettings(zoneName) {
         throw error;
     }
 }
+
+/**
+ * Получает настройки renderer'а для конкретного HDRI фона из базы данных
+ * @param {string} zoneName - Название климатической зоны
+ * @param {string} hdriPath - Путь к HDRI файлу
+ * @returns {Promise<Object|null>} Настройки renderer'а или null
+ */
+export async function getRendererSettings(zoneName, hdriPath) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/climate/environment/${encodeURIComponent(zoneName)}`);
+        if (!response.ok) {
+            console.warn(`Renderer settings API not available (${response.status}), using defaults`);
+            return getDefaultRendererSettings();
+        }
+        const data = await response.json();
+        
+        // Ищем конкретные настройки для данного HDRI
+        const settings = data.settings.find(setting => setting.hdri_file_path === hdriPath);
+        
+        if (settings) {
+            return {
+                toneMappingExposure: parseFloat(settings.tone_mapping_exposure) || 0.5,
+                hdriPath: settings.hdri_file_path,
+                hdriDisplayName: settings.hdri_display_name
+            };
+        }
+        
+        // Если не найдено, возвращаем дефолтные настройки
+        return getDefaultRendererSettings();
+    } catch (error) {
+        console.error('Error fetching renderer settings:', error);
+        return getDefaultRendererSettings();
+    }
+}
+
+/**
+ * Получает дефолтные настройки renderer'а
+ * @returns {Object} Дефолтные настройки
+ */
+function getDefaultRendererSettings() {
+    return {
+        toneMappingExposure: 0.5
+    };
+}

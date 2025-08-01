@@ -14,7 +14,9 @@ import {
     toggleTopView, 
     takeScreenshot, 
     createGrid,
-    initScene as _initScene
+    initScene as _initScene,
+    setHdriBackground,
+    updateRendererSettings
 } from './scene/index.js';
 
 // Реэкспорт всех переменных и функций для внешнего интерфейса
@@ -28,13 +30,15 @@ export {
     resetCameraView, 
     toggleTopView, 
     takeScreenshot, 
-    createGrid 
+    createGrid,
+    setHdriBackground,
+    updateRendererSettings
 };
 
 /**
  * Инициализация основных компонентов сцены
- * @returns {Object} Объект, содержащий canvas, renderer, scene, camera и controls
+ * @returns {Promise<Object>} Объект, содержащий canvas, renderer, scene, camera и controls
  */
-export function initScene() {
-    return _initScene();
+export async function initScene() {
+    return await _initScene();
 }

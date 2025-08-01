@@ -18,7 +18,7 @@ export let scene;
 /**
  * Создает и настраивает основные компоненты рендеринга - canvas и renderer
  */
-export function initializeRenderer() {
+export async function initializeRenderer() {
     // Инициализация canvas
     canvas = document.getElementById("renderCanvas");
     
@@ -42,11 +42,38 @@ export function initializeRenderer() {
     // Современные настройки для улучшения качества отображения PBR материалов
     renderer.outputColorSpace = THREE.SRGBColorSpace; // Новый API вместо outputEncoding
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // Улучшенный tone mapping
-    renderer.toneMappingExposure = 0.5; // Увеличена экспозиция для более светлых деревянных материалов
+    renderer.toneMappingExposure = 0.5; // Дефолтная экспозиция
+    
+    // Применяем настройки из БД если доступны
+    await applyRendererSettingsFromDB();
     
     console.log('Рендерер настроен для улучшенного отображения PBR материалов');
     
     return renderer;
+}
+
+/**
+ * Применяет настройки renderer'а из базы данных при инициализации
+ */
+async function applyRendererSettingsFromDB() {
+    try {
+        const climateZone = localStorage.getItem('selectedClimateZone') || 'russia_cis';
+        const hdriPath = localStorage.getItem('selectedHdriPath') || 'textures/hdri/autumn_park_4k.exr';
+        
+        const { getRendererSettings } = await import('../api/climate.js');
+        const settings = await getRendererSettings(climateZone, hdriPath);
+        
+        if (settings && settings.toneMappingExposure !== undefined) {
+            renderer.toneMappingExposure = settings.toneMappingExposure;
+            console.log('🎨 Применены настройки renderer из БД при инициализации:', {
+                toneMappingExposure: settings.toneMappingExposure,
+                climateZone,
+                hdri: hdriPath
+            });
+        }
+    } catch (error) {
+        console.warn('Не удалось загрузить настройки renderer из БД при инициализации:', error);
+    }
 }
 
 /**
@@ -137,8 +164,9 @@ function createLighting() {
 /**
  * Устанавливает HDRI-фон по указанному пути
  * @param {string} hdriPath - путь к .exr файлу
+ * @param {string} [climateZone] - климатическая зона для загрузки настроек из БД
  */
-export function setHdriBackground(hdriPath) {
+export async function setHdriBackground(hdriPath, climateZone = null) {
     if (!renderer) {
         console.error('Renderer не инициализирован');
         return;
@@ -146,6 +174,24 @@ export function setHdriBackground(hdriPath) {
     
     // Показываем сообщение о загрузке HDRI
     console.log('🌅 Загружаем HDRI environment map:', hdriPath);
+    
+    // Загружаем настройки renderer'а из БД если указана климатическая зона
+    if (climateZone) {
+        try {
+            const { getRendererSettings } = await import('../api/climate.js');
+            const settings = await getRendererSettings(climateZone, hdriPath);
+            
+            if (settings && settings.toneMappingExposure !== undefined) {
+                renderer.toneMappingExposure = settings.toneMappingExposure;
+                console.log('🎨 Применены настройки renderer из БД:', {
+                    toneMappingExposure: settings.toneMappingExposure,
+                    hdri: settings.hdriDisplayName || hdriPath
+                });
+            }
+        } catch (error) {
+            console.warn('Не удалось загрузить настройки renderer из БД:', error);
+        }
+    }
     
     const exrLoader = new EXRLoader();
     const pmremGenerator = new PMREMGenerator(renderer);
@@ -182,7 +228,8 @@ export function setHdriBackground(hdriPath) {
 
 // createEXRBackground теперь вызывает setHdriBackground с дефолтным путем
 function createEXRBackground() {
-    setHdriBackground('textures/hdri/autumn_park_4k.exr');
+    const defaultClimateZone = localStorage.getItem('selectedClimateZone') || 'russia_cis';
+    setHdriBackground('textures/hdri/autumn_park_4k.exr', defaultClimateZone);
 }
 
 /**
@@ -239,4 +286,37 @@ export function setupResizeHandler(renderer, camera) {
             camera.updateProjectionMatrix();
         }
     });
+}
+
+/**
+ * Обновляет настройки renderer'а из базы данных
+ * @param {string} climateZone - Климатическая зона
+ * @param {string} hdriPath - Путь к HDRI файлу
+ * @returns {Promise<boolean>} true если настройки были применены, false если нет
+ */
+export async function updateRendererSettings(climateZone, hdriPath) {
+    if (!renderer) {
+        console.warn('Renderer не инициализирован, невозможно обновить настройки');
+        return false;
+    }
+    
+    try {
+        const { getRendererSettings } = await import('../api/climate.js');
+        const settings = await getRendererSettings(climateZone, hdriPath);
+        
+        if (settings && settings.toneMappingExposure !== undefined) {
+            renderer.toneMappingExposure = settings.toneMappingExposure;
+            console.log('🎨 Обновлены настройки renderer:', {
+                toneMappingExposure: settings.toneMappingExposure,
+                climateZone,
+                hdri: settings.hdriDisplayName || hdriPath
+            });
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.warn('Не удалось обновить настройки renderer:', error);
+        return false;
+    }
 }

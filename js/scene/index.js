@@ -9,7 +9,9 @@ export {
     scene, 
     initializeRenderer, 
     createScene,
-    setupResizeHandler
+    setupResizeHandler,
+    setHdriBackground,
+    updateRendererSettings
 } from './sceneCore.js';
 
 // Импортируем компоненты камеры
@@ -36,13 +38,13 @@ import { canvas } from './sceneCore.js';
 
 /**
  * Инициализация основных компонентов сцены
- * @returns {Object} Объект, содержащий canvas, renderer, scene, camera и controls
+ * @returns {Promise<Object>} Объект, содержащий canvas, renderer, scene, camera и controls
  */
-export function initScene() {
+export async function initScene() {
     console.log("Инициализация компонентов сцены");
     
     // Инициализируем рендерер
-    const renderer = initializeRenderer();
+    const renderer = await initializeRenderer();
     
     // Создаем сцену
     const scene = createScene();
